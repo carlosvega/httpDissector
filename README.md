@@ -39,7 +39,7 @@ sudo yum install kernel-devel kernel-headers make gcc glib2-devel libpcacp-devel
 I have created an installer. These are the instructions:
 
 1. Check if you fulfill the dependencies requirements at the depenencies chapter above.
-2. You just need to download installer.7z (7z have a really high compression ratio, you must try it!)
+2. You just need to download the project
 3. Uncompress it
 4. make
 5. ./hope and follow the instructions
