@@ -561,9 +561,9 @@ int main(int argc, char *argv[]){
 	}
 
 	if(options.filter != NULL){
-		filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 4)*sizeof(char));
+		filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 6)*sizeof(char));
 		strcat(filter, " and ");
-		strcat(filter, argv[2]);
+		strcat(filter, options.filter);
 	}
 
 	if(options.output != NULL){
@@ -588,7 +588,7 @@ int main(int argc, char *argv[]){
 			int i=0;
 			fprintf(stderr, "Total Files: %d\n", nfiles);
 			for(i=0; i<nfiles; i++){
-				fprintf(stderr, "Current File: %s|\n", files[i]);
+				fprintf(stderr, "(%d/%d) Current File: %s\n", i, nfiles, files[i]);
 				int pid = fork();
 				if(pid == 0){ 			//CHILD
 					main_process(format, fp, files[i]);
@@ -739,8 +739,8 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	// destruimos el hilo
 
 	if(options.interface == NULL){
-	  	g_thread_join(progreso);
-	  	g_thread_unref (progreso);
+	  	// g_thread_join(progreso);
+	  	// g_thread_unref (progreso);
   	}
   	
 	//g_hash_table_foreach(table, print_foreach, NULL);
@@ -750,10 +750,10 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	// g_mutex_clear(table_mutex);
 
 	// table_mutex = NULL;
-	recolector =  NULL;
-	progreso =  NULL;
-	table = NULL;
-	ndldata = NULL;
+	// recolector =  NULL;
+	// progreso =  NULL;
+	// table = NULL;
+	// ndldata = NULL;
 
 	return 0;
 }

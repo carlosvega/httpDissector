@@ -131,7 +131,7 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 		return -1;
 		
 	http_alloc(http_t);
-	int no_data = 0;
+	int no_data = 0, ret = 0;
 	char *aux_hdr = NULL;
 	struct _internal_http_packet *http = *http_t;
 	http->headers = NULL;
@@ -151,11 +151,16 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 	strncpy(cadena, tcp_payload, length);
 
 	if(http->op != RESPONSE){
+		
 		//fprintf(stderr, "HTTP: |%s|\n", cadena);
 		//int ret  = sscanf(cadena, "%32s %2048s %32s\r\nHost: %256s\r\n", http->method, http->uri, http->version, http->host);
-		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
-		
-		int ret = http_parse_headers(&http, cadena, length);
+		ret = sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
+		// if(ret != 3){
+		// 	free(cadena);
+		// 	return -1;
+		// }
+		ret = 0;
+		ret = http_parse_headers(&http, cadena, length);
 		if(ret >= 0){
 			char * caca = find("Host", http->headers->fields);
 			memset(http->host, 0, 256);
@@ -164,10 +169,14 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 		  	}
 		}
 		
-		
 	}else{
+		ret = -2;
 		strcpy(http->method, "RESPONSE");
-		sscanf(cadena, "%32s %d %[^\r]\r\n", http->version, &http->response_code, http->response_msg);
+		ret = sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
+		// if(ret != 3){
+		// 	free(cadena);
+		// 	return -1;
+		// }
 		char *hdr = strstr(cadena, "\r\n");
 		if(hdr == NULL){ 
 			free(cadena);
