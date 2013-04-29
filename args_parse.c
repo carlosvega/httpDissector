@@ -14,7 +14,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
-  fprintf(stderr, "\t-I  --input-files\t\tThe input file is a list of files\n");
+  fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode\n\n");
 
 
