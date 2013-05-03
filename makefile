@@ -3,7 +3,7 @@ CC = gcc -g -O3 -Wall
 COLOURFLAGS = -D _colours
 LDFLAGS		= 
 
-GLIB =  `pkg-config --cflags --libs glib-2.0`
+GLIB =  `pkg-config --cflags --libs glib-2.0`  -L/usr/lib 
 
 #PCAP_CFLAGS	= -I/usr/include/pcap
 PCAPLIB		= -lpcap
