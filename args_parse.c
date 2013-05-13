@@ -11,6 +11,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
+  fprintf(stderr, "\t    --log\t\t\tWrites debug stuff in the log (httpDissector)\n");
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
@@ -52,6 +53,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.url         = NULL;
   options.raw         = -1;
   options.rrd         = 0;
+  options.log         = 0;
   options.twolines    = 0;
   options.files       = 0;
   options.err         = -1;
@@ -73,6 +75,7 @@ struct args_parse parse_args(int argc, char **argv){
 		{ "output",         1,  NULL,   'o'},
 		{ "raw",		        0, 	NULL, 	'r'},
     { "no-collector",   0,  NULL,   'C'},
+    { "log",            0,  NULL,   'L'},
 		{ "pcap",			      0, 	NULL, 	'p'},
 		{ "input",		      1, 	NULL, 	'i'},
     { "capture",        1,  NULL,   'c'},
@@ -157,6 +160,10 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'C' :
           options.collector = 0;
+          break;
+
+        case 'L' :
+          options.log = 1;
           break;
 
         case '?' : /* opción no valida */

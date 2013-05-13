@@ -12,6 +12,8 @@ GThread *recolector =  NULL;
 GThread *progreso =  NULL;
 GHashTable *table = NULL;
 
+struct rusage* memory = NULL;
+
 unsigned long long parse_time = 0;
 unsigned long long insert_time = 0;
 unsigned long long inserts = 0;
@@ -43,9 +45,9 @@ void sigintHandler(int signal){
 	free(filter);
 	fclose(pcapfile);
 	fprintf(stderr,"\n\n");
-	fprintf(stderr, "TOTAL PACKETS: %ld TOTAL PARSE TIME: %lld AVG. PARSE TIME: %lld \n", packets, parse_time, parse_time/packets);
-	fprintf(stderr, "TOTAL INSERTS: %lld TOTAL INSERT TIME: %lld AVG. INSERT TIME: %lld \n", inserts, insert_time, insert_time/inserts);
-	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", (((long double)lost) / requests)*100);
+	fprintf(stderr, "TOTAL PACKETS: %ld TOTAL PARSE TIME: %lld AVG. PARSE TIME: %lld \n", packets, parse_time, packets == 0 ? 0 : parse_time/packets);
+	fprintf(stderr, "TOTAL INSERTS: %lld TOTAL INSERT TIME: %lld AVG. INSERT TIME: %lld \n", inserts, insert_time, inserts == 0 ? 0 : insert_time/inserts);
+	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", requests == 0 ? 0 : (((long double)lost) / requests)*100);
 
 	exit(0);
 }
@@ -127,8 +129,24 @@ void loadBar(unsigned long x, unsigned long n, unsigned long r, int w)
   	timersub(&aux_exec, &start, &elapsed);
   	//my_time = gmtime(&elapsed.tv_sec);
   	//strftime(elapsed_time, 30, "%H:%M:%S", my_time);
-  	fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60);
- 
+  	// fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60);
+
+  	
+	fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld) Read Speed: %ld MB/s", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
+	
+	if(options.log){
+		syslog (LOG_NOTICE, "SPEED %ld\t%ld", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
+
+    	getrusage(RUSAGE_SELF, memory);
+		if(errno == EFAULT){
+		    syslog (LOG_NOTICE, "MEM Error: EFAULT\n");
+		}else if(errno == EINVAL){
+		    syslog (LOG_NOTICE, "MEM Error: EINVAL\n");
+		}else{
+			syslog (LOG_NOTICE, "MEM %ld\t%ld", elapsed.tv_sec, memory->ru_maxrss);
+		}
+	}
+
     // ANSI Control codes to go back to the
     // previous line and clear it.
     fprintf(stderr, "\n\033[F");
@@ -138,10 +156,16 @@ void loadBar(unsigned long x, unsigned long n, unsigned long r, int w)
 
 GThreadFunc barra_de_progreso(){
   
+  static long sleeptime = 5000000;
+
   if(options.raw == 1){
   	pcapfile = ndldata->traceFile.fh;
   }else{
   	pcapfile = pcap_file(ndldata->traceFile.ph);
+  }
+
+  if(options.log){
+		sleeptime = 2000000;
   }
 
   static unsigned long pcap_position = 0;
@@ -149,7 +173,7 @@ GThreadFunc barra_de_progreso(){
 		pcap_position = ftell(pcapfile);
 		if(pcap_position == -1L) break;
 		loadBar(pcap_position, pcap_size, pcap_size, 40);
-		usleep(5000000);
+		usleep(sleeptime);
 	}
 	
 	return NULL;
@@ -620,6 +644,21 @@ int main(int argc, char *argv[]){
 
 int main_process(char *format, struct bpf_program fp, char *filename){
 
+	if(options.log){
+		if(options.interface != NULL){
+			options.log = 0;
+		}else{
+			setlogmask (LOG_UPTO (LOG_NOTICE));
+     		openlog ("httpDissector", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+	    	syslog (LOG_NOTICE, "Log started by process: %d", getpid());
+	    	syslog (LOG_NOTICE, "Reading file: %s", filename);
+	    	syslog (LOG_NOTICE, "SPEED secs\tspeed");
+	    	syslog (LOG_NOTICE, "MEM secs\tmemory");
+	    	memory = malloc(sizeof(struct rusage));
+    	}
+	}
+
+
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t *handle = NULL;
 
@@ -627,6 +666,9 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 		pcapfile = fopen(filename, "r");
 		if(pcapfile == NULL){
 			fprintf(stderr, "ERROR TRYING TO OPEN THE INPUT FILE |%s|\n", filename);
+			if(options.log){
+				closelog ();
+			}
 			return -2;
 		}
 
@@ -647,31 +689,43 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n%s", errbuf, filename);
 			fprintf(stderr, "%s\n%s\n%s\n%d\n", filename, options.output, options.filter, options.raw);
 			free(filter);
+			// if(options.log){
+			// 	closelog ();
+			// }
 			return -1;
 		}
 	}else{
 		handle = pcap_open_live(options.interface, SNAPLEN, PROMISC, to_MS, errbuf);
 		if(handle == NULL){
 			fprintf(stderr, "Couldn't open device %s: %s\n", options.interface, errbuf);
+		 // 	if(options.log){
+			// 	closelog ();
+			// }
 		 	return -2;
 		}
 
 		if(pcap_compile(handle, &fp, filter, 1, 0) == -1){
 			fprintf(stderr, "Couldn't parse filter, %s\n|%s|", pcap_geterr(handle), filter);
 			fclose(pcapfile);
+			// if(options.log){
+			// 	closelog ();
+			// }
 			return -3;
 		}
 
 		if(pcap_setfilter(handle, &fp) == -1){
 			fprintf(stderr, "Couldn't install filter, %s\n", pcap_geterr(handle));
 			fclose(pcapfile);
+			// if(options.log){
+			// 	closelog ();
+			// }
 			return -4;
 		}
 	}
 
 	//inicializamos el soporte para hilos en glib
 	//g_thread_supported() is actually a macro
-	if (!g_thread_supported ()) g_thread_init (NULL);
+//	if (!g_thread_supported ()) g_thread_init (NULL);
 	//g_assert (table_mutex == NULL);
    	// table_mutex = g_mutex_new ();
    	//g_mutex_init(table_mutex);
@@ -681,6 +735,9 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	if(table == NULL){
 		fprintf(stderr, "Error al crear tabla hash.");
 		fclose(pcapfile);
+		// if(options.log){
+		// 	closelog ();
+		// }
 		return -5;
 	}
 
@@ -730,9 +787,9 @@ int main_process(char *format, struct bpf_program fp, char *filename){
   	}
 
 	fprintf(stderr,"\n\n");
-	fprintf(stderr, "TOTAL PACKETS: %ld TOTAL PARSE TIME: %lld AVG. PARSE TIME: %lld \n", packets, parse_time, parse_time/packets);
-	fprintf(stderr, "TOTAL INSERTS: %lld TOTAL INSERT TIME: %lld AVG. INSERT TIME: %lld \n", inserts, insert_time, insert_time/inserts);
-	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", (((long double)lost) / requests)*100);	
+	fprintf(stderr, "TOTAL PACKETS: %ld TOTAL PARSE TIME: %lld AVG. PARSE TIME: %lld \n", packets, parse_time, packets == 0 ? 0 : parse_time/packets);
+	fprintf(stderr, "TOTAL INSERTS: %lld TOTAL INSERT TIME: %lld AVG. INSERT TIME: %lld \n", inserts, insert_time, inserts == 0 ? 0 : insert_time/inserts);
+	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", requests == 0 ? 0 : (((long double)lost) / requests)*100);
 	fprintf(stderr, "TOTAL pcap_loop time: %ld\n", pcap_loop);
 	//kill(getpid(), SIGALRM);
 
@@ -754,6 +811,10 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	// progreso =  NULL;
 	// table = NULL;
 	// ndldata = NULL;
+
+	// if(options.log){
+	// 	closelog ();
+	// }
 
 	return 0;
 }

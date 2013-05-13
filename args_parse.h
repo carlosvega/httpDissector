@@ -17,6 +17,7 @@ struct args_parse{
 	short verbose;
 	short twolines;
 	short files;
+	short log;
 	char *output;
 	char *input;
 	char *filter;

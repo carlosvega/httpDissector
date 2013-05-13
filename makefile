@@ -1,9 +1,23 @@
-CC = gcc -g -O3 -Wall
+CC = gcc -O3 -Wall
 #CFLAGS		= -g -O2 -D_BSD_SOURCE 
 COLOURFLAGS = -D _colours
 LDFLAGS		= 
 
-GLIB =  `pkg-config --cflags --libs glib-2.0`  -L/usr/lib 
+#GLIB =  `pkg-config --cflags --libs glib-2.0`  -L/usr/lib 
+
+
+#GOBJECT = `pkg-config --cflags gobject-2.0`
+
+-DG_DISABLE_DEPRECATED=1
+
+GLIBs   = `pkg-config  --libs glib-2.0`
+GLIBcf  = `pkg-config  --cflags glib-2.0`
+
+GTHREAD = `pkg-config --libs gthread-2.0`
+GTHREADcf = `pkg-config --cflags gthread-2.0`
+
+GLIBcflags = $(GLIBcf) $(GTHREADcf)
+GLIBlink = $(GLIBs) $(GTHREAD)
 
 #PCAP_CFLAGS	= -I/usr/include/pcap
 PCAPLIB		= -lpcap
@@ -27,8 +41,8 @@ http.o: http.c
 tools.o: tools.c
 	$(CC) -c tools.c -o tools.o
 hope: hope.c tslist.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
-	$(CC) -pthread -c $(CFLAGS) hope.c -o hope.o $(PCAPLIB) $(GLIB)
-	$(CC) -pthread hope.o args_parse.o NDleeTrazas.o tslist.o tools.o http.o alist.o  -o hope $(PCAPLIB) $(GLIB)
+	$(CC)  -c $(CFLAGS) hope.c -o hope.o $(GLIBcflags)
+	$(CC)  hope.o args_parse.o NDleeTrazas.o tslist.o tools.o http.o alist.o  -o hope $(PCAPLIB) $(GLIBlink)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
