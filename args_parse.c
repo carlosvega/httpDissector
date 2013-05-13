@@ -20,8 +20,9 @@ void how_to_use(char *name){
 
   fprintf(stderr, "\t\t\t\tOUTPUT FORMAT DETAILS\n");
   fprintf(stderr, "Default output\n");
-  fprintf(stderr, "\tSourceIP SourcePort DestIP DestPort ReqTS ResTS Diff ResponseMSG ResponseCode URL\n");
-  fprintf(stderr, "\t*SourceIP is the requester IP\n\n");
+  fprintf(stderr, "\tSourceIP|SourcePort|DestIP|DestPort|ReqTS|ResTS|Diff|ResponseMSG|ResponseCode|URL\n");
+  fprintf(stderr, "\t*SourceIP is the requester IP\n");
+  fprintf(stderr, "\t*The vertical bar ( | ) has been chosen as the separator character instead of the blank space due to the blank spaces inside the HTTP response message.\n\t It's faster than replace the blank spaces of the messages by low dashes in each message.\n\t It would take a lot of CPU time.\n\n");
 
   fprintf(stderr, "Two lines output\n");
   fprintf(stderr, "\tReqMethod<TAB>SourceIP:SourcePort<TAB>==><TAB>DestIP:DestPort<TAB>TS URL\n");
