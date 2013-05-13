@@ -1,6 +1,10 @@
 #ifndef _hope
 #define _hope
 
+#include <sys/resource.h>
+#include <errno.h>
+
+#include <syslog.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
