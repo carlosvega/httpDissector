@@ -761,7 +761,6 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	if(options.collector){
 		if (!GLIB_CHECK_VERSION (2, 32, 0)){
 			recolector = g_thread_create( (GThreadFunc)recolector_de_basura, NULL , TRUE, NULL);
-			fprintf(stderr, "YOU ARE USING A NON UPDATED GLIB\n");
 		}else{
 			recolector = g_thread_new("recolector de basura", (GThreadFunc)recolector_de_basura, NULL);
 		}
