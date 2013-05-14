@@ -43,7 +43,9 @@ void sigintHandler(int signal){
 	// g_hash_table_destroy(table);
 	// // g_mutex_clear(table_mutex);
 	free(filter);
-	fclose(pcapfile);
+	if(options.interface == NULL)
+		fclose(pcapfile);
+
 	fprintf(stderr,"\n\n");
 	fprintf(stderr, "TOTAL PACKETS: %ld TOTAL PARSE TIME: %lld AVG. PARSE TIME: %lld \n", packets, parse_time, packets == 0 ? 0 : parse_time/packets);
 	fprintf(stderr, "TOTAL INSERTS: %lld TOTAL INSERT TIME: %lld AVG. INSERT TIME: %lld \n", inserts, insert_time, inserts == 0 ? 0 : insert_time/inserts);
@@ -560,6 +562,16 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 
 int main(int argc, char *argv[]){
 
+	if(glib_check_version(2, 32, 0) != NULL){
+		fprintf(stderr, "Your GLIB version is: %d.%d%d\n", glib_major_version, glib_minor_version,  glib_micro_version);
+		fprintf(stderr, "You are still able to continue the execution of this program but we strongly recommend upgrading the library.\n");
+	}else if(glib_check_version(2, 18, 0) != NULL){
+		fprintf(stderr, "YOUR GLIB VERSION IS: %d.%d.%d\n", glib_major_version, glib_minor_version,  glib_micro_version);
+		fprintf(stderr, "THE MIN. VERSION REQUIRED TO WORK IS: 2.18.0\n");
+		return 0;
+	}
+	
+
 	char format[8] = {0};
 	struct bpf_program fp;
 
@@ -725,7 +737,9 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 
 	//inicializamos el soporte para hilos en glib
 	//g_thread_supported() is actually a macro
-//	if (!g_thread_supported ()) g_thread_init (NULL);
+	if(!GLIB_CHECK_VERSION (2, 32, 0)){
+		if (!g_thread_supported ()) g_thread_init (NULL);
+	}
 	//g_assert (table_mutex == NULL);
    	// table_mutex = g_mutex_new ();
    	//g_mutex_init(table_mutex);
@@ -745,14 +759,23 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 
 	//RECOLECTOR
 	if(options.collector){
-		recolector = g_thread_new("recolector de basura", (GThreadFunc)recolector_de_basura, NULL);
+		if (!GLIB_CHECK_VERSION (2, 32, 0)){
+			recolector = g_thread_create( (GThreadFunc)recolector_de_basura, NULL , TRUE, NULL);
+			fprintf(stderr, "YOU ARE USING A NON UPDATED GLIB\n");
+		}else{
+			recolector = g_thread_new("recolector de basura", (GThreadFunc)recolector_de_basura, NULL);
+		}
 	}
 	
 	gettimeofday(&start, NULL);
 
 	//BARRA DE PROGRESO
 	if(options.interface == NULL){
-		progreso = g_thread_new("barra de progreso", (GThreadFunc)barra_de_progreso, NULL);
+		if (!GLIB_CHECK_VERSION (2, 32, 0)){
+			progreso = g_thread_create( (GThreadFunc)barra_de_progreso, NULL , TRUE, NULL);
+		}else{
+			progreso = g_thread_new("barra de progreso", (GThreadFunc)barra_de_progreso, NULL);
+		}
 	}
 
 	signal(SIGINT, sigintHandler);
@@ -778,7 +801,9 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 
 	if(options.collector){
 		g_thread_join(recolector);
-		g_thread_unref (recolector);
+		if (GLIB_CHECK_VERSION (2, 32, 0)){
+			g_thread_unref (recolector);
+		}
   	}
 
   	if(options.interface == NULL){
