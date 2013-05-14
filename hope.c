@@ -563,7 +563,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 int main(int argc, char *argv[]){
 
 	if(glib_check_version(2, 32, 0) != NULL){
-		fprintf(stderr, "Your GLIB version is: %d.%d%d\n", glib_major_version, glib_minor_version,  glib_micro_version);
+		fprintf(stderr, "Your GLIB version is: %d.%d.%d\n", glib_major_version, glib_minor_version,  glib_micro_version);
 		fprintf(stderr, "You are still able to continue the execution of this program but we strongly recommend upgrading the library.\n");
 	}else if(glib_check_version(2, 18, 0) != NULL){
 		fprintf(stderr, "YOUR GLIB VERSION IS: %d.%d.%d\n", glib_major_version, glib_minor_version,  glib_micro_version);
