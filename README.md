@@ -38,7 +38,6 @@ If you want the shell line to install these packets use this one:
 sudo yum install kernel-devel kernel-headers make gcc glib2-devel libpcacp-devel
 
 ## Installation
-I have created an installer. These are the instructions:
 
 1. Check if you fulfill the dependencies requirements at the depenencies chapter above.
 2. You just need to download the project
