@@ -4,12 +4,11 @@
 #define SIZE_ETHERNET 14
 #define ADDR_CONST 16
 
-typedef struct _pkt_info
-{
-	struct sniff_ethernet *ethernet; /* The ethernet header */
-	struct sniff_ip *ip; /* The IP header */
-	struct sniff_tcp *tcp; /* The TCP header */
-	u_char *payload; /* Packet payload */
+typedef struct _pkt_info{
+	struct sniff_ethernet *ethernet;// The ethernet header
+	struct sniff_ip *ip;            // The IP header
+	struct sniff_tcp *tcp;          // The TCP header
+	u_char *payload;                // Packet payload
 	u_int size_ip;
 	u_int size_tcp;
 	u_int size_payload;

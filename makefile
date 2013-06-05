@@ -17,7 +17,7 @@ GTHREAD = `pkg-config --libs gthread-2.0`
 GTHREADcf = `pkg-config --cflags gthread-2.0`
 
 GLIBcflags = $(GLIBcf) $(GTHREADcf)
-GLIBlink = $(GLIBs) $(GTHREAD)
+GLIBlink = -L /usr/lib/ $(GLIBs) $(GTHREAD)
 
 #PCAP_CFLAGS	= -I/usr/include/pcap
 PCAPLIB		= -lpcap
@@ -30,7 +30,7 @@ LNETLIB		= libnet-1.1.6/src/.libs/libnet.a
 LIBS_SRC	= libnids-1.24/src/libnids.a
 LIBS		= $(PCAPLIB) $(LNETLIB) -lgthread-2.0 
 
-all: hope
+all: httpDissector
 
 alist.o: alist.c
 	$(CC) -c alist.c -o alist.o
@@ -40,9 +40,9 @@ http.o: http.c
 	$(CC) -c http.c -o http.o
 tools.o: tools.c
 	$(CC) -c tools.c -o tools.o
-hope: hope.c tslist.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
-	$(CC)  -c $(CFLAGS) hope.c -o hope.o $(GLIBcflags)
-	$(CC)  hope.o args_parse.o NDleeTrazas.o tslist.o tools.o http.o alist.o  -o hope $(PCAPLIB) $(GLIBlink)
+httpDissector: httpDissector.c tslist.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
+	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o $(GLIBcflags) 
+	$(CC)  httpDissector.o args_parse.o NDleeTrazas.o tslist.o tools.o http.o alist.o  -o httpDissector $(PCAPLIB) $(GLIBlink)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
@@ -51,4 +51,4 @@ prueba: NDleeTrazas.o args_parse.o
 	$(CC) -c prueba.c -o prueba.o
 	$(CC) prueba.o args_parse.o NDleeTrazas.o -o prueba $(PCAPLIB)
 clean:	
-	rm -f *.o tslist alist tools tslist args_parse http hope NDleeTrazas
+	rm -f *.o tslist alist tools tslist args_parse http httpDissector NDleeTrazas
