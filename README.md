@@ -25,6 +25,8 @@ If you use __Fedora__ you need make sure these packets are installed:
 If you use __Ubuntu__ you need make sure these packets are installed:
 - libpcap-dev
 - libglib2.0-dev
+
+If "libglib" is not found you can install gtk2 or libgtk2.0-dev that include glib as a dependency.
  
 Dependency tree
 
@@ -52,11 +54,15 @@ I have created an installer. These are the instructions:
  - The request/response pair is freed right after the response comes
  - Discards the response's data (Memory Optimization)
  - Prints timestamps in UTC
- - Various output format. Two-lines, one line and RRD format. Now print Response message and code.
+ - Added some output formats. Two-lines, one line and RRD format. Now print Response message and code.
  - Added file of files option
+ - Added log option for memory and read speed information.
+ - At the end of each file the speed in packets/sec is printed
+ - Added packets/sec info to the log
 
 ### Problems to solve
 
+ - multicore version
 
 ### To do
 
