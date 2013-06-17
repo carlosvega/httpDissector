@@ -28,15 +28,29 @@ int main_process(char *format, struct bpf_program fp, char *filename);
 void sigintHandler(int signal){
 
 	running = 0;
+	struct timeval end;
+	gettimeofday(&end, NULL);
+
+
+	fprintf(stderr, "\n\nSkipping, wait...\n");
 
 	free(filter);
-	if(options.interface == NULL)
+	if(options.interface == NULL){
 		fclose(pcapfile);
+		g_thread_join(progreso);
+	}	
 
 	fprintf(stderr,"\n\n");
-	fprintf(stderr, "TOTAL PACKETS: %ld TOTAL PARSE TIME: %lld AVG. PARSE TIME: %lld \n", packets, parse_time, packets == 0 ? 0 : parse_time/packets);
-	fprintf(stderr, "TOTAL INSERTS: %lld TOTAL INSERT TIME: %lld AVG. INSERT TIME: %lld \n", inserts, insert_time, inserts == 0 ? 0 : insert_time/inserts);
-	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", requests == 0 ? 0 : (((long double)lost) / requests)*100);
+	fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
+
+	long elapsed = end.tv_sec - start.tv_sec;
+
+	if(elapsed != 0){
+		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
+		if(options.log){
+			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
+		}
+	}
 
 	exit(0);
 }
@@ -83,7 +97,7 @@ GThreadFunc recolector_de_basura(){
 	return NULL;
 }
 
-void loadBar(unsigned long x, unsigned long n, unsigned long r, int w)
+void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, int w)
 {
  
   struct timeval aux_exec;
@@ -113,10 +127,9 @@ void loadBar(unsigned long x, unsigned long n, unsigned long r, int w)
    	gettimeofday(&aux_exec, NULL);  
   	timersub(&aux_exec, &start, &elapsed);
   	
-	fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld) Read Speed: %ld MB/s", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
-	
+	fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\tFile: (%d/%d)", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ndldata->contFiles, ndldata->nFiles);
 	if(options.log){
-		syslog (LOG_NOTICE, "SPEED %ld\t%ld", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
+		syslog (LOG_NOTICE, "SPEED %ld\t%lld", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
 
     	getrusage(RUSAGE_SELF, memory);
 		if(errno == EFAULT){
@@ -137,25 +150,16 @@ void loadBar(unsigned long x, unsigned long n, unsigned long r, int w)
 
 GThreadFunc barra_de_progreso(){
   
-  static long sleeptime = 5000000;
-
-  if(options.raw == 1){
-  	pcapfile = ndldata->traceFile.fh;
-  }else{
-  	pcapfile = pcap_file(ndldata->traceFile.ph);
-  }
+  static long sleeptime = 2000000;
 
   if(options.log){
 		sleeptime = 2000000;
   }
 
-  static unsigned long pcap_position = 0;
-	while(running){
-		pcap_position = ftell(pcapfile);
-		if(pcap_position == -1L) break;
-		loadBar(pcap_position, pcap_size, pcap_size, 40);
-		usleep(sleeptime);
-	}
+  	while(running){
+  		loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+  		usleep(sleeptime);
+  	}
 	
 	return NULL;
 }
@@ -574,40 +578,42 @@ int main(int argc, char *argv[]){
 		output = stdout;
 	}
 
-	if(options.files){
-		unsigned int nfiles = 0;
-		char **files = NULL;
-		files = parse_list_of_files(options.input, &nfiles);
-		if(files == NULL){
-			free(filter);
-			return 0;
-		}else{
-			int i=0;
-			fprintf(stderr, "Total Files: %d\n", nfiles);
-			for(i=0; i<nfiles; i++){
-				fprintf(stderr, "(%d/%d) Current File: %s\n", i, nfiles, files[i]);
-				int pid = fork();
-				if(pid == 0){ 			//CHILD
-					main_process(format, fp, files[i]);
-					int j=0;
-					for(j=i; j<nfiles; j++){
-						free(files[j]);
-					}
-					free(files);
-					free(filter);
-					return 0;
-				}else if(pid == -1){ 	//ERROR
-					fprintf(stderr, "ERROR ON FORK\n");
-				}else{ 					//PARENT
-					waitpid(pid, NULL, 0);
-				}
-				free(files[i]);
-			}
-			free(files);
-		}
-	}else{
-		main_process(format, fp, options.input);
-	}
+	// if(options.files){
+	// 	unsigned int nfiles = 0;
+	// 	char **files = NULL;
+	// 	files = parse_list_of_files(options.input, &nfiles);
+	// 	if(files == NULL){
+	// 		free(filter);
+	// 		return 0;
+	// 	}else{
+	// 		int i=0;
+	// 		fprintf(stderr, "Total Files: %d\n", nfiles);
+	// 		for(i=0; i<nfiles; i++){
+	// 			fprintf(stderr, "(%d/%d) Current File: %s\n", i, nfiles, files[i]);
+	// 			int pid = fork();
+	// 			if(pid == 0){ 			//CHILD
+	// 				main_process(format, fp, files[i]);
+	// 				int j=0;
+	// 				for(j=i; j<nfiles; j++){
+	// 					free(files[j]);
+	// 				}
+	// 				free(files);
+	// 				free(filter);
+	// 				return 0;
+	// 			}else if(pid == -1){ 	//ERROR
+	// 				fprintf(stderr, "ERROR ON FORK\n");
+	// 			}else{ 					//PARENT
+	// 				waitpid(pid, NULL, 0);
+	// 			}
+	// 			free(files[i]);
+	// 		}
+	// 		free(files);
+	// 	}
+	// }else{
+	// 	main_process(format, fp, options.input);
+	// }
+
+	main_process(format, fp, options.input);
 	
 	free(filter);
 
@@ -645,18 +651,22 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 			return -2;
 		}
 
-		struct timeval t, t2;  
-		gettimeofday(&t, NULL);
-		fseek(pcapfile, 0L, SEEK_END);
-		gettimeofday(&t2, NULL);
-		pcap_size = ftell(pcapfile);
-		rewind(pcapfile); 
-		fclose(pcapfile);
+		// struct timeval t, t2;  
+		// gettimeofday(&t, NULL);
+		// fseek(pcapfile, 0L, SEEK_END);
+		// gettimeofday(&t2, NULL);
+		// pcap_size = ftell(pcapfile);
+		// rewind(pcapfile); 
+		// fclose(pcapfile);
 
-		long microsegundos = ((t2.tv_usec - t.tv_usec)  + ((t2.tv_sec - t.tv_sec) * 1000000.0f));
-	  	fprintf(stderr, "SIZE: %ld, Time: (%ld)\n", pcap_size, microsegundos);
+		// long microsegundos = ((t2.tv_usec - t.tv_usec)  + ((t2.tv_sec - t.tv_sec) * 1000000.0f));
+	 //  	fprintf(stderr, "SIZE: %ld, Time: (%ld)\n", pcap_size, microsegundos);
 
-		ndldata = NDLTabrirTraza(filename, format, filter, 0, errbuf);
+	  	if(options.files){
+			ndldata = NDLTabrirTraza(filename, format, filter, 1, errbuf);
+		}else{
+			ndldata = NDLTabrirTraza(filename, format, filter, 0, errbuf);
+		}
 		
 		if(ndldata == NULL){
 			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n%s", errbuf, filename);
@@ -709,7 +719,9 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 		}
 	}
 	
+	
 	gettimeofday(&start, NULL);
+	running = 1;
 
 	//BARRA DE PROGRESO
 	if(options.interface == NULL){
@@ -725,17 +737,16 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	struct timeval end;
 
 
-	running = 1;
-
 	if(options.interface == NULL){
-		NDLTloop(ndldata, callback, NULL);
+		if(NDLTloop(ndldata, callback, NULL) != 1){
+			sigintHandler(1);
+		}
 	}else{
 		pcap_loop(handle, -1, online_callback, NULL);
 	}
 
 	gettimeofday(&end, NULL);
 	running = 0;
-	long pcap_loop = ((end.tv_usec - start.tv_usec)  + ((end.tv_sec - start.tv_sec) * 1000000.0f));
 
 	if(options.output != NULL){
 		fclose(output);
@@ -749,27 +760,23 @@ int main_process(char *format, struct bpf_program fp, char *filename){
   	}
 
   	if(options.interface == NULL){
+  		g_thread_join(progreso);
   		NDLTclose(ndldata);
-  		loadBar(pcap_size, pcap_size, pcap_size, 40);
+  		loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, 40);
   	}
 
 	long elapsed = end.tv_sec - start.tv_sec;
 
 
 	fprintf(stderr,"\n\n");
-	fprintf(stderr, "TOTAL PACKETS: %ld TOTAL PARSE TIME: %lld AVG. PARSE TIME: %lld \n", packets, parse_time, packets == 0 ? 0 : parse_time/packets);
-	fprintf(stderr, "TOTAL INSERTS: %lld TOTAL INSERT TIME: %lld AVG. INSERT TIME: %lld \n", inserts, insert_time, inserts == 0 ? 0 : insert_time/inserts);
+	fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
 	if(elapsed != 0){
-		fprintf(stderr, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
+		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		if(options.log){
 			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		}
 	}
 	
-	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", requests == 0 ? 0 : (((long double)lost) / requests)*100);
-	fprintf(stderr, "TOTAL pcap_loop time: %ld\n", pcap_loop);
-
-
 	g_hash_table_destroy(table);
 
 	return 0;
