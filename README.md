@@ -58,6 +58,10 @@ sudo yum install kernel-devel kernel-headers make gcc glib2-devel libpcacp-devel
  - Added log option for memory and read speed information.
  - At the end of each file the speed in packets/sec is printed
  - Added packets/sec info to the log
+ - The father acted as a seeder of children. One child per file but one after another. The child dies after processing the file and the father sows another child for the next file. Now this system have changed. No more children. Just a lonely father that processes all the files by himself one after another.
+ - In the previous version the hash table was destroyed after processing a file. So if a file has a request which is satisfied in another file, the dissector will never know and will discard that strange response. But now the table is not destroyed so the above problem disappears.
+ - Now the progress bar represents the progress for the list of files instead of file per file as before.
+ - The final output message has been simplified.
 
 ### Problems to solve
 
