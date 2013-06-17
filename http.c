@@ -152,13 +152,7 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 
 	if(http->op != RESPONSE){
 		
-		//fprintf(stderr, "HTTP: |%s|\n", cadena);
-		//int ret  = sscanf(cadena, "%32s %2048s %32s\r\nHost: %256s\r\n", http->method, http->uri, http->version, http->host);
 		ret = sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
-		// if(ret != 3){
-		// 	free(cadena);
-		// 	return -1;
-		// }
 		ret = 0;
 		ret = http_parse_headers(&http, cadena, length);
 		if(ret >= 0){
@@ -173,10 +167,7 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 		ret = -2;
 		strcpy(http->method, "RESPONSE");
 		ret = sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
-		// if(ret != 3){
-		// 	free(cadena);
-		// 	return -1;
-		// }
+		
 		char *hdr = strstr(cadena, "\r\n");
 		if(hdr == NULL){ 
 			free(cadena);
@@ -291,15 +282,9 @@ void http_print_headers(http_packet *http_t){
 		return;
 	}
 	
-	// if(http->op != RESPONSE){
-	// 	return;
-	// }
-	
 	if(http->headers == NULL){
 		return;
 	}
-
-//	fprintf(stderr, "%s\n", http->headers);
 
 	list_node *ls = http->headers->fields;
 	while(ls != NULL){

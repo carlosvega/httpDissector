@@ -6,7 +6,7 @@
 #include "args_parse.h"
 
 struct timespec last_packet;
-// GMutex *table_mutex = NULL;
+
 static GStaticMutex table_mutex = G_STATIC_MUTEX_INIT;
 GThread *recolector =  NULL;
 GThread *progreso =  NULL;
@@ -26,23 +26,9 @@ char *filter = NULL;
 int main_process(char *format, struct bpf_program fp, char *filename);
 
 void sigintHandler(int signal){
-	
-	// if(options.interface == NULL){
-	// 	g_thread_join(progreso);
-	//   	g_thread_unref(progreso);
-	// }
-
-	// if(options.collector){
-	// 	g_thread_join(recolector);
-	// 	g_thread_unref (recolector);
- //  	}
 
 	running = 0;
 
-	// NDLTclose(ndldata);
-
-	// g_hash_table_destroy(table);
-	// // g_mutex_clear(table_mutex);
 	free(filter);
 	if(options.interface == NULL)
 		fclose(pcapfile);
@@ -61,15 +47,11 @@ gboolean hash_check_time (gpointer key, gpointer value, gpointer user_data){
   if(hashvalue!=NULL){
   		struct timespec diff = tsSubtract(last_packet, hashvalue->last_ts);
   	if(diff.tv_sec > 60){
-  		 //fprintf(stderr, "(%d)\t(%ld,%ld)\t(%ld,%ld)\t|%.40s|\n", hashvalue->n_peticiones, hashvalue->last->ts_request.tv_sec, hashvalue->last->ts_request.tv_usec, hashvalue->last->ts_last_response.tv_sec, hashvalue->last->ts_last_response.tv_usec, hashvalue->peticiones->request);
-  		 //fprintf(stderr, "YEAH! - (%ld,%ld) (%ld,%ld)", res_respuesta.tv_sec, res_respuesta.tv_usec, nids_last_pcap_header->ts.tv_sec, nids_last_pcap_header->ts.tv_usec);
   		
   		lost += hashvalue->n_request - hashvalue->n_response;
 
   		return TRUE;
   	}
-
-  	//fprintf(stderr, "(%d) (%d)\t(%ld,%ld)\t(%ld,%ld)\t|%.50s|\n", hashvalue->n_peticiones, hashvalue->last->chunks, hashvalue->last->ts_request.tv_sec, hashvalue->last->ts_request.tv_usec, hashvalue->last->ts_last_response.tv_sec, hashvalue->last->ts_last_response.tv_usec, hashvalue->peticiones->request);
 
   }
 
@@ -130,10 +112,6 @@ void loadBar(unsigned long x, unsigned long n, unsigned long r, int w)
 
    	gettimeofday(&aux_exec, NULL);  
   	timersub(&aux_exec, &start, &elapsed);
-  	//my_time = gmtime(&elapsed.tv_sec);
-  	//strftime(elapsed_time, 30, "%H:%M:%S", my_time);
-  	// fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60);
-
   	
 	fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld) Read Speed: %ld MB/s", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
 	
@@ -222,17 +200,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     	return 1;
     }
 
-	// char get[4] = "GET ";
-	// char resp[4] = "HTTP";
-
-	// if(memcmp(pktinfo->payload, get, 4) == 0){
-	// 	pktinfo->request = 1;
-	// }else if(memcmp(pktinfo->payload, resp, 4) == 0){
-	// 	pktinfo->request = 0;
-	// }else{
-	// 	pktinfo->request = -1;
-	// }
-
 	if(http_get_op(http) == RESPONSE){
 		pktinfo->request = 0;
 		pktinfo->responseCode = http_get_response_code(http);
@@ -244,12 +211,9 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		size_t t_uri = strlen(uri);
 		pktinfo->url = (char *) calloc(2500,sizeof(char));
 		if(strlen(host) != 0){
-			//pktinfo->url = (char *) malloc((t_host+t_uri+1)*sizeof(char));
 			memcpy(pktinfo->url, host, t_host);
 			memcpy(pktinfo->url+t_host, uri, t_uri);
-			// fprintf(stdout, "%s%s\n", host,uri);
 		}else{
-			//pktinfo->url = strdup(uri);
 			strcpy(pktinfo->url, uri);
 		}
 
@@ -334,9 +298,6 @@ int print_pair(pair *p){
 		print_avg_pair(p);
 		return 0;
 	}
-
-	// print_packet(p->request);
-	// print_packet(p->response);
 
 	char *ts_get = NULL;
 	char *ts_res = NULL;
@@ -429,7 +390,6 @@ int insert_resp_hashtable(packet_info *pktinfo){
 	hashvalue = (hash_value *) gval;
 	
 	if(hashvalue == NULL || breturn == FALSE){ // NO ESTA EN LA TABLA
-		//fprintf(stderr, "RESPONSE SIN ENTRADA EN LA TABLA\n");
 		free(hashkey);
 		return -1;
 	}else if(hashvalue != NULL && breturn == TRUE){ // HAY UNA ENTRADA EN LA TABLA
@@ -549,7 +509,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		}
 	}else if(pktinfo->request == 0){ //RESPONSE
 		if(insert_resp_hashtable(pktinfo) != 0){
-			free(pktinfo);//fprintf(stderr, "ERROR INSERTANDO RESPONSE\n");
+			free(pktinfo);
 		}
 	}
 	g_static_mutex_unlock(&table_mutex);
@@ -558,9 +518,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
     insert_time += ((t4.tv_usec - t3.tv_usec)  + ((t4.tv_sec - t3.tv_sec) * 1000000.0f));
     inserts++;
 
-	//print_packet(pktinfo);
 	fflush(stderr);
-	//free(pktinfo);
 }
 
 int main(int argc, char *argv[]){
@@ -704,36 +662,24 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n%s", errbuf, filename);
 			fprintf(stderr, "%s\n%s\n%s\n%d\n", filename, options.output, options.filter, options.raw);
 			free(filter);
-			// if(options.log){
-			// 	closelog ();
-			// }
 			return -1;
 		}
 	}else{
 		handle = pcap_open_live(options.interface, SNAPLEN, PROMISC, to_MS, errbuf);
 		if(handle == NULL){
 			fprintf(stderr, "Couldn't open device %s: %s\n", options.interface, errbuf);
-		 // 	if(options.log){
-			// 	closelog ();
-			// }
 		 	return -2;
 		}
 
 		if(pcap_compile(handle, &fp, filter, 1, 0) == -1){
 			fprintf(stderr, "Couldn't parse filter, %s\n|%s|", pcap_geterr(handle), filter);
 			fclose(pcapfile);
-			// if(options.log){
-			// 	closelog ();
-			// }
 			return -3;
 		}
 
 		if(pcap_setfilter(handle, &fp) == -1){
 			fprintf(stderr, "Couldn't install filter, %s\n", pcap_geterr(handle));
 			fclose(pcapfile);
-			// if(options.log){
-			// 	closelog ();
-			// }
 			return -4;
 		}
 	}
@@ -743,18 +689,12 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	if(!GLIB_CHECK_VERSION (2, 32, 0)){
 		if (!g_thread_supported ()) g_thread_init (NULL);
 	}
-	//g_assert (table_mutex == NULL);
-   	// table_mutex = g_mutex_new ();
-   	//g_mutex_init(table_mutex);
 
    	//TABLA HASH
 	table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, funcionLiberacion);
 	if(table == NULL){
 		fprintf(stderr, "Error al crear tabla hash.");
 		fclose(pcapfile);
-		// if(options.log){
-		// 	closelog ();
-		// }
 		return -5;
 	}
 
@@ -828,30 +768,9 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	
 	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", requests == 0 ? 0 : (((long double)lost) / requests)*100);
 	fprintf(stderr, "TOTAL pcap_loop time: %ld\n", pcap_loop);
-	//kill(getpid(), SIGALRM);
 
-	// destruimos el hilo
-
-	if(options.interface == NULL){
-	  	// g_thread_join(progreso);
-	  	// g_thread_unref (progreso);
-  	}
-  	
-	//g_hash_table_foreach(table, print_foreach, NULL);
 
 	g_hash_table_destroy(table);
-	// g_mutex_free(&table_mutex);
-	// g_mutex_clear(table_mutex);
-
-	// table_mutex = NULL;
-	// recolector =  NULL;
-	// progreso =  NULL;
-	// table = NULL;
-	// ndldata = NULL;
-
-	// if(options.log){
-	// 	closelog ();
-	// }
 
 	return 0;
 }
