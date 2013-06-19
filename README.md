@@ -62,6 +62,7 @@ sudo yum install kernel-devel kernel-headers make gcc glib2-devel libpcacp-devel
  - In the previous version the hash table was destroyed after processing a file. So if a file has a request which is satisfied in another file, the dissector will never know and will discard that strange response. But now the table is not destroyed so the above problem disappears.
  - Now the progress bar represents the progress for the list of files instead of file per file as before.
  - The final output message has been simplified.
+ - Fixed double free when invalid file format.
 
 ### Problems to solve
 
