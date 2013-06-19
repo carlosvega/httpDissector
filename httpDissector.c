@@ -549,7 +549,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	if(options.err < 0){
-		fprintf(stderr, "Error: %s\n", options.errbuf);
+		fprintf(stderr, "\nError: %s\n", options.errbuf);
 		how_to_use(argv[0]);
 		free(filter);
 		return -1;
@@ -638,7 +638,7 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	}
 
 
-	char errbuf[PCAP_ERRBUF_SIZE];
+	char errbuf[PCAP_ERRBUF_SIZE] = {0};
 	pcap_t *handle = NULL;
 
 	if(options.interface == NULL){
@@ -669,9 +669,8 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 		}
 		
 		if(ndldata == NULL){
-			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n%s", errbuf, filename);
-			fprintf(stderr, "%s\n%s\n%s\n%d\n", filename, options.output, options.filter, options.raw);
-			free(filter);
+			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n", errbuf);
+			fprintf(stderr, "File: %s\tRAW flag = %s\n", options.input, options.raw == 0? "false" : "true");
 			return -1;
 		}
 	}else{
