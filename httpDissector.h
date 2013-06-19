@@ -27,7 +27,6 @@
 
 static unsigned long packets = 0;
 struct timeval start; 
-static unsigned long pcap_size = 0;
 static int running = 0;
 static FILE *pcapfile = NULL;
 static FILE *output = NULL;
