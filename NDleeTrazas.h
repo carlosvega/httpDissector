@@ -49,7 +49,6 @@ struct NDLTdata{
 	char                *pcapFilterString;		// cadena con filtro pcap a aplicar
 	struct bpf_program  filtroPcapCompilado; 	// filtro compilado
 	union descriptores  traceFile;              	// fichero de traza abierto
-	int 				nFiles;			//AÑADIDO
 	int                 contFiles;  		// contador que indica el número de fichero en el que se está, empezando en 1. (En el caso de que se pase el fichero de trazas este contador será 1 en cuanto se empiece a leer).
 	unsigned long long  bytesTotalesLeidos;     	// Numero total de bytes leidos entre todos los ficheros de la traza
 	unsigned long long  bytesTotalesFicheros;	// numero total de bytes de los ficheros

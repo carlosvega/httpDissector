@@ -32,6 +32,7 @@ static FILE *pcapfile = NULL;
 static FILE *output = NULL;
 NDLTdata_t *ndldata = NULL;
 struct args_parse options;
+unsigned int nFiles = 0;
 
 void funcionLiberacion(gpointer data);
 void print_foreach (gpointer key, gpointer value, gpointer user_data);

@@ -5,6 +5,8 @@
 #include "http.h"
 #include "args_parse.h"
 
+char version[32] = "Version 0.89";
+
 struct timespec last_packet;
 
 static GStaticMutex table_mutex = G_STATIC_MUTEX_INIT;
@@ -21,26 +23,59 @@ unsigned long long lost = 0;
 unsigned long long requests = 0;
 unsigned long transacctions = 0;
 
+char format[8] = {0};
+
 char *filter = NULL;
 
-int main_process(char *format, struct bpf_program fp, char *filename);
+//PARALLEL PROCESSING
+
+char **files_path = NULL;
+int last_file = -1;
+pid_t father_pid;
+short progress_bar = 1;
+char *child_filename = NULL;
+char new_filename[256] = {0};
+
+void create_process();
+void handler(int sig);
+int parallel_processing();
+int main_process(char *format, char *filename);
 
 void sigintHandler(int signal){
 
 	running = 0;
+
+	if(options.parallel){
+		if(father_pid == getpid()){
+			while (waitpid(-1, NULL, 0)) {
+		   		if (errno == ECHILD) {
+		      		break;
+		   		}
+			}
+			return;
+		}
+	}
+
 	struct timeval end;
 	gettimeofday(&end, NULL);
 
-
 	fprintf(stderr, "\n\nSkipping, wait...\n");
 
-	free(filter);
-	if(options.interface == NULL){
+	if(filter != NULL){
+		free(filter);
+		filter = NULL;
+	}
+
+	if(options.interface == NULL && progress_bar){
 		fclose(pcapfile);
 		g_thread_join(progreso);
-	}	
+	}
 
-	fprintf(stderr,"\n\n");
+	if(options.parallel){
+		fprintf(stderr,"\n\nInput File: %s\nOutput File: %s\n", child_filename, options.output != NULL ? new_filename : "Standard Output");
+	}else{
+		fprintf(stderr, "\n\n");
+	}
 	fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
 
 	long elapsed = end.tv_sec - start.tv_sec;
@@ -127,7 +162,11 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
    	gettimeofday(&aux_exec, NULL);  
   	timersub(&aux_exec, &start, &elapsed);
   	
-	fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\tFile: (%d/%d)", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ndldata->contFiles, ndldata->nFiles);
+  	if(options.files){
+  		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\tFile: (%d/%d)", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ndldata->contFiles, nFiles);
+  	}else{
+		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\t", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
+	}
 	if(options.log){
 		syslog (LOG_NOTICE, "SPEED %ld\t%lld", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
 
@@ -204,6 +243,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     	return 1;
     }
 
+    pktinfo->op = http_get_op(http);
 	if(http_get_op(http) == RESPONSE){
 		pktinfo->request = 0;
 		pktinfo->responseCode = http_get_response_code(http);
@@ -229,6 +269,28 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		}
 
 		pktinfo->request = 1;
+	}else if(http_get_op(http) == POST){
+		char * host = http_get_host(http);
+		size_t t_host = strlen(host);
+		char * uri = http_get_uri(http);
+		size_t t_uri = strlen(uri);
+		pktinfo->url = (char *) calloc(2500,sizeof(char));
+		if(strlen(host) != 0){
+			memcpy(pktinfo->url, host, t_host);
+			memcpy(pktinfo->url+t_host, uri, t_uri);
+		}else{
+			strcpy(pktinfo->url, uri);
+		}
+
+		if(options.url != NULL){
+			if(boyermoore_search(pktinfo->url, options.url) == NULL){
+				http_free_packet(&http);
+				return 1;
+			}
+		}
+
+		pktinfo->request = 1;
+
 	}else{
 		pktinfo->request = -1;
 	}
@@ -311,7 +373,7 @@ int print_pair(pair *p){
    	struct timespec diff = tsSubtract(p->response->ts, p->request->ts);
 	
 	if(options.twolines){
-		fprintf(output, "GET \t%s:%i\t==>\t%s:%i\t%s %s\n", p->request->ip_addr_src, p->request->port_src, p->request->ip_addr_dst, p->request->port_dst, ts_get, p->request->url);
+		fprintf(output, "%s\t%s:%i\t==>\t%s:%i\t%s %s\n", p->request->op == POST ? "POST" : "GET", p->request->ip_addr_src, p->request->port_src, p->request->ip_addr_dst, p->request->port_dst, ts_get, p->request->url);
 		fprintf(output, "RESP\t%s:%i\t<==\t%s:%i\t%s DIFF: %ld.%09ld %s %d\n", p->response->ip_addr_dst, p->response->port_dst, p->response->ip_addr_src, p->response->port_src, ts_res, diff.tv_sec, diff.tv_nsec, p->response->response_msg, p->response->responseCode);
 	}else{
 		fprintf(output, "%s|%i|%s|%i|%s|%s|%ld.%09ld|%s|%d|%s\n", p->request->ip_addr_src, p->request->port_src, p->request->ip_addr_dst, p->request->port_dst, ts_get, ts_res, diff.tv_sec, diff.tv_nsec, p->response->response_msg, p->response->responseCode, p->request->url);
@@ -505,7 +567,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
    gettimeofday(&t3, NULL);
  
  	g_static_mutex_lock(&table_mutex);
-	if(pktinfo->request == 1){ //GET
+	if(pktinfo->request == 1){ //GET o POST
 		if(insert_get_hashtable(pktinfo) != 0){
 			free(pktinfo->url);
 			free(pktinfo);
@@ -535,24 +597,27 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "THE MIN. VERSION REQUIRED TO WORK IS: 2.18.0\n");
 		return 0;
 	}
-	
 
-	char format[8] = {0};
-	struct bpf_program fp;
-
-	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
+	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
 	options = parse_args(argc, argv);
 	if(options.err == -3){
 		how_to_use(argv[0]);
 		free(filter);
+		filter = NULL;
 		return 0;
 	}
 	if(options.err < 0){
 		fprintf(stderr, "\nError: %s\n", options.errbuf);
 		how_to_use(argv[0]);
 		free(filter);
+		filter = NULL;
 		return -1;
+	}
+
+	if(options.version){
+		fprintf(stderr, "%s\n", version);
+		return 0;
 	}
 
 	if(options.raw == 1){
@@ -567,7 +632,7 @@ int main(int argc, char *argv[]){
 		strcat(filter, options.filter);
 	}
 
-	if(options.output != NULL){
+	if(options.output != NULL && options.parallel == 0){
 		output = fopen(options.output, "w");
 		if(output == NULL){
 			fprintf(stderr, "ERROR TRYING TO OPEN THE OUTPUT FILE\n");
@@ -578,50 +643,116 @@ int main(int argc, char *argv[]){
 		output = stdout;
 	}
 
-	// if(options.files){
-	// 	unsigned int nfiles = 0;
-	// 	char **files = NULL;
-	// 	files = parse_list_of_files(options.input, &nfiles);
-	// 	if(files == NULL){
-	// 		free(filter);
-	// 		return 0;
-	// 	}else{
-	// 		int i=0;
-	// 		fprintf(stderr, "Total Files: %d\n", nfiles);
-	// 		for(i=0; i<nfiles; i++){
-	// 			fprintf(stderr, "(%d/%d) Current File: %s\n", i, nfiles, files[i]);
-	// 			int pid = fork();
-	// 			if(pid == 0){ 			//CHILD
-	// 				main_process(format, fp, files[i]);
-	// 				int j=0;
-	// 				for(j=i; j<nfiles; j++){
-	// 					free(files[j]);
-	// 				}
-	// 				free(files);
-	// 				free(filter);
-	// 				return 0;
-	// 			}else if(pid == -1){ 	//ERROR
-	// 				fprintf(stderr, "ERROR ON FORK\n");
-	// 			}else{ 					//PARENT
-	// 				waitpid(pid, NULL, 0);
-	// 			}
-	// 			free(files[i]);
-	// 		}
-	// 		free(files);
-	// 	}
-	// }else{
-	// 	main_process(format, fp, options.input);
-	// }
-
-	main_process(format, fp, options.input);
+	if(options.files){
+		files_path = parse_list_of_files(options.input, &nFiles);
+		if(files_path == NULL){
+			fprintf(stderr, "Failure parsing list of files\n");
+			return -1;
+		}
+	}
 	
-	free(filter);
+	if(options.parallel == 0){
+		main_process(format, options.input);
+	}else if(options.parallel == 1){
+		fprintf(stderr, "PARALLEL PROCESSING WITH 1 PROCESS?\n");
+	}else if(options.parallel > 0 && options.files == 0){
+		fprintf(stderr, "PARALLEL PROCESSING WITHOUT A LIST OF FILES?\n");
+	}else if(options.parallel > 0){
+		parallel_processing();
+	}
+
+	if(options.output != NULL && options.parallel == 0){
+		fclose(output);
+	}
+
+	if(filter != NULL){
+		free(filter);
+	}
+	filter = NULL;
+	if(files_path != NULL){
+		int i=0;
+		for(i=0; i<nFiles; i++){
+			if(files_path[i] != NULL){
+				free(files_path[i]);
+			}
+		}
+		free(files_path);
+		files_path = NULL;
+	}
 
 	return 0;
 
 }
 
-int main_process(char *format, struct bpf_program fp, char *filename){
+void create_process(){
+	last_file++;
+
+	if(last_file >= nFiles){
+		running = 0;
+		return;
+	}
+
+	if(!fork()) {
+		fprintf(stderr, "%s child created [%s] process id is %d of %d\n", last_file%options.parallel==0 ? "+++" : "---", files_path[last_file], getpid(), getppid());
+		main_process(format, files_path[last_file]);
+		kill(getppid(), SIGUSR1);
+		exit(0);
+	}
+}
+
+void handler(int sig) {
+	create_process();
+}
+
+int parallel_processing(){
+	
+	progress_bar = 0;
+	options.files = 0;
+
+	father_pid = getpid();
+
+	struct sigaction act;
+	act.sa_handler=handler;
+	sigaction(SIGUSR1, &act, NULL);
+
+	running = 1;
+
+	int i;
+	for(i=0; i<options.parallel; i++){
+		create_process();
+	}
+
+	while(running){
+		while (waitpid(-1, NULL, 0)) {
+	   		if (errno == ECHILD) {
+	      		break;
+	   		}
+		}
+	}
+
+	// struct sigaction act2;
+	// act2.sa_handler=handler;
+	// sigaction(SIGCHLD, &act2, NULL);
+	//wait(&status);
+
+	return 0;
+}
+
+int main_process(char *format, char *filename){
+
+	struct bpf_program fp;
+
+	if(options.parallel){
+		child_filename = filename;
+		if(options.output != NULL){
+			snprintf(new_filename, 256, "%s%d", options.output, last_file);
+			output = fopen(new_filename, "w");
+			if(output == NULL){
+				fprintf(stderr, "ERROR TRYING TO OPEN THE OUTPUT FILE %s\n", new_filename);
+				return -2;
+			}
+		}
+	}
 
 	if(options.log){
 		if(options.interface != NULL){
@@ -723,7 +854,7 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	running = 1;
 
 	//BARRA DE PROGRESO
-	if(options.interface == NULL){
+	if(options.interface == NULL && progress_bar){
 		if (!GLIB_CHECK_VERSION (2, 32, 0)){
 			progreso = g_thread_create( (GThreadFunc)barra_de_progreso, NULL , TRUE, NULL);
 		}else{
@@ -747,10 +878,6 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 	gettimeofday(&end, NULL);
 	running = 0;
 
-	if(options.output != NULL){
-		fclose(output);
-	}
-
 	if(options.collector){
 		g_thread_join(recolector);
 		if (GLIB_CHECK_VERSION (2, 32, 0)){
@@ -758,17 +885,22 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 		}
   	}
 
-  	if(options.interface == NULL){
+  	if(options.interface == NULL && progress_bar){
   		g_thread_join(progreso);
-  		NDLTclose(ndldata);
   		loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, 40);
+  		NDLTclose(ndldata);
   	}
 
 	long elapsed = end.tv_sec - start.tv_sec;
 
 
 	fprintf(stderr,"\n\n");
-	fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
+	if(options.parallel){
+		fprintf(stderr,"Input File: %s\nOutput File: %s\n", child_filename, options.output != NULL ? new_filename : "Standard Output");
+		fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
+	}else{
+		fprintf(stderr, "File: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", filename, packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
+	}
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		if(options.log){
@@ -776,6 +908,10 @@ int main_process(char *format, struct bpf_program fp, char *filename){
 		}
 	}
 	
+	if(options.parallel){
+		fprintf(stderr,"\n\n");
+	}
+
 	g_hash_table_destroy(table);
 
 	return 0;

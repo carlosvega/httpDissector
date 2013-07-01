@@ -1,6 +1,7 @@
 #ifndef _util
 #define _util
 #include <netinet/in.h>
+#include "http.h"
 #define SIZE_ETHERNET 14
 #define ADDR_CONST 16
 
@@ -21,6 +22,7 @@ typedef struct _pkt_info{
   char *url;
   short responseCode;
   char response_msg[256];
+  http_op op;
 } packet_info;
 
 typedef u_int32_t tcp_seq;
