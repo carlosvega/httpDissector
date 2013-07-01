@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ARGS_PARSE_ERRBUF 32
+#define ARGS_PARSE_ERRBUF 64
 
 struct args_parse{
 	char errbuf[ARGS_PARSE_ERRBUF];
@@ -15,6 +15,7 @@ struct args_parse{
 	short collector;
 	short rrd;
 	short verbose;
+	short parallel;
 	short twolines;
 	short files;
 	short log;
@@ -23,6 +24,7 @@ struct args_parse{
 	char *filter;
 	char *interface;
 	char *url;
+	short version;
 };
 
 void how_to_use(char *name);

@@ -115,7 +115,6 @@ static int NDLTopen_next(NDLTdata_t *data, char *errbuf) {
 				if (errbuf) sprintf(errbuf, "Error: no se pudo leer la siguiente línea del fichero");
 				return 0;
 			}
-
 		} else return 0;
 		if (data->contFiles) NDLTclose_last(data);
 	} else {
@@ -140,7 +139,6 @@ static int NDLTopen_next(NDLTdata_t *data, char *errbuf) {
 			return 0;
 		}
 	}
-
 	data->contFiles++;
 	return 1;
 }
@@ -303,7 +301,6 @@ static int NDLTopen_next_multiple(NDLTdata_t *data, char *errbuf) {
 			return 0;
 		}
 	}
-
 	data->contFiles++;  // Que hacer cuando hay mas de un interfaz??
 	return 1;
 }
@@ -367,7 +364,6 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 	nuevo->interfaces=NULL;
 	
 	struct stat buf;
-	nuevo->nFiles = 0;//AÑADIDO
 	//Si el fichero es un file of files se van a guardar los paths de los ficheros en un arrays de estructuras. Una estructura por interfaz que se vea (interfaces separadas por una línea en blanco)
 	if(nuevo->multiFile){
 		char aux[TAM_LINE];
@@ -390,8 +386,7 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 	 				nuevo->bytesTotalesFicheros+=(unsigned long long)buf.st_size;
 	 				nuevo->interfaces[nuevo->numInterfaces-1].posALeerDeFichero=0;
 	 			}else{
-	 				nuevo->nFiles++; //AÑADIDO
- 	 		 		if(strlen(aux)==1) lineaVacia=1; //si es una línea en blanco activo el flag lineaVacia 
+	 		 		if(strlen(aux)==1) lineaVacia=1; //si es una línea en blanco activo el flag lineaVacia 
 	 			 	else{  //sino es una línea en blanco y en la línea anterior no hay blancos significa que el interfaz tiene más ficheros. Se añade el fichero a la estructura ya creada para ese interfaz
 	 					lineaVacia=0;
 	 					if(nuevo->interfaces[nuevo->numInterfaces-1].numFicheros>=NUM_FICH_INTERFACE){
@@ -407,7 +402,6 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 	 		}
 	 	}	
 	}else{
-		nuevo->nFiles = 1; //AÑADIDO
 		stat(nuevo->path, &buf);
 		nuevo->bytesTotalesFicheros=(unsigned long long)buf.st_size;
 	}

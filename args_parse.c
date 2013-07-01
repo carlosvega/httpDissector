@@ -8,6 +8,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-i  --input=<file>\t\tInput file. This parameter is mandatory.\n");
   fprintf(stderr, "\t-o  --output=<file>\t\tOutput file instead of stdout.\n");
   fprintf(stderr, "\t-p  --pcap\t\t\tSets the input file format as pcap. (Set by Default)\n");
+  fprintf(stderr, "\t-P  --parallel=<n_processes>\tParallel processing. Needs number of processes.\n");
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
@@ -16,7 +17,8 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
   fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
-  fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode\n\n");
+  fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n\n");
+  fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
 
 
   fprintf(stderr, "\t\t\t\tOUTPUT FORMAT DETAILS\n");
@@ -39,6 +41,12 @@ void how_to_use(char *name){
   fprintf(stderr, "Instead of \"~/file.pcap\" use the absolute path \"/Users/user/file.pcap\"\n");
   fprintf(stderr, "There is no problem using \"../file.pcap\" paths.\n");
 
+  fprintf(stderr, "\t\t\t\tPARALLEL PROCESSING\n");
+  fprintf(stderr, "When no output file has been specified, the information is printed in the Standard Output\n");
+  fprintf(stderr, "Otherwise a new output file will be created for each processed file.\n");
+  fprintf(stderr, "The naming pattern it's the specified filename followed by a number.\n");
+  fprintf(stderr, "This number represents the file position in the provided file list.\n");
+
   fprintf(stderr, "\n");
 
   return;
@@ -51,6 +59,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.output      = NULL;
   options.filter      = NULL;
   options.url         = NULL;
+  options.parallel    = 0;
   options.raw         = -1;
   options.rrd         = 0;
   options.log         = 0;
@@ -60,13 +69,14 @@ struct args_parse parse_args(int argc, char **argv){
   options.interface   = NULL;
   options.collector   = 1;
   options.verbose     = 0;
+  options.version     = 0;
 
   strcpy(options.errbuf, "Invalid arguments");
 
 	int next_op;
 
 	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "hrIvpf:i:o:u:c:" ;
+	const char* const short_op = "hrIvpf:i:P:o:u:c:" ;
 
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
@@ -78,12 +88,14 @@ struct args_parse parse_args(int argc, char **argv){
     { "log",            0,  NULL,   'L'},
 		{ "pcap",			      0, 	NULL, 	'p'},
 		{ "input",		      1, 	NULL, 	'i'},
+    { "parallel",       1,  NULL,   'P'},
     { "capture",        1,  NULL,   'c'},
 		{ "filter", 		    1, 	NULL, 	'f'},
     { "url",            1,  NULL,   'u'},
     { "verbose",        0,  NULL,   'v'},
     { "input-files",    0,  NULL,   'I'},
     { "two-lines",      0,  NULL,   'T'},
+    { "version",        0,  NULL,   'V'},
     { "rrd",            0,  NULL,   'R'},
 		{ NULL,             0,  NULL,    0 }
 	};
@@ -107,11 +119,21 @@ struct args_parse parse_args(int argc, char **argv){
           options.err = 0;
           break;
 
+        case 'P' : /* -P o --parallel */
+          options.parallel = atoi(optarg);
+          options.err = 0;
+          break;
+
         case 'R' : /* -rrd */
           options.rrd = 1;
           break;
 
         case 'c' : /*-c o --capture */
+          if(options.input){
+            options.err = -2;
+            strcpy(options.errbuf, "Input from file & interface? Just choose one");
+            return options;
+          }
           options.interface = optarg;
           options.err = 0;
           break;
@@ -164,6 +186,11 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'L' :
           options.log = 1;
+          break;
+
+        case 'V' :
+          options.err = 0;
+          options.version = 1;
           break;
 
         case '?' : /* opción no valida */
