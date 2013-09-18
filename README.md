@@ -1,5 +1,5 @@
 #HTTP packet reader   
-***    
+***  
 ## What is this project about?
 
 This is a job for the **High Performance Computing and Networking** research group at the **Universidad Autonoma de Madrid**
@@ -7,35 +7,32 @@ The aim of the application is to show the response times of HTTP requests.
 Afterwards these data is plotted to analyze the HTTP traffic and improve its behaviour.
 
 ## Does it use any external libraries?
-This application uses just glib and libpcap packages.
+This application uses libpcap package.
 
 ## How could I get in touch with you?
 You can send me an email to this address: carlosvega@gmx.es
 
 ## Dependencies
 
-libpcap and glibc libraries.
+libpcap library.
 
 If you use __Fedora__ you need make sure these packets are installed:
 - make
 - gcc
-- glib2-devel libpcacp-devel
+- libpcacp-devel
 - And it would be fine if you also install kernel-devel and kernel-headers
 
 If you use __Ubuntu__ you need make sure these packets are installed:
 - libpcap-dev
-- libglib2.0-dev
 
-If "libglib" is not found you can install gtk2 or libgtk2.0-dev that include glib as a dependency.
- 
 Dependency tree
 
             hope
              ||
-      glibc——||——libpcap
+             ||——libpcap
                    
 If you want the shell line to install these packets use this one:
-sudo yum install kernel-devel kernel-headers make gcc glib2-devel libpcacp-devel
+sudo yum install kernel-devel kernel-headers make gcc libpcacp-devel
 
 ## Installation
 
@@ -43,10 +40,27 @@ sudo yum install kernel-devel kernel-headers make gcc glib2-devel libpcacp-devel
 2. You just need to download the project
 3. Uncompress it
 4. make
-5. ./hope and follow the instructions
+5. ./httpDissector and follow the instructions
 
 
 ### Change log
+
+__Version 2 !__
+
+ - Glib is no longer required.
+ - The hash table is a double linked list of node_l (list.c)
+ - To improve the performance the allocs and frees of memory during the process have been avoided. There's no allocs during the callbacks.
+ - There are three pools of variables. The `node_l` pool, for general purpose. The `hash_value` pool for the connexions and the `request` pool for the requests.
+ - Modified packet_info structure. Created request and response structures, simpler and cleaner.
+ - Avoid parsing the HTTP headers.
+ - Added a sorted list of active conexions. Sorted by last used.
+ - Thanks of this last change the garbage collector is quicker. We process the list starting by the last and when one of the conexions doesn't need to be deleted the rest neither.
+ - Changed Glib threads for pthread ones.
+ - Changed Glib mutex for `pthread_mutex_t`.
+ - Added a little control to avoid wrong matches when a retransmissions happens. This will be improved.
+
+__Version 1 __
+
  - Small changes
  - Added trash collector (Every 10 seconds)
  - Added progress bar (Every 0.5 seconds)
@@ -63,13 +77,17 @@ sudo yum install kernel-devel kernel-headers make gcc glib2-devel libpcacp-devel
  - Now the progress bar represents the progress for the list of files instead of file per file as before.
  - The final output message has been simplified.
  - Fixed double free when invalid file format.
+ 
 
 ### Problems to solve
 
- - multicore version
+ - Multicore version
+ - Take account of retransmissions and lost packets to ensure that there are no wrong matches.
 
 ### To do
 
  - Concurrent version
+ - Fix problems with retransmissions
+
 
 I got to lunch, see you later.
