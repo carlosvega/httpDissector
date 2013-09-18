@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "alist.h"
+#include "args_parse.h"
+
+extern struct args_parse options;
+
+#define FREE(x) do { free((x)); (x)=NULL;} while(0)
 
 /*
 	THE LAST HEADER MUST TO END WITH \r\n
@@ -31,8 +36,7 @@ int getLines(char * str, http_header *http_hdr) {
 		value = strchr(ptr, ':');
 		if(value == NULL){
 			if(n_lines!=0){
-				free(last->next);
-				last->next = NULL;
+				FREE(last->next);
 				break;
 			}else{
 				return -1;
@@ -90,7 +94,7 @@ char * find(char * key, list_node* list) {
 	int found = 1;
 	list_node* ptr = list;
 	
-	while(ptr->next && (found=strcmp(key, ptr->key))){
+	while((found=strcmp(key, ptr->key)) && ptr->next){
 		ptr = ptr->next;
 	}
 
@@ -99,38 +103,58 @@ char * find(char * key, list_node* list) {
 
 void http_free_header(http_header *http_hdr){
 	
-	if(http_hdr == NULL) return;
+	if(http_hdr == 0) return;
 
-	if(http_hdr->original != NULL){
-		free(http_hdr->original);
-		http_hdr->original = NULL;
+	if(options.debug > 1){
+		fprintf(stderr, "3.1, ");
+	}
+
+	FREE(http_hdr->original);
+
+	if(options.debug > 1){
+		fprintf(stderr, "3.2, ");
 	}
 
 	free_list(http_hdr->fields);
-	
-	http_hdr->fields = NULL;
-	
+
+	if(options.debug > 1){
+		fprintf(stderr, "3.3");
+	}
+		
 	return;
 }
 
 void free_list(list_node * list) {
 	
-	if(list == NULL) return;
+	if(list == 0) return;
 
-	if(list->key != NULL){
-		free(list->key);
-		list->key = NULL;
+	if(options.debug > 2){
+		fprintf(stderr, "3.2.1, ");
+	}
+
+	FREE(list->key);
+
+	if(options.debug > 2){
+		fprintf(stderr, "3.2.2, ");
 	}
 	
-	if(list->value != NULL){
-		free(list->value);
-		list->value = NULL;
-	 }
+	FREE(list->value);
 	
+	if(options.debug > 2){
+		fprintf(stderr, "3.2.3, ");
+	}
 	//fprintf(stderr, "%s: %s\n", list->key, list->value);
 
     free_list(list->next);
 
-    free(list);
+    if(options.debug > 2){
+    	fprintf(stderr, "3.2.4, ");
+    }
+
+    FREE(list);
+	
+	if(options.debug > 2){
+    	fprintf(stderr, "3.2.5, ");
+    }
 
 }

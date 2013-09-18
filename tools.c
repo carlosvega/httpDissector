@@ -3,6 +3,8 @@
 #define ALPHABET_SIZE (1 << CHAR_BIT)
 #define LIST_OF_FILES 10
 
+#define FREE(x) do { free((x)); (x)=NULL;} while(0)
+
 static void compute_prefix(const char* str, size_t size, int result[size]) {
 	size_t q;
 	int k;
@@ -132,7 +134,7 @@ char *timeval_to_char(struct timespec ts){
 	//UTC TIME
 	//struct tm *my_time = gmtime(&nowtime);
 	//strftime(time_buf, 64, "%Y-%m-%d %H:%M:%S", my_time);
-	snprintf(ret, 128, "%ld.%ld", (long) ts.tv_sec, (long) ts.tv_nsec);
+	snprintf(ret, 128, "%ld.%09ld", (long) ts.tv_sec, (long) ts.tv_nsec);
 	
 	return ret;
 }
@@ -237,9 +239,7 @@ char ** parse_list_of_files(char *filename, unsigned int *n_files){
 		number_of_files++;
 	}
 
-	if(line){
-		free(line);
-	}
+	FREE(line);
 
 	fclose(list_of_files);
 	*n_files = number_of_files;

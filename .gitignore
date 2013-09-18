@@ -1,6 +1,9 @@
 # Object files
 *.o
 
+zip/
+scripts/
+
 # Libraries
 *.lib
 *.a
