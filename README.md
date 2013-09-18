@@ -59,7 +59,7 @@ __Version 2 !__
  - Changed Glib mutex for `pthread_mutex_t`.
  - Added a little control to avoid wrong matches when a retransmissions happens. This will be improved.
 
-__Version 1 __
+Version 1
 
  - Small changes
  - Added trash collector (Every 10 seconds)
