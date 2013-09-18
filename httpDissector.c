@@ -12,6 +12,7 @@ node_l static_node;
 node_l *nodel_aux;
 node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { 0 };	//2^24
 unsigned long long no_cases = 0;
+packet_info *pktinfo = NULL;
 //
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
@@ -679,13 +680,9 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		fprintf(stderr, "-------------\nDEBUG/ begining callback\n");
 	}
 
-	last_packet = pkthdr->ts;
+	memset(pktinfo, 0, sizeof(packet_info));
 
-	packet_info *pktinfo = NULL;
-	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
-	if(pktinfo == NULL){
-		return;
-	}
+	last_packet = pkthdr->ts;
 	packets++;
 
   	struct timeval t, t2;  
@@ -701,7 +698,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
   	parse_time += ((t2.tv_usec - t.tv_usec)  + ((t2.tv_sec - t.tv_sec) * 1000000.0f));
 
 	if(ret){
-		FREE(pktinfo);
 		if(options.debug){
 			fprintf(stderr, "DEBUG/ finish callback. Invalid packet.\n");
 		}
@@ -709,7 +705,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 	}
 
 	if(pktinfo->request == -1){ //NI GET NI RESPONSE
-		FREE(pktinfo);
 		if(options.debug){
 			fprintf(stderr, "DEBUG/ finish callback. Invalid packet II.\n");
 		}
@@ -727,8 +722,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		}
 
 		if(insertPacket(pktinfo) != 0){
-			// FREE(pktinfo->url);
-			FREE(pktinfo);
 			if(options.debug){
 				fprintf(stderr, "DEBUG/ error inserting GET\n");
 			}
@@ -742,7 +735,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		}
 
 		if(insertPacket(pktinfo) != 0){
-			FREE(pktinfo);
 			if(options.debug){
 				fprintf(stderr, "DEBUG/ error inserting RESP\n");
 			}
@@ -761,8 +753,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 	if(options.debug){
 		fprintf(stderr, "DEBUG/ finish callback\n");
 	}
-
-	FREE(pktinfo);
 
 }
 
@@ -854,6 +844,8 @@ int main(int argc, char *argv[]){
 	allocNodelPool();
 	//HTTP
 	http_alloc(&http);
+	//PACKET_INFO
+	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 	
 	if(options.parallel == 0){
 		if(options.debug){
@@ -876,6 +868,7 @@ int main(int argc, char *argv[]){
 	}
 
 	FREE(filter);
+	FREE(pktinfo);
 
 	filter = NULL;
 	if(files_path != NULL){
