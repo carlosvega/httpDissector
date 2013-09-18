@@ -36,7 +36,7 @@ sudo yum install kernel-devel kernel-headers make gcc libpcacp-devel
 
 ## Installation
 
-1. Check if you fulfill the dependencies requirements at the depenencies chapter above.
+1. Check if you fulfill the dependencies requirements at the dependencies chapter above.
 2. You just need to download the project
 3. Uncompress it
 4. make
@@ -53,8 +53,8 @@ __Version 2 !__
  - There are three pools of variables. The `node_l` pool, for general purpose. The `hash_value` pool for the connexions and the `request` pool for the requests.
  - Modified packet_info structure. Created request and response structures, simpler and cleaner.
  - Avoid parsing the HTTP headers.
- - Added a sorted list of active conexions. Sorted by last used.
- - Thanks of this last change the garbage collector is quicker. We process the list starting by the last and when one of the conexions doesn't need to be deleted the rest neither.
+ - Added a sorted list of active connexions. Sorted by last used.
+ - Thanks of this last change the garbage collector is quicker. We process the list starting by the last and when one of the connexions doesn't need to be deleted the rest neither.
  - Changed Glib threads for pthread ones.
  - Changed Glib mutex for `pthread_mutex_t`.
  - Added a little control to avoid wrong matches when a retransmissions happens. This will be improved.
