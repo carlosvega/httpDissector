@@ -3,8 +3,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "args_parse.h"
 
-#define safe_free(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
+extern struct args_parse options;
+#define CADENA_SIZE 3072
+#define CADENA_AUX_SIZE 256
+
+// char aux_str[MAX_PAYLOAD_STRING];
 
 struct _internal_http_packet{
 	http_header *headers;
@@ -16,7 +21,11 @@ struct _internal_http_packet{
 	char host[256];
 	int response_code;
 	char response_msg[256];
+	short has_host;
 };
+
+char cadena[CADENA_SIZE];
+char cadena_aux[CADENA_AUX_SIZE];
 
 http_header *http_get_headers(http_packet http){
 
@@ -49,6 +58,33 @@ char *http_get_method(http_packet http){
 	}
 
 	return http->method;
+}
+
+char *http_op_to_char(http_op h){
+	switch(h){
+		case HEAD:
+			return "HEAD";
+		case GET:
+			return "GET";
+		case POST:
+			return "POST";
+		case PUT:
+			return "PUT";
+		case DELETE:
+			return "DELETE";
+		case TRACE:
+			return "TRACE";
+		case OPTIONS:
+			return "OPTIONS";
+		case CONNECT:
+			return "CONNECT";
+		case PATCH:
+			return "PATCH";
+		case RESPONSE:
+			return "RESPONSE";
+		default:
+			return "ERR";
+	}
 }
 
 char *http_get_version(http_packet http){
@@ -125,43 +161,64 @@ http_op http_which_method(char * tcp_payload){
 	return ERR;
 }
 
-int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
+int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *ip_addr_src, char *ip_addr_dst){
 
 	if(length <= 0 || http_t == NULL || tcp_payload == NULL)
 		return -1;
-		
-	http_alloc(http_t);
+	
+	// if(http_alloc(http_t) == -1){
+	// 	return -1;
+	// }
+	
 	int no_data = 0, ret = 0;
-	char *aux_hdr = NULL;
+	// char *aux_hdr = NULL;
 	struct _internal_http_packet *http = *http_t;
 	http->headers = NULL;
 	http->data = NULL;
 	http->op = http_which_method(tcp_payload);
+
 	if(http->op == ERR){
 		return -1;
 	}
 	
-	char *cadena = NULL;
-	cadena = (char*) malloc(length+1 * sizeof(char));
-	memset(cadena, 0, length+1);
-	if(cadena == NULL){
-		return -1;
-	}
+	// char *cadena = NULL;
+	// cadena = (char*) malloc(length+1 * sizeof(char));
+	memset(cadena, 0, CADENA_SIZE);
+	// if(cadena == NULL){
+	// 	return -1;
+	// }
 
 	strncpy(cadena, tcp_payload, length);
-
+	http->has_host = 0;
 	if(http->op != RESPONSE){
 		
 		ret = sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
 		ret = 0;
-		ret = http_parse_headers(&http, cadena, length);
-		if(ret >= 0){
-			char * caca = find("Host", http->headers->fields);
-			memset(http->host, 0, 256);
-		 	if(caca != NULL){
-		 		strcpy(http->host, caca);
-		  	}
+		char *host = get_host_from_headers(cadena);
+		// ret = http_parse_headers(&http, cadena, length);
+		// if(ret >= 0 && http->headers->n_fields>0){
+		// 	char * host = find("Host", http->headers->fields);
+		// 	memset(http->host, 0, 256);
+		//  	if(host != NULL){
+		//  		strcpy(http->host, host);
+		//  		http->has_host = 1;
+		//   	}else{
+		//			strcpy(http->host, ip_addr_dst);
+		//   		http->has_host = 0;
+		//   	}
+		// }
+
+		if(host == NULL){
+			http->has_host = 0;
+			strcpy(http->host, ip_addr_dst);
+		}else{
+			strcpy(http->host, host);
+			http->has_host = 1;
 		}
+
+		// fprintf(stdout, "// REQ: |%s|%s|%s|%s|\n", http->method, http->uri, http->version, http->has_host == 1? http->host : "NO HOST");
+
+		// http_print_headers(&http);
 		
 	}else{
 		ret = -2;
@@ -170,7 +227,7 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 		
 		char *hdr = strstr(cadena, "\r\n");
 		if(hdr == NULL){ 
-			free(cadena);
+			// FREE(cadena);
 			return -1;
 		}
 		
@@ -181,36 +238,40 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 		}
 
 		//Copy HTTP headers
-		if(no_data == 0){
-			data+=2; //Jump \r\n, THE HEADERS MUST END WITH \r\n
-		}
+		// if(no_data == 0){
+		// 	data+=2; //Jump \r\n, THE HEADERS MUST END WITH \r\n
+		// }
 		
-		hdr+=2; //Jump \r\n
-		aux_hdr = (char*) calloc(((data-hdr)+1),sizeof(char));
-		if(aux_hdr == NULL){
-			free(cadena);
-			return -1;
-		}
+		// hdr+=2; //Jump \r\n
+		// memset(aux_hdr, 0, MAX_PAYLOAD_STRING);
+		// // aux_hdr = (char*) calloc(((data-hdr)+1),sizeof(char));
+		// // if(aux_hdr == NULL){
+		// // 	// FREE(cadena);
+		// // 	return -1;
+		// // }
 
-		memcpy(aux_hdr, hdr, data-hdr);
+		// memcpy(aux_hdr, hdr, data-hdr);
 		
-		if(no_data == 0 && *data == '\r')
-			data+=2;	//Jump \r\n of the empty line
+		// if(no_data == 0 && *data == '\r')
+		// 	data+=2;	//Jump \r\n of the empty line
 
-		http->headers = (http_header *) calloc(sizeof(http_header), 1);
-		if(http->headers == NULL){
-			free(aux_hdr);
-			free(cadena);
-			return -1;
-		}
+		// NO NECESITAMOS LAS CABECERAS AUN		
+		// http->headers = (http_header *) calloc(sizeof(http_header), 1);
+		// if(http->headers == NULL){
+		// 	FREE(aux_hdr);
+		// 	// FREE(cadena);
+		// 	return -1;
+		// }
 		
-		if(getLines(aux_hdr, http->headers) == -1){
-			free(aux_hdr);
-			free(cadena);
-			return -1;
-		}
+		 
+		// if(getLines(aux_hdr, http->headers) == -1){
+		// 	FREE(aux_hdr);
+		// 	FREE(cadena);
+		// 	return -1;
+		// }
 		
-		free(aux_hdr);
+		
+		// FREE(aux_hdr);
 
 		if(no_data == 0){
 			//Copy HTTP data
@@ -220,7 +281,8 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t){
 			// }
 		}
 	}
-	free(cadena);
+
+	// FREE(cadena);
 	return 0;
 } 
 
@@ -260,14 +322,30 @@ int http_parse_headers(http_packet *http_t, char *cadena, int length){
 
 		http->headers = (http_header *) calloc(sizeof(http_header), 1);
 		if(http->headers == NULL){
-			free(aux_hdr);
+			FREE(aux_hdr);
 			return -5;
 		}
 		
 		ret = getLines(aux_hdr, http->headers);
 		
-		free(aux_hdr);
+		FREE(aux_hdr);
 		return ret;
+}
+
+char *get_host_from_headers(char *cadena){
+	memset(cadena_aux, 0, CADENA_AUX_SIZE);
+	char *host_1 = strstr(cadena, "Host");
+	if(host_1 != NULL){
+		char *host_val = strstr(host_1, "\r\n");
+		if(host_val == NULL){
+			return NULL;
+		}
+		char *colon = host_1+6;
+		memcpy(cadena_aux, colon, host_val-colon);
+	}else{
+		return NULL;
+	}
+	return cadena_aux;
 }
 
 void http_print_headers(http_packet *http_t){
@@ -295,15 +373,42 @@ void http_print_headers(http_packet *http_t){
 	return;
 }
 
+int http_clean_up(http_packet *http_t){
+
+	if(http_t == 0) return -1;
+
+	struct _internal_http_packet *http = *http_t;
+	if(http == 0)
+		return -1;
+
+	FREE(http->data);
+
+	// memset(http->method, 0, 32);
+	// memset(http->version, 0, 32);
+	// memset(http->uri, 0, 2048);
+	// memset(http->host, 0, 256);
+	// memset(http->response_msg, 0, 256);
+	// http->has_host = 0;
+	// http->op = 0;
+	// http->response_code = 0;
+
+	http_free_header(http->headers);
+	memset(http, 0, sizeof(*http));
+
+	return 0;
+}
+
 int http_alloc(http_packet *http_t){
 	
 	struct _internal_http_packet *http;
 	
-	http = (struct _internal_http_packet *) malloc(sizeof(*http));
+	http = (struct _internal_http_packet *) malloc(sizeof(* http));
 	if(http == NULL){
 		return -1;
 	}
 	
+	http->data = NULL;
+
 	memset(http, 0, sizeof(*http));
 	*http_t = http;
 
@@ -312,24 +417,52 @@ int http_alloc(http_packet *http_t){
 
 void http_free_packet(http_packet *http_t){
 	
-	if(http_t == NULL) return;
+	if(http_t == 0) return;
 	
+	if(options.debug > 0){
+		fprintf(stderr, "DEBUG/ http_free_packet 1, ");
+	}
+
 	struct _internal_http_packet *http = *http_t;
-	if(http == NULL)
+	if(http == 0)
 		return;
-	
-	if(http->data != NULL){
-		free(http->data);
-		http->data = NULL;
+
+	if(options.debug > 1){
+		fprintf(stderr, "2, ");
+	}
+
+	FREE(http->data);
+
+	if(options.debug > 1){
+		fprintf(stderr, "3, [");
 	}
 
 	if(http->headers != NULL){
 		http_free_header(http->headers);
-		free(http->headers);
-		http->headers = NULL;
+
+		if(options.debug > 1){
+			fprintf(stderr, "], 4, ");
+		}
+
+		FREE(http->headers);
 	}
-	
-	free(http);
+
+	if(options.debug > 1){
+		fprintf(stderr, "5, ");
+	}
+
+	if(http_t != 0){
+		if(*http_t != 0){
+			FREE(http);
+		}
+	}
+		
+	http=NULL;
+	*http_t = NULL;
+
+	if(options.debug > 1){
+		fprintf(stderr, "6.\n");
+	}
 	
 	return;
 }

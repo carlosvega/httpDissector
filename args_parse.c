@@ -4,20 +4,21 @@ void how_to_use(char *name){
   
 	fprintf(stderr, "\n\t\t\t\tHTTP Packet Dissector\n\n");
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
+  fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
+  fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
+  fprintf(stderr, "\t-D  --debug=<debug_level>\t\tActivates debug lines.\n");
   fprintf(stderr, "\t-h  --help\t\t\tShows this message.\n");
   fprintf(stderr, "\t-i  --input=<file>\t\tInput file. This parameter is mandatory.\n");
+  fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
+  fprintf(stderr, "\t    --log\t\t\tWrites debug stuff in the log (httpDissector)\n");
   fprintf(stderr, "\t-o  --output=<file>\t\tOutput file instead of stdout.\n");
   fprintf(stderr, "\t-p  --pcap\t\t\tSets the input file format as pcap. (Set by Default)\n");
   fprintf(stderr, "\t-P  --parallel=<n_processes>\tParallel processing. Needs number of processes.\n");
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
-  fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
-  fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
-  fprintf(stderr, "\t    --log\t\t\tWrites debug stuff in the log (httpDissector)\n");
-  fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
+  fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
   fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
-  fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
-  fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n\n");
+  fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
 
 
@@ -39,7 +40,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t\t\t\tFILE OF FILES FORMAT\n");
   fprintf(stderr, "One file path per line.\n");
   fprintf(stderr, "Instead of \"~/file.pcap\" use the absolute path \"/Users/user/file.pcap\"\n");
-  fprintf(stderr, "There is no problem using \"../file.pcap\" paths.\n");
+  fprintf(stderr, "There is no problem using \"../file.pcap\" paths.\n\n");
 
   fprintf(stderr, "\t\t\t\tPARALLEL PROCESSING\n");
   fprintf(stderr, "When no output file has been specified, the information is printed in the Standard Output\n");
@@ -62,6 +63,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.parallel    = 0;
   options.raw         = -1;
   options.rrd         = 0;
+  options.debug       = 0;
   options.log         = 0;
   options.twolines    = 0;
   options.files       = 0;
@@ -76,12 +78,13 @@ struct args_parse parse_args(int argc, char **argv){
 	int next_op;
 
 	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "hrIvpf:i:P:o:u:c:" ;
+	const char* const short_op = "D:hrIvpf:i:P:o:u:c:" ;
 
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
 	{
 		{ "help",           0,  NULL,   'h'},
+    { "debug",          1,  NULL,   'D'},
 		{ "output",         1,  NULL,   'o'},
 		{ "raw",		        0, 	NULL, 	'r'},
     { "no-collector",   0,  NULL,   'C'},
@@ -113,7 +116,9 @@ struct args_parse parse_args(int argc, char **argv){
           options.err = -3;
           strcpy(options.errbuf, "Help:");
           return options;
-			  
+			  case 'D' : 
+          options.debug = atoi(optarg);
+          break;
         case 'i' : /* -i o --input */
           options.input = optarg;
           options.err = 0;
