@@ -80,6 +80,7 @@ void sigintHandler(int signal){
 	fprintf(stderr, "\n\nSkipping, wait...\n");
 
 	FREE(filter);
+	FREE(pktinfo);
 
 	if(options.interface == NULL && progress_bar){
 		// g_thread_join(progreso);
@@ -101,6 +102,24 @@ void sigintHandler(int signal){
 			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		}
 	}
+
+	if(options.output != NULL && options.parallel == 0){
+		fclose(output);
+	}
+
+	if(files_path != NULL){
+		int i=0;
+		for(i=0; i<nFiles; i++){
+			FREE(files_path[i]);
+		}
+		FREE(files_path);
+		files_path = NULL;
+	}
+
+	http_free_packet(&http);
+	freeHashvaluePool();
+	freeNodelPool();
+	freeRequestPool();
 
 	exit(0);
 }
