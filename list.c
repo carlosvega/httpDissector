@@ -231,8 +231,11 @@ void list_unlink(node_l **list,
 		(*list)->prev = NULL;
 		*list = NULL; 		 				//lista a null
 	} else { 				 				//sino
+		if(node->prev == NULL) print_backtrace("list_unlink prev==NULL");
 		if(node->prev!=NULL) 				//si el anterior del que sacamos no es null
 			node->prev->next = node->next;  //el siguiente del anterior ahora apunta al siguiente del que hemos sacado
+		
+		if(node->next == NULL) print_backtrace("list_unlink next==NULL");
 		if(node->next!=NULL) 				//si el siguiente del que sacamos no es null
 			node->next->prev = node->prev;  //el anterior al siguiente ahora apunta al anterior del que hemos sacado
 
