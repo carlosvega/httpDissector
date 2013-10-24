@@ -188,15 +188,15 @@ int addActiveConnexion(hash_value *hashvalue){
 	return 0;
 }
 
-int removeActiveConnexion(node_l *n){
+// int removeActiveConnexion(node_l *n){
 
-	n->data = NULL;
-	list_unlink(&active_session_list, n);
-	releaseNodel(n);
-	active_session_list_size--;
+// 	n->data = NULL;
+// 	list_unlink(&active_session_list, n);
+// 	releaseNodel(n);
+// 	active_session_list_size--;
 
-	return 0;
-}
+// 	return 0;
+// }
 
 int removeActiveConnexion(hash_value *hashvalue){
 
