@@ -48,6 +48,7 @@ typedef struct _data {
 	char str[1024];
 } data;
 
+void list_foreach(node_l **list, void func(void *));
 int list_size(node_l **list);
 void list_alloc_node_no_malloc(void *data);
 int list_is_empty(node_l **list);
