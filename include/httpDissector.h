@@ -1,9 +1,12 @@
 #ifndef _hope
 #define _hope
 
+#include <assert.h>
 #include "hashvalue.h"
+#include "err_mqueue.h"
 #include "list.h"
 #include "request.h"
+#include "response.h"
 #include "packet_info.h"
 #include "tools.h"
 #include "NDleeTrazas.h"

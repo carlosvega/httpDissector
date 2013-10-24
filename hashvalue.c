@@ -1,15 +1,19 @@
-
 #include "hashvalue.h"
 
-
+extern struct msgbuf sbuf;
 extern node_l *session_table[MAX_FLOWS_TABLE_SIZE];
 extern node_l *active_session_list;
 extern uint32_t active_session_list_size;
 extern struct timespec last_packet;
 
 extern uint64_t last_packet_timestamp;
-extern struct args_parse options;
 extern unsigned long long no_cases;
+extern unsigned long long active_requests;
+extern unsigned long long total_requests;
+extern unsigned long long total_connexions;
+extern unsigned long long lost;
+extern unsigned long long total_req_node;
+extern unsigned long long total_out_of_order;
 
 extern FILE *output;
 
@@ -23,24 +27,17 @@ node_l *nodel_aux;
 hash_value *hashvalues;
 hash_value aux_hashvalue;
 
-void removeRequestFromHashvalue(hash_value *hashvalue){
+void removeRequestFromHashvalue(hash_value *hashvalue, node_l *req_node){
 
-	if(list_is_empty(&hashvalue->list)){
-		return;
-	}
-
-	do{
-		node_l *n = list_get_first_node(&hashvalue->list);	//Obtiene el primer nodo			
-		if(n->data != NULL){
-			request *req = (request*) n->data;				//Obtiene la peticion de ese nodo
-			
-			memset(req, 0, sizeof(request));				//Resetear request
-			releaseRequest(req);							//Devolver request al pool de requests
-			n->data = NULL;									//data a NULL
-		}
-		list_unlink(&hashvalue->list, n);					//Quitamos nodo de la lista de transacciones
-		releaseNodel(n);									//Devolvemos el nodo al pool
-	}while(!list_is_empty(&hashvalue->list));				//Repetir hasta que este vacia
+	request *req = (request*) req_node->data;
+	list_unlink(&hashvalue->list, req_node);
+	req_node->data = NULL;							//Resetear data del nodo
+	releaseNodel(req_node);
+		// memset(req, 0, sizeof(request));				//Resetear request
+	req->aux_res = NULL;
+	releaseRequest(req);							//Devolver request al pool de requests
+	hashvalue->n_request--;
+	active_requests--;
 
 	return;
 }
@@ -49,8 +46,11 @@ void allocHasvaluePool(void){
 	
 	int i=0;
 	node_l *n=NULL;
-	hashvalues=calloc(MAX_POOL_FLOW,sizeof(hash_value));
-	assert(hashvalues!=NULL);
+	hashvalues = calloc(MAX_POOL_FLOW, sizeof(hash_value));
+
+	//ASSERT
+	assert(!(hashvalues==NULL));//if(hashvalues==NULL) print_backtrace("AllocHashvaluePool hashvalues==NULL");
+
 	for(i=0;i<MAX_POOL_FLOW;i++){
 		n=list_alloc_node(hashvalues+i);
 		list_prepend_node(&hashvalue_pool_free,n);
@@ -64,11 +64,12 @@ hash_value * getHashvalue(void){
 	node_l *n=list_pop_first_node(&hashvalue_pool_free);
 
 	if(hashvalue_pool_free==NULL)
-	{	printf("pool Flujos vacío\n");
+	{	fprintf(stderr, "pool hashvalue vacío\n");
 		exit(-1);
 	}
 	//Lo mete en el pool de usados
 	list_prepend_node(&hashvalue_pool_used,n);
+	memset(n->data, 0, sizeof(hash_value));	//Resetear hashvalue
 
 	return  (n->data); //retorna el hashvalue
 	
@@ -80,7 +81,6 @@ void releaseHashvalue(hash_value * f)
 	node_l *n=list_pop_first_node(&hashvalue_pool_used);
 	n->data=(void*)f;
 	list_prepend_node(&hashvalue_pool_free,n);
-
 
 }
 
@@ -102,387 +102,6 @@ void freeHashvaluePool(void)
 }
 
 
-/*******************************************************
-*
-*  This function compares the tuples of two different IP_flows
-*  returns 0 if they are equal and other thing if they are
-*  different
-*
-********************************************************/
-// int compareTupleFlow(void *a, void *b)
-// {
-// 	if(	(((hash_value*)a)->incoming.source_ip == ((hash_value*)b)->incoming.source_ip) &&
-// 		(((hash_value*)a)->incoming.destination_ip == ((hash_value*)b)->incoming.destination_ip) &&
-// 		(((hash_value*)a)->incoming.source_port == ((hash_value*)b)->incoming.source_port) &&
-// 		(((hash_value*)a)->incoming.destination_port == ((hash_value*)b)->incoming.destination_port) &&
-// 		(((hash_value*)a)->incoming.transport_protocol == ((hash_value*)b)->incoming.transport_protocol)
-// 	)
-// 	{
-// 		((hash_value*)b)->actual_flow=&(((hash_value*)b)->incoming);
-// 		return 0;
-// 	}
-	
-// 	return 1;
-// }
-
-// int compareTupleFlowList(void *a, void *b)
-// {
-// 	IPSession *aa=((node_l*)a)->data;
-// 	IPSession *bb=((node_l*)b)->data;
-
-// 	if( 	(((IPSession*)aa)->incoming.source_ip == ((IPSession*)bb)->incoming.source_ip) &&
-// 		(((IPSession*)aa)->incoming.destination_ip == ((IPSession*)bb)->incoming.destination_ip) &&
-// 		(((IPSession*)aa)->incoming.source_port == ((IPSession*)bb)->incoming.source_port) &&
-// 		(((IPSession*)aa)->incoming.destination_port == ((IPSession*)bb)->incoming.destination_port) &&
-// 		(((IPSession*)aa)->incoming.transport_protocol == ((IPSession*)bb)->incoming.transport_protocol) 
-// 	)
-// 	{
-// 		((IPSession*)bb)->actual_flow=&(((IPSession*)bb)->incoming);
-// 		return 0;
-// 	}
-	
-// 	return 1;
-// }
-
-
-// int compareTupleSession(void *a, void *b)
-// {
-
-// 	if(	(((IPSession*)a)->incoming.source_ip == ((IPSession*)b)->incoming.source_ip) &&
-// 		(((IPSession*)a)->incoming.destination_ip == ((IPSession*)b)->incoming.destination_ip) &&
-// 		(((IPSession*)a)->incoming.source_port == ((IPSession*)b)->incoming.source_port) &&
-// 		(((IPSession*)a)->incoming.destination_port == ((IPSession*)b)->incoming.destination_port) &&
-// 		(((IPSession*)a)->incoming.transport_protocol == ((IPSession*)b)->incoming.transport_protocol)
-// 	)
-// 	{	
-// 	  	((IPSession*)b)->actual_flow=&(((IPSession*)b)->incoming);
-// 	  	return 0;
-//   	}
-// 	else if(   	(((IPSession*)a)->incoming.source_ip == ((IPSession*)b)->outgoing.source_ip) &&
-// 			(((IPSession*)a)->incoming.destination_ip == ((IPSession*)b)->outgoing.destination_ip) &&
-// 			(((IPSession*)a)->incoming.source_port == ((IPSession*)b)->outgoing.source_port) &&
-// 			(((IPSession*)a)->incoming.destination_port == ((IPSession*)b)->outgoing.destination_port) &&
-// 			(((IPSession*)a)->incoming.transport_protocol == ((IPSession*)b)->outgoing.transport_protocol)
-// 	)
-// 	{
-// 		  ((IPSession*)b)->actual_flow=&(((IPSession*)b)->outgoing);
-
-//   	  	  return 0;
-// 	}
-
-// 	return 1;
-
-// }
-
-// IPSession *insertFlowTable(IPSession *aux_session,IPFlow *new_flow,int index)
-// {
-// 	node_l *new_active_node = NULL;
-// 	node_l *naux = NULL;
-	
-// 	//lista de colisiones
-// 	node_l *list=session_table[index];
-// 	/*if( (new_flow->flag_ACK_nulo)==1 )  {
-// 		packts_ACK_descartados++;
-// 		return aux_session;
-// 	}*/
-
-// 	new_flow->previous_timestamp=last_packet_timestamp;
-// 	/*If flow is not in the list, insert it*/
-// 	new_flow->previous_seq_number=new_flow->current_seq_number+new_flow->dataLen;
-
-// 	new_flow->size[0] = new_flow->nbytes;
-// 	new_flow->packet_offset[0] = new_flow->offset;
-// 	new_flow->timestamp[0] = last_packet_timestamp;
-// 	aux_session->lastpacket_timestamp= last_packet_timestamp;
-// 	aux_session->firstpacket_timestamp= last_packet_timestamp; 
-
-// 	new_flow->max_pack_size=new_flow->nbytes;
-// 	new_flow->min_pack_size=new_flow->nbytes;
-// 	new_flow->nbytes_sqr=new_flow->nbytes*new_flow->nbytes;
-
-// 	new_flow->max_int_time=0;
-// 	new_flow->min_int_time=0;
-// 	new_flow->sum_int_time=0;
-// 	new_flow->sum_int_time_sqr=0;
-
-// 	int i,j;
-// 	for(i=0;i<8;i++){
-// 		if((new_flow->flags>>i)%2==1)
-// 			new_flow->num_flags[i]=1;
-// 		else
-// 			new_flow->num_flags[i]=0;
-// 	}
-
-// 	new_flow->rtt_syn_done=0;
-// 	if(((new_flow->flags>>1)%2)==1){//SYN
-// 		new_flow->rtt_syn=last_packet_timestamp;
-// 	}
-// 	else{
-// 		new_flow->rtt_syn=0;
-// 		new_flow->rtt_syn_done=1;
-// 	}
-// 	uint8_t*aux=new_flow->payload_ptr;
-// 	if(aux)
-// 	{
-// 		if (max_payload > new_flow->dataLen)
-// 		{
-// 			  //printf("new_flow->offset:%u,new_flow->dataLen:%u,%"PRIu64".%06lu,%u,%u,%u\n",new_flow->offset,new_flow->dataLen,last_packet_timestamp/1000000,last_packet_timestamp%1000000,new_flow->source_port,new_flow->destination_port,new_flow->transport_protocol);
-		
-// 			memcpy (new_flow->payload, aux, new_flow->dataLen * sizeof (uint8_t));
-			 
-
-// 		}
-// 		else
-// 		{
-			 
-
-// 			memcpy (new_flow->payload, aux, max_payload * sizeof (uint8_t));
-			
-
-// 		}
-// 	}
-// 	new_flow->npack_payload=1;
-
-	
-// 	aux_session->actual_flow=&(aux_session->incoming);
-	
-// //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// // Frag. packets
-// //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// 	if (frag_packets_flag)
-// 	{
-// 		aux_session->actual_flow->frag_flag=1;
-// 		aux_session->actual_flow->ip_id=new_flow->ip_id;
-// 		insertPointer_frag(aux_session->actual_flow);
-// 		frag_packets_flag=0;
-// 	}
-
-// 	else aux_session->actual_flow->frag_flag=0;
-
-// 	getNodel();
-// 	naux=nodel_aux;
-// 	naux->data=(aux_session);
-// 	list_prepend_node(&list,naux);
-// 	session_table[index]=list;  //asignamos por si ha cambiado la cabeza
-
-// 	getNodel();
-// 	new_active_node=nodel_aux;
-// 	new_active_node->data=naux;
-// 	list_prepend_node(&active_session_list,new_active_node);
-// 	aux_session->active_node=new_active_node;
-	
-// 	//actualizamos contadores de flujos concurrentes por subred/puertos
-// /*	for(i=0;i<n_networks;i++){
-// 		if((new_flow->source_ip&mask_networks[i])==networks[i])
-// 			flows_networks_out[i]++;
-// 		if((new_flow->destination_ip&mask_networks[i])==networks[i]){
-// 			flows_networks_in[i]++;
-// 		}
-// 	}*/
-//  	for(i=0;i<n_networks;i++)
-// 	{
-//                 if((aux_session->incoming.source_ip&mask_networks[i])==networks[i])
-//                 {
-// 			if(mac_in!=NULL)
-// 			{
-// 				if(((memcmp(&aux_session->incoming.source_mac,mac_in,ETH_ALEN)==0)))
-// 		                {
-// 					for(j=0;j<nmacs_out;j++)
-// 					{
-// 						if((memcmp(&aux_session->incoming.destination_mac,macs_out[j],ETH_ALEN)==0))
-// 						{
-// 							flows_networks_out[i]++;
-// 							break;
-// 						}
-// 					}
-	
-// 		                }
-// 			}
-// 			else
-// 				flows_networks_out[i]++;	
-			
-//                 }
-//                 if((aux_session->incoming.destination_ip&mask_networks[i])==networks[i])
-// 		{
-// 			if(macs_out!=NULL)
-// 			{
-// 				for(j=0;j<nmacs_out;j++)
-// 				{
-// 					if((memcmp(&aux_session->incoming.source_mac,macs_out[j],ETH_ALEN)==0))
-// 					{
-// 						if(((memcmp(&aux_session->incoming.destination_mac,mac_in,ETH_ALEN)==0)))
-// 						{
-// 							 flows_networks_in[i]++;
-// 							 break;
-// 						}
-// 					}
-// 				}
-				
-// 			}
-// 			else
-// 			{
-// 				 flows_networks_in[i]++;
-// 			}
-
-//                 }
-// 	}
-
-// 	for(i=0;i<n_ports;i++){
-// 		if(new_flow->source_port==ports[i])
-// 			flows_ports_src[i]++;
-// 		if(new_flow->destination_port==ports[i])
-// 			flows_ports_dst[i]++;
-// 	}
-
-
-// 	active_session_list_size++;
-// 	total_sessions++;
-
-// 	if((aux_session->actual_flow->flag_FIN)>1)
-// 	{
-// 		node_l *n=list_search(&flags_expired_session_list,aux_session->active_node,compareTupleFlowList);
-// 		if(n==NULL)
-// 		{				
-// 			list_unlink(&active_session_list,aux_session->active_node);
-// 			list_prepend_node(&flags_expired_session_list,aux_session->active_node);
-// 		}
-		
-// 	}
-
-// 	return NULL;
-// }
-
-// inline void updateFlowTable(IPSession *current_session,IPFlow *new_flow){
-
-// 	int num_packets = current_session->actual_flow->npack;
-// 	if(new_flow->nbytes>current_session->actual_flow->max_pack_size)
-// 		current_session->actual_flow->max_pack_size=new_flow->nbytes;
-// 	if(new_flow->nbytes<current_session->actual_flow->min_pack_size)
-// 		current_session->actual_flow->min_pack_size=new_flow->nbytes;
-// 	current_session->actual_flow->nbytes_sqr+=new_flow->nbytes*new_flow->nbytes;
-// 	if(current_session->actual_flow->rtt_syn_done==0){
-// 		current_session->actual_flow->rtt_syn=last_packet_timestamp-current_session->actual_flow->rtt_syn;
-// 		current_session->actual_flow->rtt_syn_done=1;
-// 	}
-
-// 	if(current_session->actual_flow->npack==1){
-// 	//if(current_session->actual_flow->max_int_time==0){//2nd packet
-// 		current_session->actual_flow->max_int_time=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 		current_session->actual_flow->min_int_time=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 		current_session->actual_flow->sum_int_time=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 		current_session->actual_flow->sum_int_time_sqr=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp)*us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 	}
-// 	else{//remaining packets
-// 		if(current_session->actual_flow->max_int_time<us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp))
-// 			current_session->actual_flow->max_int_time=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 		if(current_session->actual_flow->min_int_time>us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp))
-// 			current_session->actual_flow->min_int_time=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 		current_session->actual_flow->sum_int_time+=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 		current_session->actual_flow->sum_int_time_sqr+=us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp)*us2s(last_packet_timestamp-current_session->actual_flow->previous_timestamp);
-// 	}	
-
-
-// 	current_session->actual_flow->previous_timestamp=last_packet_timestamp;
-
-// 	int i;
-// 	for(i=0;i<8;i++){
-// 		if((new_flow->flags>>i)%2==1)
-// 			new_flow->num_flags[i]++;
-// 	}
-
-// 	uint16_t copySize=0;
-// 	if(current_session->actual_flow->flag_FIN==0)
-// 		(current_session->actual_flow->flag_FIN)+=(new_flow->flag_FIN);
-
-
-// 	(current_session->actual_flow->nbytes) += new_flow->nbytes;
-	
-// 	current_session->actual_flow->previous_seq_number=new_flow->current_seq_number+new_flow->dataLen;
-
-
-// 	if(new_flow->dataLen+current_session->actual_flow->offset<=max_payload)
-// 		copySize=new_flow->dataLen;
-// 	else if((int)(max_payload-current_session->actual_flow->offset)>0)
-// 		copySize=max_payload-current_session->actual_flow->offset;
-// 	else
-// 		copySize=0;
-
-
-// 	if (num_packets < max_pack)
-// 	{
-// 		(current_session->actual_flow->timestamp)[num_packets] =(last_packet_timestamp);
-// 		(current_session->actual_flow->size)[num_packets] = (new_flow->nbytes);
-// 		(current_session->actual_flow->packet_offset)[num_packets] =(copySize);
-// 	}
-// 	//Do not copy more than the max_payload 
-// 	if (copySize > 0)
-// 	{
-// 		current_session->actual_flow->npack_payload++;
-// 		uint8_t*aux=new_flow->payload_ptr;
-
-// 		if(aux)
-// 		{
-// 			memcpy (current_session->actual_flow->payload + (current_session->actual_flow->offset),aux, copySize);
-// 			(current_session->actual_flow->offset) += copySize;
-		
-// 		}
-// 	}
-
-// 	current_session->lastpacket_timestamp = last_packet_timestamp;
-// 	(current_session->actual_flow->npack)++;
-
-// //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// // Frag. packets
-// //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// 	if (frag_packets_flag)
-// 	{
-
-// 		if (current_session->actual_flow->frag_flag==0)
-// 		{
-// 			current_session->actual_flow->frag_flag=1;
-// 			current_session->actual_flow->ip_id=new_flow->ip_id;
-// 			insertPointer_frag(current_session->actual_flow);
-// 		}
-
-// 		else if (current_session->actual_flow->ip_id!=new_flow->ip_id)
-// 		{
-// 			removePointer_frag(current_session->actual_flow);
-// 			current_session->actual_flow->ip_id=new_flow->ip_id;
-// 			insertPointer_frag(current_session->actual_flow);
-// 		}
-
-// 		frag_packets_flag=0;
-// 	}
-
-
-// 	if((current_session->actual_flow->flag_FIN)>1)
-// 	{
-// 		node_l *n=list_search(&flags_expired_session_list,current_session->active_node,compareTupleFlowList);
-// 		if(n==NULL)
-// 		{				
-// 			list_unlink(&active_session_list,current_session->active_node);
-// 			list_prepend_node(&flags_expired_session_list,current_session->active_node);
-// 		}
-
-// /****************************************************************************************/
-// // Aditional second for flag expirated flows
-// /****************************************************************************************/
-// 		else
-// 		{
-// 			list_unlink(&flags_expired_session_list,current_session->active_node);
-// 			list_prepend_node(&flags_expired_session_list,current_session->active_node);
-// 		}
-		
-// 	}
-// 	else
-// 	{
-
-// 		list_unlink(&active_session_list,current_session->active_node);
-// 		list_prepend_node(&active_session_list,current_session->active_node);
-// 	}
-// }
 
 //Add enough data to compare two hashvalues
 void preFillHashvalue(packet_info *packet, hash_value *hashvalue){
@@ -553,6 +172,281 @@ int compareHashvalue(void *a, void *b)
 	return 1;
 }
 
+int addActiveConnexion(hash_value *hashvalue){
+
+	ERR_MSG("DEBUG/ addActiveConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromHashvalue(hashvalue), hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
+	
+	getNodel();										  //Obtener nodo del pool
+	node_l *naux=nodel_aux;							  //Asignar conexion
+	naux->data=hashvalue;
+	naux->next = naux;
+	naux->prev = naux;
+	list_prepend_node(&active_session_list, naux); //Anadir al principio de la lista de activos
+	hashvalue->active_node=naux;
+	active_session_list_size++;
+
+	return 0;
+}
+
+int removeActiveConnexion(node_l *n){
+
+	n->data = NULL;
+	list_unlink(&active_session_list, n);
+	releaseNodel(n);
+	active_session_list_size--;
+
+	return 0;
+}
+
+int removeActiveConnexion(hash_value *hashvalue){
+
+	ERR_MSG("DEBUG/ removeActiveConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromHashvalue(hashvalue), hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
+
+	list_unlink(&active_session_list, hashvalue->active_node);
+	releaseNodel(hashvalue->active_node);
+	hashvalue->active_node = NULL;	
+
+	active_session_list_size--;
+
+	return 0;
+}
+
+int updateActiveConnexion(hash_value *hashvalue){
+	//UPDATE ACTIVE NODE LIST
+	if(hashvalue->active_node == NULL){
+		addActiveConnexion(hashvalue);
+		return 0;
+	}
+	
+	list_unlink(&active_session_list, hashvalue->active_node);
+	list_prepend_node(&active_session_list, hashvalue->active_node);
+	
+	return 0;
+}
+
+void addRequestToConnexion(hash_value *hashvalue, packet_info *aux_packet, uint32_t index){
+	
+	ERR_MSG("DEBUG/ addRequestToConnexion\n");
+
+	node_l *naux = NULL;
+
+	request *req = getRequest();							//Obtener request del pool
+	fillRequest(aux_packet, req);							//Rellenar request
+	getNodel(); 											//Obtener nodo del pool para la peticion
+	naux = nodel_aux;
+	naux->data = req;				
+	list_append_node(&hashvalue->list, naux); 				//Meter peticion en la lista
+
+	hashvalue->last_client_seq = aux_packet->tcp->th_seq; 	//Actualizar ultimos numeros
+	hashvalue->last_client_ack = aux_packet->tcp->th_ack; 	//de seq y ack del cliente
+	hashvalue->n_request++;
+	hashvalue->last_ts = aux_packet->ts;					//Actualizar last timestamp
+
+	active_requests++;
+	total_requests++;
+}
+
+void printTransaction(hash_value *hashvalue, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node){
+
+	assert(hashvalue!=NULL);
+	assert(response_msg!=NULL);
+	assert(req_node!=NULL);
+
+	ERR_MSG("DEBUG/ printTransaction\n");
+
+	request *req = (request*) req_node->data;
+
+	assert(req!=NULL);
+
+	//IMPRIMIR INFORMACION
+	struct timespec diff = tsSubtract(res_ts, req->ts);
+	
+	fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s\n", hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, req->url, req->op == POST ? "POST" : "GET");
+	hashvalue->n_response--;
+	removeRequestFromHashvalue(hashvalue, req_node);
+}
+
+int cleanUpHashvalue(hash_value *hashvalue){
+
+ 	ERR_MSG("DEBUG/ cleanUpHashvalue - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromHashvalue(hashvalue), hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
+
+	if(hashvalue->n_request == 0){
+		return 0;
+	}
+
+	node_l *n = list_get_first_node(&hashvalue->list);
+
+	if(n == NULL){
+		return 0;
+	}
+
+	request *req = (request*) n->data;
+	if(req == NULL){
+		removeRequestFromHashvalue(hashvalue, n);
+		return cleanUpHashvalue(hashvalue);
+	}
+
+	if(req->aux_res == NULL){
+		removeRequestFromHashvalue(hashvalue, n);
+		return cleanUpHashvalue(hashvalue);
+	}else{
+		response *res = req->aux_res;
+		printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
+		releaseResponse(res);
+		return cleanUpHashvalue(hashvalue);
+	}
+
+	return 0;
+}
+
+int checkFirst(hash_value *hashvalue){
+	ERR_MSG("DEBUG/ checkFirst\n");
+
+	if(hashvalue->n_request <= 0){
+		return -1;
+	}
+
+	node_l *n = list_get_first_node(&hashvalue->list);
+
+	if(n==NULL){
+		return -1;
+	}
+
+	request *req = (request*) n->data;
+
+	if(req == NULL){
+		removeRequestFromHashvalue(hashvalue, n);
+		return checkFirst(hashvalue);
+	}
+
+	if(req->aux_res != NULL && hashvalue->n_response > 0){
+		response *res = (response*) req->aux_res;
+		assert(res != NULL);
+		assert(&res->op!=NULL);
+		assert(res->op == RESPONSE);		
+		
+		// fprintf(stderr, "res->responseCode %d (%p) ", res->responseCode, &res->responseCode);
+		// fprintf(stderr, "res->response_msg %d (%p) \n", res->response_msg, &res->response_msg);
+		printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
+		// memset(res, 0, sizeof(res)); //Resetear response
+		releaseResponse(res);
+		return checkFirst(hashvalue);
+	}else if(req->aux_res == NULL){
+		struct timespec diff = tsSubtract(last_packet, req->ts);
+		if(diff.tv_sec > 60){
+			removeRequestFromHashvalue(hashvalue, n);
+			return checkFirst(hashvalue);
+		}else{
+			return 0;
+		}
+	}
+
+	return 0;
+
+}
+
+void removeConnexion(hash_value *hashvalue, node_l *conexion_node, uint32_t index){
+	
+	ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
+	syslog(LOG_NOTICE, "removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
+
+	//ASSERT
+	assert(!(conexion_node==NULL));//if(conexion_node==NULL) print_backtrace("removeConnexion conexion_node==NULL");
+
+//	ERR_MSG("NULL %s - %s\n", conexion_node->prev == NULL? "NULL" : "!NULL", conexion_node->prev == conexion_node? "YES" : "NO");
+//	ERR_MSG("NULL %s - %s\n", conexion_node->next == NULL? "NULL" : "!NULL", conexion_node->next == conexion_node? "YES" : "NO");
+
+	removeActiveConnexion(hashvalue);
+
+	node_l *list=session_table[index];
+	list_unlink(&list, conexion_node); 			//Eliminar conexion
+	conexion_node->data = NULL;
+	releaseNodel(conexion_node);
+
+	//Devolver hashvalue al pool
+	// memset(hashvalue, 0, sizeof(hashvalue));	//Resetear hashvalue
+	releaseHashvalue(hashvalue);				//Devolver hashvalue al pool de hashvalues
+
+	if(list_size(&list) == 0){ 					//Si la lista de colisiones esta vacia
+		session_table[index] = NULL;
+	}
+
+}
+
+int addResponseToConnexion(hash_value *hashvalue, packet_info *aux_packet, node_l *conexion_node, uint32_t index){
+
+	ERR_MSG("DEBUG/ addResponseToConnexion\n");
+
+	int position = -1;
+	node_l *req_node = request_search(&hashvalue->list, aux_packet->tcp->th_seq, &position);
+	if(req_node == NULL || req_node->data == NULL){
+		ERR_MSG("DEBUG/ req_node %s\n", req_node == NULL ? "NULL" : "!NULL");
+		total_req_node++;
+		return -1;
+	}
+
+	hashvalue->n_response++;
+
+	if(position==0){
+		printTransaction(hashvalue, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);	
+	}else{
+		ERR_MSG("RESPONSE OUT OF ORDER POS: %d\n", position);
+		total_out_of_order++;
+		request *req = (request*) req_node->data;
+		response *res = getResponse();
+		fillResponse(aux_packet, res);
+		req->aux_res = res;
+	}
+
+	if(checkFirst(hashvalue) == -1){ //n_req == 0
+		removeConnexion(hashvalue, conexion_node, index);
+	}
+
+	return 0;
+}
+
+
+int insertNewConnexion(node_l *list, packet_info *aux_packet, uint32_t index){
+
+	node_l *naux = NULL;
+
+	if(aux_packet->op == RESPONSE){ 					//Response sin request
+		ERR_MSG("DEBUG/ Response without request\n");
+		lost++;
+		return -1;
+	}
+
+	//CREAR CONEXION
+	hash_value *hashvalue = getHashvalue(); 	//Obtener hashvalue del pool
+	fulfillHashvalue(aux_packet, hashvalue);	//Copiar datos
+
+	ERR_MSG("DEBUG/ insertNewConnexion - %"PRIu32" - %s:%u %s:%u \n", index, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
+	
+	//METER PETICION
+	addRequestToConnexion(hashvalue, aux_packet, index);
+	ERR_MSG("after addRequestToConnexion\n");
+	//OBTENER NODO PARA LA CONEXION
+	getNodel();											  //Obtener nodo del pool
+	naux=nodel_aux;										  //
+	naux->data=hashvalue;								  //Asignar la conexion al nodo
+	naux->prev = naux;
+	naux->next = naux;	
+
+	if(list_is_empty(&list)){
+		ERR_MSG("list_is_empty\n");
+		session_table[index]=naux;
+	}else{
+		ERR_MSG("list_append_node\n");
+		list_append_node(&list, naux);					  //Meter en lista de colisiones		
+	}
+	total_connexions++;
+
+	addActiveConnexion(hashvalue);
+
+	return 0;
+}
+
+
 /*******************************************************
 *
 * This function inserts/updates a session in the GLOBAL
@@ -561,11 +455,15 @@ int compareHashvalue(void *a, void *b)
 ********************************************************/
 int insertPacket (packet_info *aux_packet){
 
-	node_l *new_active_node = NULL;
+	// node_l *new_active_node = NULL;
 
 	//ACK & SEQ
 	aux_packet->tcp->th_seq = ntohl(aux_packet->tcp->th_seq);
 	aux_packet->tcp->th_ack = ntohl(aux_packet->tcp->th_ack);
+
+	//Preparamos hashvalue auxiliar y nodo auxiliar
+	preFillHashvalue(aux_packet, &aux_hashvalue);
+	list_alloc_node_no_malloc(&aux_hashvalue);
 
 	//Obtener hashkey
 	uint32_t index = getIndex (aux_packet);
@@ -573,365 +471,47 @@ int insertPacket (packet_info *aux_packet){
 	//Obtener lista de colisiones
 	node_l *list=session_table[index];
 
-	preFillHashvalue(aux_packet, &aux_hashvalue);
-	
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ DATA: %s|%d|%s|%d|%ld.%09ld|SEQ:%"PRIu32"|ACK:%"PRIu32"|%s\n", aux_packet->ip_addr_src, aux_packet->port_src, aux_packet->ip_addr_dst, aux_packet->port_dst, aux_packet->ts.tv_sec, aux_packet->ts.tv_nsec, aux_packet->tcp->th_seq, aux_packet->tcp->th_ack, http_op_to_char(aux_packet->op));
-	}
-
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ preFillHashvalue - done\n");
-	}
-	
-	list_alloc_node_no_malloc(&aux_hashvalue);
-	
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ list_alloc_node_no_malloc - done\n");
+	//Lista de colisiones vacia y no hay conexion
+	if(list == NULL){
+		ERR_MSG("DEBUG/ insertNewConnexion list==NULL\n");
+		return insertNewConnexion(list, aux_packet, index);
 	}
 
 	//Buscar conexion en colisiones
 	node_l *conexion_node = list_search(&list, &static_node, compareHashvalue);
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ search - done\n");
-	}	
-
-	node_l *naux = NULL;
-
-	if(conexion_node == NULL){ //------------------ //La conexion no esta en la tabla, meter nueva
-
-		if(check_hash_err(list)){
-			list = NULL;
-			// releaseNodel(list[index]);
-		}
-
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ new conexion\n");
-		}
-		if(!aux_packet->request){ 					//Response sin request
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ Response without request\n");
-			}
-			return -1;
-		}else{					 					//PRIMERA PETICION DE LA CONEXION
-			hash_value *hashvalue = getHashvalue(); //Obtener hashvalue del pool
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ get hashvalue from pool - done\n");
-			}
-			fulfillHashvalue(aux_packet, hashvalue);//Copiar datos
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ fulfillHashvalue - done\n");
-			}
-			getNodel();								//Obtener nodo del pool
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ get node from pool - done\n");
-			}
-			naux=nodel_aux;							//
-			request *req = getRequest();			//Obtener request del pool
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ get request from pool - done\n");
-			}
-			fillRequest(aux_packet, req);			//Rellenar request
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ fillRequest - done\n");
-			}
-			naux->data = req;						 //Asignar request al nuevo nodo
-			list_append_node(&hashvalue->list, naux);//Meter al final de la lista de transacciones
-													 //de la conexion
-
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ append request - done\n");
-			}
-
-			hashvalue->last_client_seq = aux_packet->tcp->th_seq; //Actualizar ultimos numeros
-			hashvalue->last_client_ack = aux_packet->tcp->th_ack; //de seq y ack del cliente
-			hashvalue->n_request++;
-			hashvalue->last_ts = aux_packet->ts;				  //Actualizar last timestamp
-
-			getNodel();											  //Obtener nodo del pool
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ get node from pool - done\n");
-			}
-			naux=nodel_aux;										  //
-			naux->data=hashvalue;								  //Asignar la conexion al nodo
-			list_prepend_node(&list,naux);						  //Meter en lista de colisiones		
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ prepend conexion - done\n");
-			}
-
-			session_table[index]=list;  						  //Actualizar lista de colisiones
-																  //en la tabla hash
-			
-			getNodel();											  //Obtener nodo del pool
-			new_active_node=nodel_aux;							  //Asignar conexion
-			new_active_node->data=naux;							  
-			list_prepend_node(&active_session_list, new_active_node); //Anadir al principio de la lista de activos
-			hashvalue->active_node=new_active_node;
-			active_session_list_size++;
-
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ meter en tabla hash - done\n");
-			}
-		}
-	}else{ //-------------------------------------- //La conexion existe
+	//La conexion no esta en la tabla, meter nueva
+	if(conexion_node == NULL){
+		ERR_MSG("DEBUG/ insertNewConnexion connexion_node==NULL\n");
+		return insertNewConnexion(list, aux_packet, index);
+	
+	}else{ //La conexion existe
 		hash_value *hashvalue = (hash_value*) conexion_node->data;
 		hashvalue->last_ts = aux_packet->ts;		//Actualizar last timestamp
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ Conexion exists\n");
-		}
-		//PETICION 
-
-		if(aux_packet->request && 								 // La PETICION debe tener un SEQ
-		(hashvalue->last_client_seq < aux_packet->tcp->th_seq)){ // mayor que el anterior
-			getNodel();											 // Obtener nodo del pool
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ REQUEST, getNodel - done\n");
-			}
-			naux=nodel_aux;							//
-			request *req = getRequest();			//Obtener request del pool
-			fillRequest(aux_packet, req);			//Rellenar request
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ getRequest, fillRequest - done\n");
-			}
-			naux->data = req;										//Asignar request al nuevo nodo
-			list_append_node(&hashvalue->list, naux); 				//Meter al final de la lista de transacciones
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ append request - done\n");
-			}
-			session_table[index]=list;  							//Actualizar lista de colisiones
-
-			hashvalue->last_client_seq = aux_packet->tcp->th_seq; 	//Actualizar ultimos numeros
-			hashvalue->last_client_ack = aux_packet->tcp->th_ack; 	//de seq y ack del cliente
-			hashvalue->n_request++;
-
-			//UPDATE ACTIVE NODE LIST
-			list_unlink(&active_session_list, hashvalue->active_node);
-			list_prepend_node(&active_session_list, hashvalue->active_node);
-
-
-		//RESPUESTA 
-		}else if(!aux_packet->request && 						  	// La RESPUESTA debe tener un ACK
-		(hashvalue->last_server_ack < aux_packet->tcp->th_ack)){  	// mayor que la anterior
-
-			//BUSCAR NODO DONDE EL ACK DE LA PETICION == SEQ DE LA RESPUESTA
-
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ RESPONSE\n");
-			}
-			
-			node_l *req_node = request_search(&hashvalue->list, aux_packet->tcp->th_seq);
-			if(req_node == NULL){
-				if(options.debug){
-					 fprintf(stderr, "NADA\n");
-				}
-				return -1;
-			}
-			
-			request *req = (request*) req_node->data;
-			// request *req = NULL;
-			// if(hashvalue->list != NULL){
-			// 	req = (request*) (hashvalue->list->data);
-			// }else{
-			// 	char *ts_res = NULL;
-			// 	ts_res = timeval_to_char(aux_packet->ts);
-			
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ empty list: %s|%d|%s|%d|%ld.%09ld\n", hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server, aux_packet->ts.tv_sec, aux_packet->ts.tv_nsec);
-			}
-
-			// 	req = (request*) (hashvalue->list->data);
-			// }
-
-			// node_l *req_node = hashvalue->list;
-
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ Get request - done\n");
-			}
-
-			//IMPRIMIR INFORMACION
-			struct timespec diff = tsSubtract(aux_packet->ts, req->ts);
-			fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%s|%d|%s|%s\n", hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server, req->ts.tv_sec, req->ts.tv_nsec, aux_packet->ts.tv_sec, aux_packet->ts.tv_nsec, diff.tv_sec, diff.tv_nsec, aux_packet->response_msg, aux_packet->responseCode, req->url, req->op == POST ? "POST" : "GET");
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ PRINT INFO\n");
-				fprintf(stderr, "DEBUG/ REQUEST: SEQ:%"PRIu32"|ACK:%"PRIu32"\n", req->seq, req->ack);
-				fprintf(stderr, "DEBUG/ RESPONS: SEQ:%"PRIu32"|ACK:%"PRIu32"\n", aux_packet->tcp->th_seq, aux_packet->tcp->th_ack);
-			}
-
-			list_unlink(&hashvalue->list, req_node);					//Quitar nodo de la lista de transacciones
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ unlink request - done\n");
-			}
-			req_node->data = NULL;										//Resetear data del nodo
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ reset node - done\n");
-			}
-			releaseNodel(req_node);										//Devolver nodo al pool de nodos
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ releaseNodel - done\n");
-			}
-			memset(req, 0, sizeof(request));							//Resetear request
-			releaseRequest(req);										//Devolver request al pool de requests
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ releaseRequest - done\n");
-			}
-
-			if(list_is_empty(&hashvalue->list)){ 						//Lista sin transacciones
-				if(options.debug){
-					fprintf(stderr, "DEBUG/ EMPTY LIST AFTER RESPONSE\n");
-				}
-
-				list_unlink(&list, conexion_node);						//Eliminar conexion
-				conexion_node->data = NULL;
-				releaseNodel(conexion_node);							//Devolver nodo al pool de nodos
-				
-				if(options.debug){
-					fprintf(stderr, "DEBUG/ releaseNodel - done\n");
-				}
-				
-				list_unlink(&active_session_list, hashvalue->active_node);//REMOVE NODE FROM ACTIVE NODE LIST
-				active_session_list_size--;
-				releaseNodel(hashvalue->active_node);
-				hashvalue->active_node = NULL;
-
-				memset(hashvalue, 0, sizeof(hashvalue));				//Resetear hashvalue
-				releaseHashvalue(hashvalue);							//Devolver hashvalue al pool de hashvalues
-				
-				if(options.debug){
-					fprintf(stderr, "DEBUG/ releaseHashvalue - done\n");
-				}
-
-				if(list_is_empty(&list)){ 								//Si la lista de colisiones esta vacia
-					if(options.debug){
-						fprintf(stderr, "DEBUG/ collision list empty\n");
-					}
-					session_table[index] = NULL;
-				}
-
-			}
-
-			//Comprobar que la respuesta es a la primera peticion no satisfecha
-			// if(req->ack != aux_packet->tcp->th_seq){
-			// 	//IMPRIMIR INFORMACION DE LA TRANSACCION
-			// 	//ELIMINAR LA PETICION DE LA LISTA DE TRANSACCIONES DE LA CONEXION
-			// 	//ACTUALIZAR TABLA HASH
-			// }else{ 
-			// 	//buscar en las otras peticiones. Por si es la respuesta a una
-			// 	//segunda peticion y la respuesta a la peticion anterior se ha perdido
-			// 	//RECORRER LISTA HASTA QUE ACK == SEQ
-			// }
-			
-
-			//Sino, buscar la peticion y usar el res_aux
-			//Anadir ratio de responses a destiempo
-
+		
+		//PETICION
+		if(aux_packet->op == GET || aux_packet->op == POST){
+		//&& 								 	// La PETICION debe tener un SEQ
+		//(hashvalue->last_client_seq < aux_packet->tcp->th_seq)){ 	// mayor que el anterior
+			ERR_MSG("DEBUG/ addRequestToConnexion\n");
+			addRequestToConnexion(hashvalue, aux_packet, index);
+			updateActiveConnexion(hashvalue);
+		//RESPUESTA
+		}else if(aux_packet->op == RESPONSE){
+			// && 						  									// La RESPUESTA debe tener un ACK
+			//(hashvalue->last_server_ack < aux_packet->tcp->th_ack)){  	// mayor que la anterior
+			ERR_MSG("DEBUG/ addResponseToConnexion\n");
+			return addResponseToConnexion(hashvalue, aux_packet, conexion_node, index);
+		
 		}else{ //Anadir mas casos 
 			no_cases++;
-			if(options.debug){
-				fprintf(stderr, "DEBUG / NO CASE\n");
-				fprintf(stderr, "DEBUG/ DATA2: %s|%d|%s|%d|%ld.%09ld|SEQ:%"PRIu32"|ACK:%"PRIu32"\n", aux_packet->ip_addr_src, aux_packet->port_src, aux_packet->ip_addr_dst, aux_packet->port_dst, aux_packet->ts.tv_sec, aux_packet->ts.tv_nsec, aux_packet->tcp->th_seq, aux_packet->tcp->th_ack);
-				fprintf(stderr, "LAST CLIENT SEQ: %"PRIu32"\n", hashvalue->last_client_seq);
-				fprintf(stderr, "LAST CLIENT ACK: %"PRIu32"\n", hashvalue->last_client_ack);
-				fprintf(stderr, "LAST SERVER SEQ: %"PRIu32"\n", hashvalue->last_server_seq);
-				fprintf(stderr, "LAST SERVER ACK: %"PRIu32"\n", hashvalue->last_server_ack);
-			}
+			ERR_MSG("DEBUG/ NO CASE (%s)\n", http_op_to_char(aux_packet->op));
 			return -1;
 		}
 	}
 
 	return 0;
 }
-
-/*******************************************************
-*
-*  This function removes a flow from the list of active
-*  flows and also from the table of individual flows. 
-*
-*  This function should be called after an export has been 
-*  performed on the flow
-*
-********************************************************/
-// IPSession * removeSession (node_l * current_node)
-// {
-// 	IPSession *current_session=NULL;
-// 	node_l *current_node_session_table=NULL;
-// 	uint32_t index=0;
-	
-
-// 	if (current_node == NULL)
-// 		return NULL;
-
-// 	current_node_session_table= (node_l*)(current_node->data);
-
-// 	current_session=(IPSession*)(current_node_session_table->data);
-// 	index=getIndex(&current_session->incoming);
-// 	list_unlink(&(session_table[index]),current_node_session_table);
-// 	list_unlink(&active_session_list,current_node);
-
-// 	active_session_list_size--;
-// 	//actualizamos contadores de flujos concurrentes por subred/puertos
-// 	int i,j;
-// 	for(i=0;i<n_networks;i++){
-// 		if((current_session->incoming.source_ip&mask_networks[i])==networks[i])
-// 		{
-// 			if(macs_out!=NULL)
-// 			{
-// 				for(j=0;j<nmacs_out;j++)
-// 				{
-// 					if((memcmp(&current_session->incoming.destination_mac,macs_out[j],ETH_ALEN)==0))
-// 				        {
-// 				                if(((memcmp(&current_session->incoming.source_mac,mac_in,ETH_ALEN)==0)))
-// 			       			 {	
-
-// 							flows_networks_out[i]--;
-// 							break;
-// 						}
-// 					}
-// 				}
-// 			}
-// 			else
-// 				flows_networks_out[i]--;
-			
-// 		}	
-// 		if((current_session->incoming.destination_ip&mask_networks[i])==networks[i])
-// 		{
-// 			if(mac_in!=NULL)
-// 			{
-// 				if(((memcmp(&current_session->incoming.destination_mac,mac_in,ETH_ALEN)==0)))
-//                                 {
-// 					for(j=0;j<nmacs_out;j++)
-// 					{
-// 						if((memcmp(&current_session->incoming.source_mac,macs_out,ETH_ALEN)==0))
-// 				        	{
-
-// 								flows_networks_in[i]--;
-// 								break;
-// 						}
-// 					}
-// 				}
-// 			}
-// 			else
-// 			{
-// 				flows_networks_in[i]--;
-// 			}
-			
-// 		}
-// 	}
-// 	for(i=0;i<n_ports;i++){
-// 		if(current_session->incoming.source_port==ports[i])
-// 			flows_ports_src[i]++;
-// 		if(current_session->incoming.destination_port==ports[i])
-// 			flows_ports_dst[i]++;
-// 	}
-// 	releaseNodel(current_node_session_table);
-// 	releaseNodel(current_node);
-
-// 	current_session->exportation_timestamp=last_packet_timestamp;
-
-// // Frag. packets
-// 	if (current_session->incoming.frag_flag) removePointer_frag(&(current_session->incoming));
-
-// 	return current_session;
-// }
 
 
 
@@ -948,77 +528,3 @@ uint32_t getIndex(packet_info * packet){
 uint32_t getIndexFromHashvalue(hash_value *hashvalue){
 	return (hashvalue->ip_client_int + hashvalue->ip_server_int + hashvalue->port_client + hashvalue->port_server)%MAX_FLOWS_TABLE_SIZE;
 }
-
-/*******************************************************
-*
-*  This function clean up the list of active flows 
-*  (exporting and removing expired flows)
-*
-*
-********************************************************/
-// void cleanup_flows ()
-// {
-
-// 	node_l *n=NULL,*naux=NULL;
-// 	node_l *current_node_session_table=NULL;
-// 	IPSession *current_session=NULL;
-	
-// 	uint64_t aux = 0;
-	
-// 	n=list_get_last_node(&active_session_list);
-
-// 	while(n != NULL) 
-// 	{
-		
-// 		current_node_session_table=(node_l*)n->data;
-// 		current_session=(IPSession*)current_node_session_table->data;
-// 		aux =(last_packet_timestamp - ((current_session)->lastpacket_timestamp));
-
-
-// 		if ((aux > expiration_flow_time))
-// 		{
-// 			naux=n;  
-// 			n = list_get_prev_node(&active_session_list, n);
-// 			if (export)
-// 				export (removeSession (naux));
-// 			else
-// 				removeSession (naux);
-// 		}
-// 		else
-// 			break;
-
-// 	}
-
-// //	n=flags_expired_session_list;
-// 	n=list_get_last_node(&flags_expired_session_list); //MODIFIED
-
-// 	while(n != NULL) 
-// 	{	
-
-
-// **************************************************************************************
-// // Aditional second for flag expirated flows
-// /****************************************************************************************/
-// 		current_node_session_table=(node_l*)n->data;
-// 		current_session=(IPSession*)current_node_session_table->data;
-// 		aux =(last_packet_timestamp - ((current_session)->lastpacket_timestamp));
-
-
-// 		if ((aux > expiration_flag_time))
-// 		{
-
-// /****************************************************************************************/
-// /****************************************************************************************/
-// 			naux=n; 
-// 			n = list_get_prev_node(&flags_expired_session_list, n);
-// 			if (export)
-// 				export (removeSessionFlags (naux));
-// 			else
-// 				removeSessionFlags (naux);
-// 		}
-
-// 		else
-// 			break;
-
-// 	}
-// }

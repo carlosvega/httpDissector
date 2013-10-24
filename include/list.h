@@ -28,11 +28,12 @@
 #define LIST_H
 
 #include <assert.h>
+#include "tools.h"
 
 #define list_get_next_node(list, link) ((link)->next == *(list) ? NULL : (link)->next)
 #define list_get_prev_node(list, link) ((link) == *(list) ? NULL : (link)->prev)
 
-#define MAX_POOL_NODE 5000000
+#define MAX_POOL_NODE 7000000
 #define MAX_POOL_FLOW MAX_POOL_NODE/2
 
 typedef struct node_l node_l;
@@ -47,6 +48,7 @@ typedef struct _data {
 	char str[1024];
 } data;
 
+int list_size(node_l **list);
 void list_alloc_node_no_malloc(void *data);
 int list_is_empty(node_l **list);
 node_l *list_alloc_node(void *);

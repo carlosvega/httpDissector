@@ -1,9 +1,23 @@
 #include "tools.h"
+#include <execinfo.h>
 
 #define ALPHABET_SIZE (1 << CHAR_BIT)
 #define LIST_OF_FILES 10
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
+
+void print_backtrace(char *err){
+	fprintf(stderr, "%s\n", err);
+
+	void* callstack[256];
+	int i, frames = backtrace(callstack, 256);
+	char** strs = backtrace_symbols(callstack, frames);
+	for (i = 0; i < frames; ++i) {
+		fprintf(stderr, "%s\n", strs[i]);
+	}
+	free(strs);
+	exit(0);
+}
 
 static void compute_prefix(const char* str, size_t size, int result[size]) {
 	size_t q;

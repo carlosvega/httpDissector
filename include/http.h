@@ -1,6 +1,7 @@
 #ifndef _http
 #define _http
 #include "alist.h"
+#include "err_mqueue.h"
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
 

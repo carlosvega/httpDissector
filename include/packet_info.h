@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define REQUEST_POOL 30000
-#define RESPONSE_POOL 1000
+#define REQUEST_POOL 500000
+#define RESPONSE_POOL 500000
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
 
@@ -40,11 +40,11 @@ typedef struct {
 typedef u_int32_t tcp_seq;
 
 typedef struct {
-	char response_msg[RESP_MSG_SIZE];
 	short responseCode;
+  char response_msg[RESP_MSG_SIZE];
 	http_op op;
-	tcp_seq seq;					// Sequence number
-	tcp_seq ack;					// Acknowledgement number
+	// tcp_seq seq;					// Sequence number
+	// tcp_seq ack;					// Acknowledgement number
 	struct timespec ts;
 } response;
 
@@ -54,7 +54,7 @@ typedef struct {
 	tcp_seq seq;					// Sequence number
 	tcp_seq ack;					// Acknowledgement number
 	struct timespec ts;
-	response *aux;
+	response *aux_res;
 } request;
 
 /* Ethernet addresses are 6 bytes */
