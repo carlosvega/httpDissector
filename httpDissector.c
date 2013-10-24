@@ -533,6 +533,11 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
     pthread_mutex_unlock(&mutex);
 }
 
+void print_list(void *data){
+	int *numero = (int*) data;
+	fprintf(stderr, "%d, \n", *numero);
+}
+
 int main(int argc, char *argv[]){
 
 	// if(glib_check_version(2, 32, 0) != NULL){
@@ -544,8 +549,8 @@ int main(int argc, char *argv[]){
 	// 	return 0;
 	// }
 	
-	// setvbuf(stderr, NULL, _IOLBF, 2048);
-	
+	// setvbuf(stderr, NULL, _IOLBF, 2048)
+
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
 	options = parse_args(argc, argv);
