@@ -139,6 +139,7 @@ void list_prepend_node(node_l **list,
 	}
 }
 
+
 //Anade el nodo al final
 void list_append_node(node_l **list,
                     	node_l  *node)
