@@ -1,5 +1,7 @@
 #include "httpDissector.h"
 
+extern struct msgbuf sbuf;
+
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t collector;
 pthread_t progress;
@@ -8,16 +10,25 @@ pthread_t progress;
 // node_l *session_table[MAX_FLOWS_TABLE_SIZE];
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
+unsigned long long active_requests = 0;
+
+unsigned long long total_requests = 0;
+unsigned long long total_connexions = 0;
+
+unsigned long long total_req_node = 0;
+unsigned long long total_out_of_order = 0;
+
 node_l static_node;
 node_l *nodel_aux;
-node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { 0 };	//2^24
+node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { NULL };	//2^24
 unsigned long long no_cases = 0;
 packet_info *pktinfo = NULL;
 //
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
+#define GC_SLEEP_SECS 30
 
-char version[32] = "Version 2.1b";
+char version[32] = "Version 2.4";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -92,7 +103,7 @@ void sigintHandler(int signal){
 	}else{
 		fprintf(stderr, "\n\n");
 	}
-	fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
+	fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%% (%lld)\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100, lost);
 
 	long elapsed = end.tv_sec - start.tv_sec;
 
@@ -120,57 +131,56 @@ void sigintHandler(int signal){
 	freeHashvaluePool();
 	freeNodelPool();
 	freeRequestPool();
-
+	// err_mqueue_close();
+	
 	exit(0);
 }
 
-// gboolean hash_check_time (gpointer key, gpointer value, gpointer user_data){
-//   hash_value *hashvalue = (hash_value *) value;
-
-//   if(hashvalue!=NULL){
-//   		struct timespec diff = tsSubtract(last_packet, hashvalue->last_ts);
-//   	if(diff.tv_sec > 60){
-  		
-//   		lost += hashvalue->n_request - hashvalue->n_response;
-
-//   		return TRUE;
-//   	}
-
-//   }
-
-//   return FALSE;
-
-// }
 
 unsigned long remove_old_active_nodes(struct timespec last_packet){
-	unsigned long removed = 0;
 
-	if(list_is_empty(&active_session_list)){
+	unsigned long removed = 0;
+	uint32_t processed = active_session_list_size;
+
+	ERR_MSG("remove_old_active_nodes\n");
+
+	if(active_session_list_size == 0){
 		return removed;
 	}
 
-	do{
-		node_l *n = list_get_last_node(&active_session_list);				//Obtiene el ultimo nodo (mas antiguo)
-		node_l *naux = (n->data);											//Obtiene el nodo que tiene la conexion
-		hash_value *hashvalue = (hash_value*) naux->data;					//Obtiene la conexion a partir de ese nodo
-		struct timespec diff = tsSubtract(last_packet, hashvalue->last_ts);	//Resta los timestamps
-		if(diff.tv_sec > 60){												//Si es mas antiguo que un minuto
-			uint32_t index = getIndexFromHashvalue(hashvalue);				//Hashkey
-			list_unlink(&(session_table[index]), naux);						//Elimina la conexion de la lista de colisiones
-			list_unlink(&active_session_list, n);							//Lo eliminamos de la lista de activos
-			removed++;														//
-			active_session_list_size--;
-			naux->data = NULL;
-			n->data = NULL;
-			releaseNodel(naux);												//Devolver nodo al pool
-			releaseNodel(n);												//Devolver nodo al pool
-			removeRequestFromHashvalue(hashvalue);							//Quitar todas las transacciones
-			memset(hashvalue, 0, sizeof(hashvalue));						//Resetear hashvalue
-			releaseHashvalue(hashvalue);									//Devolver hashvalue al pool de hashvalues
-		}else{																//Si no es mas antiguo retornamos
-			break;															//porque estan ordenados de mas reciente a mas antiguo
+	node_l *last = list_get_last_node(&active_session_list);
+
+	struct timespec diff;
+	while(processed!=0){
+		if(last == NULL){
+			return removed;
 		}
-	}while(!list_is_empty(&active_session_list));
+
+		node_l *n = last;
+		last = list_get_prev_node(&active_session_list, last);
+
+		hash_value *hashvalue = (hash_value*) n->data;
+		assert(n == hashvalue->active_node);
+		diff = tsSubtract(last_packet, hashvalue->last_ts);
+		if(diff.tv_sec > 60){
+			cleanUpHashvalue(hashvalue);
+			uint32_t index = getIndexFromHashvalue(hashvalue);
+			node_l *list = session_table[index];
+			node_l *conexion_node = NULL;
+			if(list == NULL){
+				ERR_MSG("list == NULL\n");
+				removeActiveConnexion(hashvalue);
+			}else if((conexion_node = list_search(&list, n, compareHashvalue))==NULL){
+				ERR_MSG("conexion_node == NULL\n");
+				removeActiveConnexion(hashvalue);
+			}else{
+				removeConnexion(hashvalue, conexion_node, index);
+			}
+			removed++;
+			processed--;
+		}
+
+	}
 
 	return removed;
 }
@@ -178,12 +188,12 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 void *recolector_de_basura(){ 
 
 	if (options.verbose){
-		fprintf(stderr, "COLLECTOR INITIALIZED\n");
+		ERR_MSG("DEBUG/ COLLECTOR INITIALIZED\n");
 	}
 
 	short l=0;
-	//ten sleeps of 1 second, just to be able to end the thread properly
-	while(l<10){ sleep(1); running == 0 ? l=10 : l++;}
+	//60 sleeps of 1 second, just to be able to end the thread properly
+	while(l<GC_SLEEP_SECS){ sleep(1); running == 0 ? l=GC_SLEEP_SECS : l++;}
 	while(running){
 		l=0;
 	 	pthread_mutex_lock(&mutex);
@@ -192,21 +202,22 @@ void *recolector_de_basura(){
 		}
         if (options.verbose)
         {
-            fprintf(stderr, "==============================\n");
-            fprintf(stderr, "Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
+            ERR_MSG("DEBUG/ ==============================\n");
+            ERR_MSG("DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
         }
 	 	unsigned long removed = remove_old_active_nodes(last_packet);
         if (options.verbose)
         {
-            fprintf(stderr, "Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
-            fprintf(stderr, "==============================\n\n");
+            ERR_MSG("DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
+            ERR_MSG("DEBUG/ ==============================\n\n");
         }
         if(options.log){
 			syslog (LOG_NOTICE, "Elements in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
 		}
 		pthread_mutex_unlock(&mutex);
-	 	while(l<10){ sleep(1); running == 0 ? l=10 : l++;}
+	 	while(l<GC_SLEEP_SECS){ sleep(1); running == 0 ? l=GC_SLEEP_SECS : l++;}
 	}
+
 	return NULL;
 }
 
@@ -246,8 +257,8 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
 		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\t", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
 	}
 	if(options.log){
-		syslog (LOG_NOTICE, "SPEED %ld\t%lld", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
-
+		syslog (LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ((int)(ratio*100)));
+		syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), total_requests, active_requests, active_session_list_size, total_connexions, getGottenResponses());
     	getrusage(RUSAGE_SELF, memory);
 		if(errno == EFAULT){
 		    syslog (LOG_NOTICE, "MEM Error: EFAULT\n");
@@ -262,7 +273,7 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
     // previous line and clear it.
     fprintf(stderr, "\n\033[F");
     fprintf(stderr, "\r");
-    fflush(stderr);
+    //fflush(stderr);
 }
 
 void *barra_de_progreso(){
@@ -270,7 +281,7 @@ void *barra_de_progreso(){
   static long sleeptime = 2000000;
 
   if(options.log){
-		sleeptime = 2000000;
+		sleeptime = 5000000;
   }
 
   	while(running){
@@ -283,26 +294,25 @@ void *barra_de_progreso(){
 
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ begining parse_packet().\n");
-	}
-
+	
+	ERR_MSG("DEBUG/ begining parse_packet().\n");
+	
 	memset(pktinfo->url, 0, URL_SIZE);
 	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
 	pktinfo->ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
 	pktinfo->size_ip = IP_HL(pktinfo->ip)*4;
 
 	if (pktinfo->size_ip < 20) {
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ finish parse_packet(). pktinfo->size_ip < 20\n");
-		}
+		
+		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_ip < 20\n");
+		
 		return 1;
 	}
 
 	if(pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)){
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ finish parse_packet(). pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)\n");
-		}
+		
+		ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)\n");
+		
 		return 1;
 	}
 
@@ -313,9 +323,9 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	pktinfo->port_dst = ntohs(pktinfo->tcp->th_dport);       /* destination port */
       
     if (pktinfo->size_tcp < 20) {
-    	if(options.debug){
-			fprintf(stderr, "DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
-		}
+    	
+		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
+		
 	    return 1;
     }
 
@@ -325,24 +335,22 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
     inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
 
-  	if(options.debug){
-		fprintf(stderr, "DEBUG/ calling http_parse_packet().\n");
-	}
-
+  	ERR_MSG("DEBUG/ calling http_parse_packet().\n");
+	
   	if(http_parse_packet((char*) pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip_addr_src, pktinfo->ip_addr_dst) == -1){
  		http_clean_up(&http);
- 		if(options.debug){
-			fprintf(stderr, "DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");
-		}
+ 		
+		ERR_MSG("DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");
+		
  		return 1;
  	}
 
     if(pktinfo->size_payload <= 0){
     	pktinfo->request = -1;
     	http_clean_up(&http);
-    	if(options.debug){
-			fprintf(stderr, "DEBUG/ finish parse_packet(). pktinfo->size_payload <= 0\n");
-		}
+    	
+		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_payload <= 0\n");
+		
     	return 1;
     }
 
@@ -350,7 +358,8 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	if(http_get_op(http) == RESPONSE){
 		pktinfo->request = 0;
 		pktinfo->responseCode = http_get_response_code(http);
-		strcpy(pktinfo->response_msg, http_get_response_msg(http));
+		strncpy(pktinfo->response_msg, http_get_response_msg(http), RESP_MSG_SIZE);
+		pktinfo->response_msg[RESP_MSG_SIZE - 1] = 0;
 	}else if(http_get_op(http) == GET){
 		char * host = http_get_host(http);
 		size_t t_host = strlen(host);
@@ -366,9 +375,9 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		if(options.url != NULL){
 			if(boyermoore_search(pktinfo->url, options.url) == NULL){
 				http_clean_up(&http);
-				if(options.debug){
-					fprintf(stderr, "DEBUG/ finish parse_packet(). boyermoore_search returned NULL\n");
-				}
+				
+				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search returned NULL\n");
+				
 				return 1;
 			}
 		}
@@ -389,9 +398,9 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		if(options.url != NULL){
 			if(boyermoore_search(pktinfo->url, options.url) == NULL){
 				http_clean_up(&http);
-				if(options.debug){
-					fprintf(stderr, "DEBUG/ finish parse_packet(). boyermoore_search returned NULL\n");
-				}
+				
+				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search returned NULL\n");
+				
 				return 1;
 			}
 		}
@@ -402,15 +411,12 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		pktinfo->request = -1;
 	}
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ calling http_clean_up().\n");
-	}
+	
+	ERR_MSG("DEBUG/ calling http_clean_up().\n");
 
 	http_clean_up(&http);
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ finish parse_packet().\n");
-	}
+	ERR_MSG("DEBUG/ finish parse_packet().\n");
 
 	return 0;
 }
@@ -438,246 +444,6 @@ void print_packet(packet_info *pktinfo){
 	FREE(hashkey);
 }
 
-// int print_avg_pair(pair *p){
-
-// 	if(p == NULL){
-// 		return -1;
-// 	}
-
-// 	static long last_sec = 0;
-// 	static struct timespec last_diff;
-// 	static int n_diffs = 0;
-
-// 	if(last_sec != p->response->ts.tv_sec){
-// 		double d_diff = tsFloat (last_diff);
-// 		d_diff = d_diff / ((double) n_diffs);
-// 		fprintf(output, "%ld %f\n", last_sec, d_diff);
-// 		last_sec = p->response->ts.tv_sec;
-// 		last_diff.tv_sec = 0;
-// 		last_diff.tv_nsec = 0;
-// 		n_diffs = 0;
-// 	}
-
-// 	struct timespec diff = tsSubtract(p->response->ts, p->request->ts);	
-
-// 	last_diff = tsAdd(last_diff, diff);
-// 	n_diffs++;
-
-// 	return 0;
-
-// }
-
-// int print_pair(pair *p){
-
-// 	if(p == NULL){
-// 		return -1;
-// 	}
-
-// 	transacctions++;
-
-// 	if(options.rrd){
-// 		print_avg_pair(p);
-// 		return 0;
-// 	}
-
-// 	char *ts_get = NULL;
-// 	char *ts_res = NULL;
-// 	ts_res = timeval_to_char(p->response->ts);
-// 	ts_get = timeval_to_char(p->request->ts);
-
-//    	struct timespec diff = tsSubtract(p->response->ts, p->request->ts);
-	
-// 	if(options.twolines){
-// 		fprintf(output, "%s\t%s:%i\t==>\t%s:%i\t%s %s\n", p->request->op == POST ? "POST" : "GET", p->request->ip_addr_src, p->request->port_src, p->request->ip_addr_dst, p->request->port_dst, ts_get, p->request->url);
-// 		fprintf(output, "RESP\t%s:%i\t<==\t%s:%i\t%s DIFF: %ld.%09ld %s %d\n", p->response->ip_addr_dst, p->response->port_dst, p->response->ip_addr_src, p->response->port_src, ts_res, diff.tv_sec, diff.tv_nsec, p->response->response_msg, p->response->responseCode);
-// 	}else{
-// 		fprintf(output, "%s|%i|%s|%i|%s|%s|%ld.%09ld|%s|%d|%s|%s\n", p->request->ip_addr_src, p->request->port_src, p->request->ip_addr_dst, p->request->port_dst, ts_get, ts_res, diff.tv_sec, diff.tv_nsec, p->response->response_msg, p->response->responseCode, p->request->url, p->request->op == POST ? "POST" : "GET");
-// 	}
-
-// 	FREE(ts_get);
-// 	FREE(ts_res);
-
-// 	return 0;
-// }
-
-// pair *get_request(pair **a, int n, int t){
-// 	if(a == NULL || n>t || n<=0 ){
-// 		return NULL;
-// 	}
-
-// 	return a[n-1];
-// }
-
-// int insert_get_hashtable(packet_info *pktinfo){
-
-// 	if(pktinfo == NULL){
-// 		fprintf(stderr, "PKTINFO NULL\n");
-// 		return -1;
-// 	} 
-
-// 	char *hashkey = NULL;
-// 	hashkey = hash_key(pktinfo);
-// 	hash_value *hashvalue;
-
-// 	gpointer gkey = NULL, gval = NULL;
-	
-// 	if(options.debug){
-// 		fprintf(stderr, "DEBUG/ calling g_hash_table_lookup_extended()\n");
-// 	}
-	
-// 	gboolean breturn = g_hash_table_lookup_extended(table, hashkey, &gkey, &gval);
-// 	hashvalue = (hash_value *) gval;
-
-// 	if(hashvalue == NULL || breturn == FALSE){ // NO ESTA EN LA TABLA
-
-// 		if(options.debug){
-// 			fprintf(stderr, "DEBUG/ Is not in the table\n");
-// 		}
-
-// 		hashvalue = (hash_value *) calloc(sizeof(hash_value), 1);
-// 		init_list(hashvalue);
-// 		hashvalue->list->request = pktinfo;
-// 		hashvalue->list->response = NULL;
-// 		hashvalue->list->next = NULL;
-// 		hashvalue->last = hashvalue->list;
-
-// 	}else if(hashvalue != NULL && breturn == TRUE){ // HAY UNA ENTRADA EN LA TABLA
-
-// 		if(options.debug){
-// 			fprintf(stderr, "DEBUG/ There's an entry in the table. Calling g_hash_table_steal()\n");
-// 		}
-
-// 		breturn = g_hash_table_steal(table, hashkey);
-// 		if(breturn == FALSE){
-// 			fprintf(stderr, "ERROR WHILE STEALING FROM HASH TABLE\n");
-// 			return -1;
-// 		}
-
-// 		hashvalue->last->next = (pair *) calloc(sizeof(pair), 1);
-// 		hashvalue->last = hashvalue->last->next;
-// 		hashvalue->last->request = pktinfo;
-// 		hashvalue->last->response = NULL;
-// 		hashvalue->last->next = NULL;
-// 	}
-
-// 	//EN AMBOS CASOS
-// 	hashvalue->n_request++;
-// 	hashvalue->last_ts = pktinfo->ts;
-
-// 	if(options.debug){
-// 		fprintf(stderr, "DEBUG/ calling g_hash_table_insert()\n");
-// 	}
-
-// 	g_hash_table_insert(table, hashkey, hashvalue);
-
-// 	requests++;
-
-// 	if(gkey != NULL){
-// 		FREE(gkey);
-// 	}
-
-// 	return 0;
-// }
-
-// int insert_resp_hashtable(packet_info *pktinfo){
-// 	char *hashkey = NULL;
-// 	int ret = 0;
-// 	hashkey = hash_key(pktinfo);
-// 	hash_value *hashvalue;
-// 	gpointer gkey = NULL, gval = NULL;
-
-// 	if(options.debug){
-// 		fprintf(stderr, "DEBUG/ calling g_hash_table_lookup_extended()\n");
-// 	}
-
-// 	gboolean breturn = g_hash_table_lookup_extended(table, hashkey, &gkey, &gval);
-// 	hashvalue = (hash_value *) gval;
-
-// 	if(hashvalue == NULL || breturn == FALSE){ // NO ESTA EN LA TABLA
-// 		FREE(hashkey);
-// 		return -1;
-// 	}else if(hashvalue != NULL && breturn == TRUE){ // HAY UNA ENTRADA EN LA TABLA
-
-// 		if(options.debug){
-// 			fprintf(stderr, "DEBUG/ calling g_hash_table_steal()\n");
-// 		}
-
-// 		breturn = g_hash_table_steal(table, hashkey);
-// 		if(breturn == FALSE){
-// 			fprintf(stderr, "ERROR STEALING FROM HASH TABLE\n");
-// 			FREE(hashkey);
-// 			return -1;
-// 		}
-		
-// 		//BUSCAR LA PETICION CORRESPONDIENTE QUE SERA LA PRIMERA SIEMPRE
-// 		hashvalue->n_response++;
-
-// 		pair *p = hashvalue->list;
-// 		if(hashvalue->list == NULL){
-// 			FREE(hashkey);
-// 			return -1;
-// 		}
-		
-// 		if(p->request == NULL){
-// 			fprintf(stderr, "ERROR, NO REQUEST FOR RESPONSE\n");
-// 			FREE(hashkey);
-// 			return -1;
-// 		}
-
-// 		p->response = pktinfo;
-// 		hashvalue->last_ts = pktinfo->ts;
-		
-// 		if(options.debug){
-// 			fprintf(stderr, "DEBUG/ calling print_pair()\n");
-// 		}
-
-// 		print_pair(p);
-// 		fflush(output);
-		
-// 		if(options.debug){
-// 			fprintf(stderr, "DEBUG/ calling remove_first_node()\n");
-// 		}
-
-//         //ELIMINAMOS LA PETICION SATISFECHA
-//         ret = remove_first_node(hashvalue);
-//         if (ret == -1)
-//         {
-//             fprintf(stderr, "ERROR DELETING FIRST PAIR\n");
-//             FREE(hashkey);
-//             return -1;
-//         }
-//         else if (ret == 2)  //ERA EL ULTIMO PAR
-//         {
-//         	if(options.debug){
-// 				fprintf(stderr, "DEBUG/ Last pair. calling funcionLiberacion()\n");
-// 			}
-
-//             funcionLiberacion(gval);
-//             FREE(gkey);
-//             FREE(hashkey);
-//             gkey = NULL;
-//         }
-//         else   //CORRECTO
-//         {
-//         	if(options.debug){
-// 				fprintf(stderr, "DEBUG/ calling g_hash_table_insert()\n");
-// 			}
-
-//             g_hash_table_insert(table, hashkey, hashvalue);
-//         }
-
-// 	}else{
-// 		FREE(hashkey);
-// 		return -1;
-// 	}
-
-// 	if(gkey != NULL){
-// 		FREE(gkey);
-// 	}
-
-// 	return 0;
-// }
-
 void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet){
 
 	struct NDLTpkthdr pkthdr2;
@@ -694,10 +460,9 @@ void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_
 
 void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet)
 {
-
-	if(options.debug){
-		fprintf(stderr, "-------------\nDEBUG/ begining callback\n");
-	}
+	pthread_mutex_lock(&mutex);
+	
+	ERR_MSG("-------------\nDEBUG/ begining callback\n");
 
 	memset(pktinfo, 0, sizeof(packet_info));
 
@@ -707,9 +472,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
   	struct timeval t, t2;  
   	gettimeofday(&t, NULL);
  
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ calling parse_packet().\n");
-	}
+	ERR_MSG("DEBUG/ calling parse_packet().\n");
 
   	int ret = parse_packet(packet, pkthdr, pktinfo);
 
@@ -717,64 +480,58 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
   	parse_time += ((t2.tv_usec - t.tv_usec)  + ((t2.tv_sec - t.tv_sec) * 1000000.0f));
 
 	if(ret){
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ finish callback. Invalid packet.\n");
-		}
+		
+		ERR_MSG("DEBUG/ finish callback. Invalid packet.\n");
+		
+		pthread_mutex_unlock(&mutex);
 		return;
 	}
 
 	if(pktinfo->request == -1){ //NI GET NI RESPONSE
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ finish callback. Invalid packet II.\n");
-		}
+		
+		ERR_MSG("DEBUG/ finish callback. Invalid packet II.\n");
+		
+		pthread_mutex_unlock(&mutex);
 		return;
 	}
   
 	struct timeval t3, t4;  
 	gettimeofday(&t3, NULL);
  
- 	pthread_mutex_lock(&mutex);
 	if(pktinfo->request == 1){ //GET o POST
 
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ calling insert_get_hashtable.\n");
-		}
+		
+		ERR_MSG("DEBUG/ calling insert_get_hashtable.\n");
 
 		if(insertPacket(pktinfo) != 0){
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ error inserting GET\n");
-			}
+			
+			ERR_MSG("DEBUG/ error inserting GET\n");
+			
 			inserts--;
 		}
 
 	}else if(pktinfo->request == 0){ //RESPONSE
 
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ calling insert_resp_hashtable.\n");
-		}
-
+		
+		ERR_MSG("DEBUG/ calling insert_resp_hashtable.\n");
+		
 		if(insertPacket(pktinfo) != 0){
-			if(options.debug){
-				fprintf(stderr, "DEBUG/ error inserting RESP\n");
-			}
+			
+			ERR_MSG("DEBUG/ error inserting RESP\n");
+			
 			inserts--;
 		}
 	}
 	
-	pthread_mutex_unlock(&mutex);
-  
+	 
     gettimeofday(&t4, NULL);
     insert_time += ((t4.tv_usec - t3.tv_usec)  + ((t4.tv_sec - t3.tv_sec) * 1000000.0f));
     inserts++;
 
-	fflush(stderr);
-
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ finish callback\n");
-	}
-
+	ERR_MSG("DEBUG/ finish callback\n");
+	
+    pthread_mutex_unlock(&mutex);
 }
-
 
 int main(int argc, char *argv[]){
 
@@ -786,7 +543,9 @@ int main(int argc, char *argv[]){
 	// 	fprintf(stderr, "THE MIN. VERSION REQUIRED TO WORK IS: 2.18.0\n");
 	// 	return 0;
 	// }
-
+	
+	// setvbuf(stderr, NULL, _IOLBF, 2048);
+	
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
 	options = parse_args(argc, argv);
@@ -821,7 +580,11 @@ int main(int argc, char *argv[]){
 		strcat(filter, options.filter);
 	}
 
-	if(options.debug){
+	if(options.debug != 0){
+		// if(err_mqueue_init()){
+		// 	fprintf(stderr, "ERROR CREANDO HILO DE DEBUG\n");
+		// 	exit(0);
+		// }
 		fprintf(stderr, "DEBUG/ Activated\n");
 		fprintf(stderr, "DEBUG/ RAW: %s\n", options.raw ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Files: %s\n", options.files ? "true" : "false");
@@ -834,6 +597,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "DEBUG/ Interface: %s\n", options.interface ? options.interface : "false");
 		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
 		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
+		fprintf(stderr, "DEBUG/ Debug: %d\n", options.debug);
 		fprintf(stderr, "DEBUG/ Filter: %s\n", filter);
 		fprintf(stderr, "\n");
 	}
@@ -860,6 +624,7 @@ int main(int argc, char *argv[]){
 	//NEW
 	allocHasvaluePool();
 	allocRequestPool();
+	allocResponsePool();
 	allocNodelPool();
 	//HTTP
 	http_alloc(&http);
@@ -867,18 +632,18 @@ int main(int argc, char *argv[]){
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 	
 	if(options.parallel == 0){
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ Before calling main_process()\n");
-		}
+		
+		ERR_MSG("DEBUG/ Before calling main_process()\n");
+		
 		main_process(format, options.input);
 	}else if(options.parallel == 1){
 		fprintf(stderr, "PARALLEL PROCESSING WITH 1 PROCESS?\n");
 	}else if(options.parallel > 0 && options.files == 0){
 		fprintf(stderr, "PARALLEL PROCESSING WITHOUT A LIST OF FILES?\n");
 	}else if(options.parallel > 0){
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ Before calling parallel_processing()\n");
-		}
+		
+		ERR_MSG("DEBUG/ Before calling parallel_processing()\n");
+		
 		parallel_processing();
 	}
 
@@ -903,6 +668,7 @@ int main(int argc, char *argv[]){
 	freeHashvaluePool();
 	freeNodelPool();
 	freeRequestPool();
+	// err_mqueue_close();
 
 	return 0;
 }
@@ -963,16 +729,15 @@ int parallel_processing(){
 
 int main_process(char *format, char *filename){
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ main_process() begining\n");
-	}
+	
+	ERR_MSG("DEBUG/ main_process() begining\n");
 
 	struct bpf_program fp;
 
 	if(options.parallel){
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ Parallel\n");
-		}
+		
+		ERR_MSG("DEBUG/ Parallel\n");
+		
 		child_filename = filename;
 		if(options.output != NULL){
 			snprintf(new_filename, 256, "%s%d", options.output, last_file);
@@ -985,13 +750,13 @@ int main_process(char *format, char *filename){
 	}
 
 	if(options.log){
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ Log\n");
-		}
+		
+		ERR_MSG("DEBUG/ Log\n");
+		
 		if(options.interface != NULL){
 			options.log = 0;
 		}else{
-			setlogmask (LOG_UPTO (LOG_NOTICE));
+			setlogmask (LOG_UPTO (LOG_DEBUG));
      		openlog ("httpDissector", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	    	syslog (LOG_NOTICE, "Log started by process: %d", getpid());
 	    	syslog (LOG_NOTICE, "Reading file: %s", filename);
@@ -1027,9 +792,8 @@ int main_process(char *format, char *filename){
 	 //  	fprintf(stderr, "SIZE: %ld, Time: (%ld)\n", pcap_size, microsegundos);
 
 
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ Before calling NDLTabrirTraza()\n");
-		}
+		
+		ERR_MSG("DEBUG/ Before calling NDLTabrirTraza()\n");
 
 	  	if(options.files){
 			ndldata = NDLTabrirTraza(filename, format, filter, 1, errbuf);
@@ -1037,9 +801,8 @@ int main_process(char *format, char *filename){
 			ndldata = NDLTabrirTraza(filename, format, filter, 0, errbuf);
 		}
 
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ After calling NDLTabrirTraza()\n");
-		}
+
+		ERR_MSG("DEBUG/ After calling NDLTabrirTraza()\n");
 		
 		if(ndldata == NULL){
 			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n", errbuf);
@@ -1050,28 +813,22 @@ int main_process(char *format, char *filename){
 
 	}else{
 
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ calling pcap_open_live()\n");
-		}
-
+		ERR_MSG("DEBUG/ calling pcap_open_live()\n");
+		
 		handle = pcap_open_live(options.interface, SNAPLEN, PROMISC, to_MS, errbuf);
 		if(handle == NULL){
 			fprintf(stderr, "Couldn't open device %s: %s\n", options.interface, errbuf);
 		 	return -2;
 		}
 
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ calling pcap_compile()\n");
-		}
+		ERR_MSG("DEBUG/ calling pcap_compile()\n");
 
 		if(pcap_compile(handle, &fp, filter, 1, 0) == -1){
 			fprintf(stderr, "Couldn't parse filter, %s\n|%s|", pcap_geterr(handle), filter);
 			return -3;
 		}
 
-		if(options.debug){
-			fprintf(stderr, "DEBUG/ calling pcap_setfilter()\n");
-		}
+		ERR_MSG("DEBUG/ calling pcap_setfilter()\n");
 
 		if(pcap_setfilter(handle, &fp) == -1){
 			fprintf(stderr, "Couldn't install filter, %s\n", pcap_geterr(handle));
@@ -1079,9 +836,7 @@ int main_process(char *format, char *filename){
 		}
 	}
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ initialising GLIB g_thread_supported()\n");
-	}
+	//ERR_MSG("DEBUG/ initialising GLIB g_thread_supported()\n");
 
 	//inicializamos el soporte para hilos en glib
 	//g_thread_supported() is actually a macro
@@ -1089,9 +844,7 @@ int main_process(char *format, char *filename){
 	// 	if (!g_thread_supported ()) g_thread_init (NULL);
 	// }
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ Creating hash table\n");
-	}
+	ERR_MSG("DEBUG/ Creating hash table\n");
 
    	//TABLA HASH
 	// table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, funcionLiberacion);
@@ -1102,9 +855,7 @@ int main_process(char *format, char *filename){
 
 	//creamos los hilos
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ Creating collector thread\n");
-	}
+	ERR_MSG("DEBUG/ Creating collector thread\n");
 
 	//RECOLECTOR
 	if(options.collector){
@@ -1121,9 +872,7 @@ int main_process(char *format, char *filename){
 	gettimeofday(&start, NULL);
 	running = 1;
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ Creating progress_bar thread\n");
-	}
+	ERR_MSG("DEBUG/ Creating progress_bar thread\n");
 
 	//BARRA DE PROGRESO
 	if(options.interface == NULL && progress_bar){
@@ -1139,10 +888,8 @@ int main_process(char *format, char *filename){
 
 	struct timeval end;
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ before loop\n");
-		fprintf(stderr, "DEBUG/ ===============\n");
-	}
+	ERR_MSG("DEBUG/ before loop\n");
+	ERR_MSG("DEBUG/ ===============\n");
 
 	if(options.interface == NULL){
 		if(NDLTloop(ndldata, callback, NULL) != 1){
@@ -1152,17 +899,13 @@ int main_process(char *format, char *filename){
 		pcap_loop(handle, -1, online_callback, NULL);
 	}
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ After loop\n");
-		fprintf(stderr, "DEBUG/ ===============\n");
-	}
+	ERR_MSG("DEBUG/ After loop\n");
+	ERR_MSG("DEBUG/ ===============\n");
 
 	gettimeofday(&end, NULL);
 	running = 0;
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ closing collector\n");
-	}
+	ERR_MSG("DEBUG/ closing collector\n");
 
 	if(options.collector){
 		// g_thread_join(recolector);
@@ -1172,9 +915,9 @@ int main_process(char *format, char *filename){
 		pthread_join(collector, NULL);
   	}
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ closing progress_bar\n");
-	}
+  	ERR_MSG("DEBUG/ calling remove_old_active_nodes\n");
+
+	ERR_MSG("DEBUG/ closing progress_bar\n");
 
   	if(options.interface == NULL && progress_bar){
   		// g_thread_join(progreso);
@@ -1204,46 +947,14 @@ int main_process(char *format, char *filename){
 		fprintf(stderr,"\n\n");
 	}
 
-	if(options.debug){
-		fprintf(stderr, "DEBUG/ destroying hash table\n");
-	}
+	ERR_MSG("DEBUG/ destroying hash table\n");
 
 	// g_hash_table_destroy(table);
 
 	fprintf(stderr, "NO CASES: %lld\n", no_cases);
+	fprintf(stderr, "REQ_NODE == NULL: %lld\n", total_req_node);
+	fprintf(stderr, "RESPONSES OUT OF ORDER: %lld\n", total_out_of_order);
+	fprintf(stderr, "RESPONSES WITHOUT REQUEST: %lld\n", lost);
 
 	return 0;
 }
-
-// void print_foreach (gpointer key, gpointer value, gpointer user_data){
-// 	packet_info *pktinfo = (packet_info *) value;
-// 	print_packet(pktinfo);
-// 	return;
-// }
-
-// void funcionLiberacion(gpointer data){
-
-// 	if(data == 0){
-// 		return;
-// 	}
-
-// 	if(options.debug){
-// 		fprintf(stderr, "DEBUG/ begining funcionLiberacion\n");
-// 	}
-
-// 	hash_value *hashvalue;
-
-// 	hashvalue = (hash_value *) data;
-
-// 	if(hashvalue == NULL) return;
-
-// 	free_tslist(hashvalue);
-
-// 	FREE(hashvalue);
-
-// 	if(options.debug){
-// 		fprintf(stderr, "DEBUG/ ending funcionLiberacion\n");
-// 	}
-
-// 	return;	
-// }

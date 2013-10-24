@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include "args_parse.h"
 
+extern struct msgbuf sbuf;
 extern struct args_parse options;
+#define ERR_MSG(...) do{if(options.debug){fprintf(stderr, __VA_ARGS__);}}while(0)
 #define CADENA_SIZE 3072
 #define CADENA_AUX_SIZE 256
 
@@ -419,8 +421,8 @@ void http_free_packet(http_packet *http_t){
 	
 	if(http_t == 0) return;
 	
-	if(options.debug > 0){
-		fprintf(stderr, "DEBUG/ http_free_packet 1, ");
+	if(options.debug > 1){
+		ERR_MSG("DEBUG/ http_free_packet 1, ");
 	}
 
 	struct _internal_http_packet *http = *http_t;
@@ -428,27 +430,27 @@ void http_free_packet(http_packet *http_t){
 		return;
 
 	if(options.debug > 1){
-		fprintf(stderr, "2, ");
+		ERR_MSG("2, ");
 	}
 
 	FREE(http->data);
 
 	if(options.debug > 1){
-		fprintf(stderr, "3, [");
+		ERR_MSG("3, [");
 	}
 
 	if(http->headers != NULL){
 		http_free_header(http->headers);
 
 		if(options.debug > 1){
-			fprintf(stderr, "], 4, ");
+			ERR_MSG("], 4, ");
 		}
 
 		FREE(http->headers);
 	}
 
 	if(options.debug > 1){
-		fprintf(stderr, "5, ");
+		ERR_MSG("5, ");
 	}
 
 	if(http_t != 0){
@@ -461,7 +463,7 @@ void http_free_packet(http_packet *http_t){
 	*http_t = NULL;
 
 	if(options.debug > 1){
-		fprintf(stderr, "6.\n");
+		ERR_MSG("6.\n");
 	}
 	
 	return;

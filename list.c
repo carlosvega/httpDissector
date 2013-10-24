@@ -38,7 +38,9 @@ node_l *nodel_pool_used=NULL;
 
 node_l *list_get_first_node(node_l **list)
 {
-	assert(list != NULL);
+
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_get_first_node list==NULL");
 
 	return(*list);
 }
@@ -46,7 +48,8 @@ node_l *list_get_first_node(node_l **list)
 void list_foreach(node_l **list, void func(void *)){
 	node_l *n;
 
-	assert(list != NULL);
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_foreach list==NULL");
 
 	n = list_get_first_node(list);
 
@@ -59,11 +62,23 @@ void list_foreach(node_l **list, void func(void *)){
 
 node_l *list_get_last_node(node_l **list)
 {
-	assert(list != NULL);
+
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_get_last_node list==NULL");
 
 	if(*list == NULL) {
+		fprintf(stderr, "empty list when getting last node\n");
 		return(NULL);
 	} else {
+		if((*list)->prev == NULL){
+			node_l *aux = (*list)->next;
+			fprintf(stderr, "next nodes when prev = NULL: ");
+			while(aux!=NULL && aux != (*list)){
+				fprintf(stderr, "|, ");
+				aux = aux->next;
+			}
+			fprintf(stderr, "\n");
+		}
 		return((*list)->prev);
 	}
 }
@@ -91,21 +106,32 @@ void list_alloc_node_no_malloc(void *data)
 void list_prepend_node(node_l **list,
                        node_l  *node)
 {
-	assert(list != NULL);
-	assert(node != NULL);
+
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_prepend_node list==NULL");
+
+	//ASSERT
+	assert(!(node==NULL));//if(node==NULL) print_backtrace("list_prepend_node node==NULL");
+
+	assert(node->next == node->prev);
+
 	node_l *here=*list;
+
 	if(*list == NULL) { //Si la lista esta vacia
 		node->prev = node;
 		node->next = node;
 		*list = node;
 	} else { //Si no esta vacia
-		assert(here != NULL);
+
+		//ASSERT
+		assert(!(here==NULL));//if(here==NULL) print_backtrace("list_prepend_node here==NULL");
+		assert(!(here->prev==NULL));//if(here->prev==NULL) print_backtrace("list_prepend_node here->prev==NULL");
+		assert(!(here->next==NULL));
 
 		node->prev = here->prev;
 		node->next = here;
 		here->prev = node;
-		if(node->prev!=NULL)
-			node->prev->next = node;
+		node->prev->next = node;
 
 		if(here == *list) {
 			*list = node;
@@ -117,15 +143,24 @@ void list_prepend_node(node_l **list,
 void list_append_node(node_l **list,
                     	node_l  *node)
 {
-	assert(list != NULL);
-	assert(node != NULL);
+
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_append_node list==NULL");
+	assert(!(node==NULL));//if(node==NULL) print_backtrace("list_append_node node==NULL");
+
+	assert(node->next == node->prev);
+
 	node_l *here=*list;
 	if(*list == NULL) { //Si la lista esta vacia
 		node->prev = node;
 		node->next = node;
 		*list = node;
 	} else { //Si no esta vacia
-		assert(here != NULL);
+		//ASSERT
+		assert(!(here==NULL));//if(here==NULL) print_backtrace("list_append_node here==NULL");
+		assert(!(here->next==NULL));//if(here->next==NULL) print_backtrace("list_append_node here->next==NULL");
+		assert(!(here->prev==NULL));//if(here->prev==NULL) print_backtrace("list_append_node here->prev==NULL");
+
 		node_l *last = here->prev; //El ultimo es el anterior del primero
 		last->next = node; //El siguiente al ultimo es el nuevo
 		node->prev = last; //El anterior al nuevo es el que era ultimo
@@ -134,9 +169,28 @@ void list_append_node(node_l **list,
 	}
 }
 
+int list_size(node_l **list)   
+{   
+    int s = 0;   
+    node_l *n;   
+   
+    assert(list != NULL);   
+   
+    n = *list;   
+   
+    while(n != NULL) {   
+        n = list_get_next_node(list, n);   
+        s++;   
+    }   
+   
+    return(s);     
+}   
+
 int list_is_empty(node_l **list)
 {
-	assert(list != NULL);
+
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_is_empty list==NULL");
 
 	return(*list == NULL);
 }
@@ -145,7 +199,9 @@ node_l * list_search(node_l **list, node_l *node_to_find, int cmp(void *, void *
 {
 	node_l *n;
 
-	assert(list != NULL);
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_search list==NULL");
+	assert(!(node_to_find==NULL));//if(node_to_find==NULL) print_backtrace("list_search node_to_find==NULL");
 
 	//primero de la lista
 	n = list_get_first_node(list);
@@ -163,10 +219,13 @@ node_l * list_search(node_l **list, node_l *node_to_find, int cmp(void *, void *
 void list_unlink(node_l **list,
                  node_l  *node)
 {
-	assert(list != NULL);
-	assert(node != NULL);
+
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_unlink list==NULL");
+	assert(!(node==NULL));//if(node==NULL) print_backtrace("list_unlink node==NULL");
 
 	if(node->next == node) { 				//si la lista tiene 1 elemento
+		assert(node->next == node->prev);
 		(*list)->next = NULL;
 		(*list)->prev = NULL;
 		*list = NULL; 		 				//lista a null
@@ -180,15 +239,28 @@ void list_unlink(node_l **list,
 			*list = node->next; 			//ahora el primero es el siguiente
 	}
 
-	node->next = NULL; //
-	node->prev = NULL; //NULL de los punteros primero y siguiente del que sacamos
+	node->next = node; //
+	node->prev = node; //NULL de los punteros primero y siguiente del que sacamos
+	
+	//REPAIR LIST IF BROKEN
+	// if((*list)!=NULL && (*list)->prev == NULL){
+	// 	node_l *aux = (*list);
+	// 	fprintf(stderr, "FIXING LIST aux->next: %s\n", aux->next == NULL? "NULL" : "!NULL");
+	// 	while(aux->next != NULL && aux != (*list)){
+	// 		aux = aux->next;
+	// 	}
+	// 	(*list)->prev = aux;
+	// 	aux->next = (*list);
+	// }
+
 }
 
 node_l *list_pop_first_node(node_l **list)
 {
 	node_l *n;
 
-	assert(list != NULL);
+	//ASSERT
+	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_pop_first_node list==NULL");
 
 	n = list_get_first_node(list);
 
@@ -205,7 +277,10 @@ void allocNodelPool(void)
 	int i=0;
 	node_l *n=NULL;
 	nl=malloc(sizeof(node_l)*MAX_POOL_NODE);
-	assert(nl!=NULL);
+
+	//ASSERT
+	assert(!(nl==NULL));//if(nl==NULL) print_backtrace("allocNodelPool nl==NULL");
+
 	for(i=0;i<MAX_POOL_NODE;i++)
 	{
 		n=list_alloc_node(nl+i);
@@ -220,9 +295,16 @@ void getNodel(void)
 
 	node_l *n=list_pop_first_node(&nodel_pool_free);
 	if(nodel_pool_free==NULL)
-		printf("pool Nodos vacío\n");
+		fprintf(stderr, "pool Nodos vacío\n");
 	list_prepend_node(&nodel_pool_used,n);
-	assert(n!=NULL);
+
+	//ASSERT
+	assert(!(n==NULL));//if(n==NULL) print_backtrace("getNodel n==NULL");
+
+	node_l *nodo = (node_l*) n->data;
+	nodo->prev = nodo;
+	nodo->next = nodo;
+
 	nodel_aux=n->data;
 	
 }
@@ -230,7 +312,9 @@ void getNodel(void)
 void releaseNodel(node_l* f)
 {
 
-	assert(f!=NULL);
+	//ASSERT
+	assert(!(f==NULL));//if(f==NULL) print_backtrace("releaseNodel f==NULL");
+
 	node_l *n=list_pop_first_node(&nodel_pool_used); // Saca nodo del pool de usados
 	n->data=(void*)f;								 // 
 	list_prepend_node(&nodel_pool_free,n);			 // Anade al pool de libres

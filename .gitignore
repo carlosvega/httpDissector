@@ -1,7 +1,10 @@
 # Object files
 *.o
 
-zip/
+.DS_Store
+charts/
+old/
+zips/
 scripts/
 
 # Libraries
