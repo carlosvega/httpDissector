@@ -348,7 +348,6 @@ int checkFirst(hash_value *hashvalue){
 void removeConnexion(hash_value *hashvalue, node_l *conexion_node, uint32_t index){
 	
 	ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
-	syslog(LOG_NOTICE, "removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
 
 	//ASSERT
 	assert(!(conexion_node==NULL));//if(conexion_node==NULL) print_backtrace("removeConnexion conexion_node==NULL");
