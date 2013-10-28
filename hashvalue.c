@@ -286,14 +286,20 @@ int cleanUpHashvalue(hash_value *hashvalue){
 		return cleanUpHashvalue(hashvalue);
 	}
 
-	if(req->aux_res == NULL){
-		removeRequestFromHashvalue(hashvalue, n);
-		return cleanUpHashvalue(hashvalue);
-	}else{
-		response *res = req->aux_res;
+	if(req->aux_res != NULL && hashvalue->n_response > 0){
+		response *res = (response*) req->aux_res;
+		assert(res != NULL);
+		assert(&res->op!=NULL);
+		assert(res->op == RESPONSE);
 		printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
 		releaseResponse(res);
 		return cleanUpHashvalue(hashvalue);
+	}else if(req->aux_res == NULL){
+		removeRequestFromHashvalue(hashvalue, n);
+		return cleanUpHashvalue(hashvalue);
+	}else if(req->aux_res != NULL && hashvalue->n_response <= 0){
+		response *res = (response*) req->aux_res;
+		releaseResponse(res);
 	}
 
 	return 0;
