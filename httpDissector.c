@@ -160,7 +160,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		last = list_get_prev_node(&active_session_list, last);
 
 		hash_value *hashvalue = (hash_value*) n->data;
-		assert(n == hashvalue->active_node);
+		hashvalue->active_node = n;
 		diff = tsSubtract(last_packet, hashvalue->last_ts);
 		if(diff.tv_sec > 60){
 			cleanUpHashvalue(hashvalue);
