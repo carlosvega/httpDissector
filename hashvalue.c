@@ -289,8 +289,9 @@ int cleanUpHashvalue(hash_value *hashvalue){
 	if(req->aux_res != NULL && hashvalue->n_response > 0){
 		response *res = (response*) req->aux_res;
 		assert(res != NULL);
-		assert(&res->op!=NULL);
-		assert(res->op == RESPONSE);
+		if(res->op != RESPONSE){
+			syslog (LOG_NOTICE, "res->op!=RESPONSE %"PRIu32"\n", getIndexFromHashvalue(hashvalue));
+		}
 		printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
 		releaseResponse(res);
 		return cleanUpHashvalue(hashvalue);
