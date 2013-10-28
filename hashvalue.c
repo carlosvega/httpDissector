@@ -300,8 +300,6 @@ int cleanUpHashvalue(hash_value *hashvalue){
 		return cleanUpHashvalue(hashvalue);
 	}else if(req->aux_res != NULL && hashvalue->n_response <= 0){
 		syslog (LOG_NOTICE, "req->aux_res != NULL && hashvalue->n_response <= 0\n");
-		response *res = (response*) req->aux_res;
-		releaseResponse(res);
 		removeRequestFromHashvalue(hashvalue, n);
 		return cleanUpHashvalue(hashvalue);
 	}
