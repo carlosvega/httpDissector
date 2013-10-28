@@ -227,8 +227,6 @@ void list_unlink(node_l **list,
 
 	if(node->next == node) { 				//si la lista tiene 1 elemento
 		assert(node->next == node->prev);
-		(*list)->next = NULL;
-		(*list)->prev = NULL;
 		*list = NULL; 		 				//lista a null
 	} else { 				 				//sino
 		assert(node->prev != NULL);
