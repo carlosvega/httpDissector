@@ -332,9 +332,10 @@ int checkFirst(hash_value *hashvalue){
 	if(req->aux_res != NULL && hashvalue->n_response > 0){
 		response *res = (response*) req->aux_res;
 		assert(res != NULL);
-		assert(&res->op!=NULL);
-		assert(res->op == RESPONSE);		
-		
+		if(res->op != RESPONSE){
+			syslog (LOG_NOTICE, "res->op!=RESPONSE %"PRIu32"\n", getIndexFromHashvalue(hashvalue));
+		}
+				
 		// fprintf(stderr, "res->responseCode %d (%p) ", res->responseCode, &res->responseCode);
 		// fprintf(stderr, "res->response_msg %d (%p) \n", res->response_msg, &res->response_msg);
 		printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
@@ -404,6 +405,7 @@ int addResponseToConnexion(hash_value *hashvalue, packet_info *aux_packet, node_
 		request *req = (request*) req_node->data;
 		response *res = getResponse();
 		fillResponse(aux_packet, res);
+		res->op = RESPONSE;
 		req->aux_res = res;
 	}
 
