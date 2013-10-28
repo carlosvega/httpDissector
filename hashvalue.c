@@ -504,7 +504,7 @@ int insertPacket (packet_info *aux_packet){
 		//(hashvalue->last_client_seq < aux_packet->tcp->th_seq)){ 	// mayor que el anterior
 			ERR_MSG("DEBUG/ addRequestToConnexion\n");
 			addRequestToConnexion(hashvalue, aux_packet, index);
-			updateActiveConnexion(hashvalue);
+			// updateActiveConnexion(hashvalue);
 		//RESPUESTA
 		}else if(aux_packet->op == RESPONSE){
 			// && 						  									// La RESPUESTA debe tener un ACK

@@ -29,7 +29,6 @@ extern struct args_parse options;
 
 typedef struct {
     node_l *list;
-    node_l *active_node;
     int n_request;
     int n_response;
     int deleted_nodes;
@@ -44,6 +43,7 @@ typedef struct {
     tcp_seq last_server_seq;
     tcp_seq last_server_ack;
     struct timespec last_ts;
+    node_l *active_node;
 } hash_value;
 
 uint32_t getIndex(packet_info* packet);
