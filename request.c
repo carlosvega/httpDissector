@@ -50,7 +50,7 @@ request * getRequest(void)
 
 node_l *request_search(node_l **list, tcp_seq seq, int *number){
 
-	node_l *n;
+	node_l *n, *prev = NULL;
 	*number = 0;
 
 	assert(list != NULL);
@@ -58,11 +58,12 @@ node_l *request_search(node_l **list, tcp_seq seq, int *number){
 	//primero de la lista
 	n = list_get_first_node(list);
 
-	while(n != NULL) {
+	while(n != NULL && n!=prev) {
 		request *req = (request *) n->data;
 		if(req->ack == seq)
 			return n;
-		   
+		
+		prev = n;
 		n = list_get_next_node(list, n);
 		*number += 1;
 	}
