@@ -177,8 +177,9 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				removeConnexion(hashvalue, conexion_node, index);
 			}
 			removed++;
-			processed--;
 		}
+		
+		processed--;
 
 	}
 

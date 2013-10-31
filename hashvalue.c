@@ -282,8 +282,8 @@ int cleanUpHashvalue(hash_value *hashvalue){
 
 	// request *req = (request*) n->data;
 	// if(req == NULL){
-		removeRequestFromHashvalue(hashvalue, n);
-		return cleanUpHashvalue(hashvalue);
+	removeRequestFromHashvalue(hashvalue, n);
+	return cleanUpHashvalue(hashvalue);
 	// }
 
 	// if(req->aux_res != NULL && hashvalue->n_response > 0){
@@ -304,7 +304,7 @@ int cleanUpHashvalue(hash_value *hashvalue){
 	// 	return cleanUpHashvalue(hashvalue);
 	// }
 
-	return 0;
+	// return 0;
 }
 
 int checkFirst(hash_value *hashvalue){
@@ -341,16 +341,16 @@ int checkFirst(hash_value *hashvalue){
 	// 	releaseResponse(res);
 	// 	return checkFirst(hashvalue);
 	// }else if(req->aux_res == NULL){
-		struct timespec diff = tsSubtract(last_packet, req->ts);
-		if(diff.tv_sec > 60){
-			removeRequestFromHashvalue(hashvalue, n);
-			return checkFirst(hashvalue);
-		}else{
-			return 0;
-		}
+	struct timespec diff = tsSubtract(last_packet, req->ts);
+	if(diff.tv_sec > 60){
+		removeRequestFromHashvalue(hashvalue, n);
+		return checkFirst(hashvalue);
+	}else{
+		return 0;
+	}
 	// }
 
-	return 0;
+	// return 0;
 
 }
 
