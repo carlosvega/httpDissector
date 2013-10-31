@@ -270,7 +270,7 @@ int cleanUpHashvalue(hash_value *hashvalue){
 
  	ERR_MSG("DEBUG/ cleanUpHashvalue - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromHashvalue(hashvalue), hashvalue->ip_client_int, hashvalue->ip_server_int, hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server);
 
-	if(hashvalue->n_request == 0){
+	if(hashvalue->n_request <= 0){
 		return 0;
 	}
 
