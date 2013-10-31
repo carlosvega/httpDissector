@@ -410,6 +410,8 @@ int addResponseToConnexion(hash_value *hashvalue, packet_info *aux_packet, node_
 
 	if(checkFirst(hashvalue) == -1){ //n_req == 0
 		removeConnexion(hashvalue, conexion_node, index);
+	}else{
+		updateActiveConnexion(hashvalue);
 	}
 
 	return 0;
