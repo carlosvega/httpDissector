@@ -113,8 +113,6 @@ void list_prepend_node(node_l **list,
 	//ASSERT
 	assert(!(node==NULL));//if(node==NULL) print_backtrace("list_prepend_node node==NULL");
 
-	assert(node->next == node->prev);
-
 	node_l *here=*list;
 
 	if(*list == NULL) { //Si la lista esta vacia
