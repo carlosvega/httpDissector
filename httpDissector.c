@@ -26,7 +26,7 @@ packet_info *pktinfo = NULL;
 //
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
-#define GC_SLEEP_SECS 300
+#define GC_SLEEP_SECS 10
 
 char version[32] = "Version 2.4";
 struct args_parse options;
