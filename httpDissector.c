@@ -178,8 +178,6 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			}
 			removed++;
 			processed--;
-		}else{
-			break;
 		}
 
 	}
