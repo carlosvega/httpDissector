@@ -280,29 +280,29 @@ int cleanUpHashvalue(hash_value *hashvalue){
 		return 0;
 	}
 
-	request *req = (request*) n->data;
-	if(req == NULL){
+	// request *req = (request*) n->data;
+	// if(req == NULL){
 		removeRequestFromHashvalue(hashvalue, n);
 		return cleanUpHashvalue(hashvalue);
-	}
+	// }
 
-	if(req->aux_res != NULL && hashvalue->n_response > 0){
-		response *res = (response*) req->aux_res;
-		assert(res != NULL);
-		if(res->op != RESPONSE){
-			syslog (LOG_NOTICE, "res->op!=RESPONSE %"PRIu32"\n", getIndexFromHashvalue(hashvalue));
-		}
-		printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
-		releaseResponse(res);
-		return cleanUpHashvalue(hashvalue);
-	}else if(req->aux_res == NULL){
-		removeRequestFromHashvalue(hashvalue, n);
-		return cleanUpHashvalue(hashvalue);
-	}else if(req->aux_res != NULL && hashvalue->n_response <= 0){
-		syslog (LOG_NOTICE, "req->aux_res != NULL && hashvalue->n_response <= 0\n");
-		removeRequestFromHashvalue(hashvalue, n);
-		return cleanUpHashvalue(hashvalue);
-	}
+	// if(req->aux_res != NULL && hashvalue->n_response > 0){
+	// 	response *res = (response*) req->aux_res;
+	// 	assert(res != NULL);
+	// 	if(res->op != RESPONSE){
+	// 		syslog (LOG_NOTICE, "res->op!=RESPONSE %"PRIu32"\n", getIndexFromHashvalue(hashvalue));
+	// 	}
+	// 	printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
+	// 	releaseResponse(res);
+	// 	return cleanUpHashvalue(hashvalue);
+	// }else if(req->aux_res == NULL){
+	// 	removeRequestFromHashvalue(hashvalue, n);
+	// 	return cleanUpHashvalue(hashvalue);
+	// }else if(req->aux_res != NULL && hashvalue->n_response <= 0){
+	// 	syslog (LOG_NOTICE, "req->aux_res != NULL && hashvalue->n_response <= 0\n");
+	// 	removeRequestFromHashvalue(hashvalue, n);
+	// 	return cleanUpHashvalue(hashvalue);
+	// }
 
 	return 0;
 }
@@ -327,20 +327,20 @@ int checkFirst(hash_value *hashvalue){
 		return checkFirst(hashvalue);
 	}
 
-	if(req->aux_res != NULL && hashvalue->n_response > 0){
-		response *res = (response*) req->aux_res;
-		assert(res != NULL);
-		if(res->op != RESPONSE){
-			syslog (LOG_NOTICE, "res->op!=RESPONSE %"PRIu32"\n", getIndexFromHashvalue(hashvalue));
-		}
+	// if(req->aux_res != NULL && hashvalue->n_response > 0){
+	// 	response *res = (response*) req->aux_res;
+	// 	assert(res != NULL);
+	// 	if(res->op != RESPONSE){
+	// 		syslog (LOG_NOTICE, "res->op!=RESPONSE %"PRIu32"\n", getIndexFromHashvalue(hashvalue));
+	// 	}
 				
-		// fprintf(stderr, "res->responseCode %d (%p) ", res->responseCode, &res->responseCode);
-		// fprintf(stderr, "res->response_msg %d (%p) \n", res->response_msg, &res->response_msg);
-		printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
-		// memset(res, 0, sizeof(res)); //Resetear response
-		releaseResponse(res);
-		return checkFirst(hashvalue);
-	}else if(req->aux_res == NULL){
+	// 	// fprintf(stderr, "res->responseCode %d (%p) ", res->responseCode, &res->responseCode);
+	// 	// fprintf(stderr, "res->response_msg %d (%p) \n", res->response_msg, &res->response_msg);
+	// 	printTransaction(hashvalue, res->ts, res->response_msg, res->responseCode, n);
+	// 	// memset(res, 0, sizeof(res)); //Resetear response
+	// 	releaseResponse(res);
+	// 	return checkFirst(hashvalue);
+	// }else if(req->aux_res == NULL){
 		struct timespec diff = tsSubtract(last_packet, req->ts);
 		if(diff.tv_sec > 60){
 			removeRequestFromHashvalue(hashvalue, n);
@@ -348,7 +348,7 @@ int checkFirst(hash_value *hashvalue){
 		}else{
 			return 0;
 		}
-	}
+	// }
 
 	return 0;
 
@@ -398,13 +398,14 @@ int addResponseToConnexion(hash_value *hashvalue, packet_info *aux_packet, node_
 	if(position==0){
 		printTransaction(hashvalue, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);	
 	}else{
+		printTransaction(hashvalue, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);	
 		ERR_MSG("RESPONSE OUT OF ORDER POS: %d\n", position);
 		total_out_of_order++;
-		request *req = (request*) req_node->data;
-		response *res = getResponse();
-		fillResponse(aux_packet, res);
-		res->op = RESPONSE;
-		req->aux_res = res;
+		// request *req = (request*) req_node->data;
+		// response *res = getResponse();
+		// fillResponse(aux_packet, res);
+		// res->op = RESPONSE;
+		// req->aux_res = res;
 	}
 
 	if(checkFirst(hashvalue) == -1){ //n_req == 0
