@@ -60,8 +60,12 @@ node_l *request_search(node_l **list, tcp_seq seq, int *number){
 
 	while(n != NULL && n!=prev) {
 		request *req = (request *) n->data;
-		if(req->ack == seq)
-			return n;
+		
+		if(req != NULL){
+			if(req->ack == seq){
+				return n;
+			}	
+		}
 		
 		prev = n;
 		n = list_get_next_node(list, n);

@@ -234,7 +234,9 @@ void addRequestToConnexion(hash_value *hashvalue, packet_info *aux_packet, uint3
 	fillRequest(aux_packet, req);							//Rellenar request
 	getNodel(); 											//Obtener nodo del pool para la peticion
 	naux = nodel_aux;
-	naux->data = req;				
+	naux->data = req;
+	naux->next = naux;
+	naux->prev = naux;				
 	list_append_node(&hashvalue->list, naux); 				//Meter peticion en la lista
 
 	hashvalue->last_client_seq = aux_packet->tcp->th_seq; 	//Actualizar ultimos numeros
@@ -505,6 +507,11 @@ int insertPacket (packet_info *aux_packet){
 	
 	}else{ //La conexion existe
 		hash_value *hashvalue = (hash_value*) conexion_node->data;
+		if(hashvalue == NULL){
+			list_unlink(&list, conexion_node);
+			return insertNewConnexion(list, aux_packet, index);
+		}
+
 		hashvalue->last_ts = aux_packet->ts;		//Actualizar last timestamp
 		
 		//PETICION
@@ -513,7 +520,7 @@ int insertPacket (packet_info *aux_packet){
 		//(hashvalue->last_client_seq < aux_packet->tcp->th_seq)){ 	// mayor que el anterior
 			ERR_MSG("DEBUG/ addRequestToConnexion\n");
 			addRequestToConnexion(hashvalue, aux_packet, index);
-			// updateActiveConnexion(hashvalue);
+			updateActiveConnexion(hashvalue);
 		//RESPUESTA
 		}else if(aux_packet->op == RESPONSE){
 			// && 						  									// La RESPUESTA debe tener un ACK
