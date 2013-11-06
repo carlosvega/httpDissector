@@ -101,8 +101,6 @@ void freeHashvaluePool(void)
 	free(hashvalues);
 }
 
-
-
 //Add enough data to compare two hashvalues
 void preFillHashvalue(packet_info *packet, hash_value *hashvalue){
    
@@ -119,23 +117,6 @@ void preFillHashvalue(packet_info *packet, hash_value *hashvalue){
 	}
 
 	return;
-}
-
-int check_hash_err(node_l *list){
-	node_l *n = list_get_first_node(&list);
-	if(n!=NULL){
-		if(n->data == NULL){
-			list_unlink(&list, n);
-			if(n->data == NULL){
-				return 1;
-			}
-
-		}
-	}else{
-		return 0;
-	}
-
-	return 0;
 }
 
 //Completes the information of the hashvalue
@@ -187,16 +168,6 @@ int addActiveConnexion(hash_value *hashvalue){
 
 	return 0;
 }
-
-// int removeActiveConnexion(node_l *n){
-
-// 	n->data = NULL;
-// 	list_unlink(&active_session_list, n);
-// 	releaseNodel(n);
-// 	active_session_list_size--;
-
-// 	return 0;
-// }
 
 int removeActiveConnexion(hash_value *hashvalue){
 
