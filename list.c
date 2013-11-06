@@ -147,7 +147,7 @@ void list_append_node(node_l **list,
 	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_append_node list==NULL");
 	assert(!(node==NULL));//if(node==NULL) print_backtrace("list_append_node node==NULL");
 
-	assert(node->next == node->prev);
+	// assert(node->next == node->prev);
 
 	node_l *here=*list;
 	if(*list == NULL) { //Si la lista esta vacia
