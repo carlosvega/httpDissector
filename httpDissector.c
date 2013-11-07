@@ -26,9 +26,9 @@ packet_info *pktinfo = NULL;
 //
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
-#define GC_SLEEP_SECS 30
+#define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.4";
+char version[32] = "Version 2.41";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -151,7 +151,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 	node_l *last = list_get_last_node(&active_session_list);
 
 	struct timespec diff;
-	while(processed!=0){
+	while(processed>0){
 		if(last == NULL){
 			return removed;
 		}
@@ -196,8 +196,8 @@ void *recolector_de_basura(){
 	//60 sleeps of 1 second, just to be able to end the thread properly
 	while(l<GC_SLEEP_SECS){ sleep(1); running == 0 ? l=GC_SLEEP_SECS : l++;}
 	while(running){
+		pthread_mutex_lock(&mutex);
 		l=0;
-	 	pthread_mutex_lock(&mutex);
 	 	if(options.log){
 			syslog (LOG_NOTICE, "Elements in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
 		}
