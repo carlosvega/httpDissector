@@ -217,6 +217,7 @@ void addRequestToConnexion(hash_value *hashvalue, packet_info *aux_packet, uint3
 
 	active_requests++;
 	total_requests++;
+
 }
 
 void printTransaction(hash_value *hashvalue, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node){

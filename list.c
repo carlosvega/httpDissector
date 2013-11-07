@@ -168,22 +168,44 @@ void list_append_node(node_l **list,
 	}
 }
 
-int list_size(node_l **list)   
-{   
-    int s = 0;   
-    node_l *n;   
+// int list_size(node_l **list)   
+// {   
+//     int s = 0;   
+//     node_l *n;   
    
-    assert(list != NULL);   
+//     assert(list != NULL);   
    
-    n = *list;   
+//     n = *list;   
    
-    while(n != NULL) {   
-        n = list_get_next_node(list, n);   
-        s++;   
-    }   
+//     while(n != NULL) {   
+//         n = list_get_next_node(list, n);   
+//         s++;   
+//     }   
    
-    return(s);     
-}   
+//     return(s);     
+// }
+
+int list_size(node_l **list){
+
+	assert(list!=NULL);
+
+	int s = 0;
+	node_l *n, *first = NULL;
+
+	first = list_get_first_node(list);
+	n = first;
+
+	while(n != NULL){
+		s++;
+		n = list_get_next_node(list, n);
+		if(n==first){
+			break;
+		}
+	}
+
+	return s;
+
+} 
 
 int list_is_empty(node_l **list)
 {
