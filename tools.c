@@ -174,6 +174,26 @@ char *hash_key(const packet_info *pktinfo){
 	return buf;
 }
 
+/**
+	-1  if TIME1 < TIME2
+	0  if TIME1 = TIME2
+	+1  if TIME1 > TIME2
+**/
+int  tsCompare (struct  timespec  time1, struct  timespec  time2){
+
+    if (time1.tv_sec < time2.tv_sec)
+        return (-1) ;				/* Less than. */
+    else if (time1.tv_sec > time2.tv_sec)
+        return (1) ;				/* Greater than. */
+    else if (time1.tv_nsec < time2.tv_nsec)
+        return (-1) ;				/* Less than. */
+    else if (time1.tv_nsec > time2.tv_nsec)
+        return (1) ;				/* Greater than. */
+    else
+        return (0) ;				/* Equal. */
+
+}
+
 struct  timespec  tsSubtract (struct  timespec  t1, struct  timespec  t2){
 
 	struct  timespec  diff ;

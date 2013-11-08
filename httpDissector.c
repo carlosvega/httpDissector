@@ -28,7 +28,7 @@ packet_info *pktinfo = NULL;
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.41";
+char version[32] = "Version 2.411";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -534,23 +534,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
     pthread_mutex_unlock(&mutex);
 }
 
-void print_list(void *data){
-	int *numero = (int*) data;
-	fprintf(stderr, "%d, \n", *numero);
-}
-
 int main(int argc, char *argv[]){
-
-	// if(glib_check_version(2, 32, 0) != NULL){
-	// 	fprintf(stderr, "Your GLIB version is: %d.%d.%d\n", glib_major_version, glib_minor_version,  glib_micro_version);
-	// 	fprintf(stderr, "You are still able to continue the execution of this program but we strongly recommend upgrading the library.\n");
-	// }else if(glib_check_version(2, 18, 0) != NULL){
-	// 	fprintf(stderr, "YOUR GLIB VERSION IS: %d.%d.%d\n", glib_major_version, glib_minor_version,  glib_micro_version);
-	// 	fprintf(stderr, "THE MIN. VERSION REQUIRED TO WORK IS: 2.18.0\n");
-	// 	return 0;
-	// }
-	
-	// setvbuf(stderr, NULL, _IOLBF, 2048)
 
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 

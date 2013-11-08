@@ -1,6 +1,6 @@
 #ifndef HASHVALUE_H
 #define HASHVALUE_H
-#include<syslog.h>
+#include <syslog.h>
 #include <assert.h>
 #include "http.h"
 #include "err_mqueue.h"
