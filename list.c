@@ -197,7 +197,7 @@ int list_size(node_l **list){
 
 	while(n != NULL){
 		s++;
-		n = list_get_next_node(list, n);
+		n = n->next;
 		if(n==first){
 			break;
 		}
