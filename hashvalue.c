@@ -235,7 +235,14 @@ void printTransaction(hash_value *hashvalue, struct timespec res_ts, char* respo
 	//IMPRIMIR INFORMACION
 	struct timespec diff = tsSubtract(res_ts, req->ts);
 	
-	fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s\n", hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, req->url, req->op == POST ? "POST" : "GET");
+	if(options.sorted == 0){
+		fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s\n", hashvalue->ip_client, hashvalue->port_client, hashvalue->ip_server, hashvalue->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, req->url, req->op == POST ? "POST" : "GET");
+	}else{
+		addPrintElement(hashvalue->ip_client, hashvalue->ip_server, 
+			hashvalue->port_client, hashvalue->port_server, req->ts, 
+			res_ts, diff, responseCode, response_msg, req->url, req->op);
+	}
+
 	hashvalue->n_response--;
 	removeRequestFromHashvalue(hashvalue, req_node);
 }

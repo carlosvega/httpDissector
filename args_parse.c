@@ -18,6 +18,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
   fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
+  fprintf(stderr, "\t    --sorted\t\t\tSorted output by request timestamp\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
 
@@ -72,6 +73,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.collector   = 1;
   options.verbose     = 0;
   options.version     = 0;
+  options.sorted      = 0;
 
   strcpy(options.errbuf, "Invalid arguments");
 
@@ -88,6 +90,7 @@ struct args_parse parse_args(int argc, char **argv){
 		{ "output",         1,  NULL,   'o'},
 		{ "raw",		        0, 	NULL, 	'r'},
     { "no-collector",   0,  NULL,   'C'},
+    { "sorted",         0,  NULL,   'S'},
     { "log",            0,  NULL,   'L'},
 		{ "pcap",			      0, 	NULL, 	'p'},
 		{ "input",		      1, 	NULL, 	'i'},
@@ -131,6 +134,10 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'R' : /* -rrd */
           options.rrd = 1;
+          break;
+
+        case 'S' : /* --sorted */
+          options.sorted = 1;
           break;
 
         case 'c' : /*-c o --capture */

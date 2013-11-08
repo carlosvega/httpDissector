@@ -2,6 +2,7 @@
 #define HASHVALUE_H
 #include <syslog.h>
 #include <assert.h>
+#include "sorted_print.h"
 #include "http.h"
 #include "err_mqueue.h"
 #include "list.h"
