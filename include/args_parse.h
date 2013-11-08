@@ -26,6 +26,7 @@ struct args_parse{
 	char *url;
 	short version;
 	short debug;
+	short sorted;
 };
 
 void how_to_use(char *name);
