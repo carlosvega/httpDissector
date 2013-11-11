@@ -29,6 +29,11 @@ extern struct args_parse options;
 //16777216 2^24 134217728 2^27
 
 typedef struct {
+    char n;
+    node_l *list;
+} collision_list;
+
+typedef struct {
     node_l *list;
     int n_request;
     int n_response;
@@ -69,7 +74,7 @@ int updateActiveConnexion(connection *conn);
 void addRequestToConnexion(connection *conn, packet_info *aux_packet);
 void printTransaction(connection *conn, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node);
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index);
-int addResponseToConnexion(connection *conn, packet_info *aux_packet, node_l *conexion_node, uint32_t index);
-int insertNewConnexion(node_l *list, packet_info *aux_packet, uint32_t index);
+int addResponseToConnexion(connection *conn, packet_info *aux_packet);
+int insertNewConnexion(packet_info *aux_packet, uint32_t index);
 
 #endif 

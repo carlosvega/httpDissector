@@ -35,6 +35,11 @@
 
 /* ethernet headers are always exactly 14 bytes */
 
+typedef struct {
+  int n;
+  node_l *list;
+} colisiones;
+
 static unsigned long packets = 0;
 struct timeval start; 
 static int running = 0;
