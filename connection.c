@@ -302,6 +302,7 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 void cleanUpConnection(connection *conn){
 
 	node_l *n = n = conn->list;
+	fprintf(stderr, "cleanUpConnection: %"PRIu32"\n", getIndexFromConnection(conn));
 
 	while(conn->n_request > 0){
 		
