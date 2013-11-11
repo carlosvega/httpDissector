@@ -28,6 +28,10 @@ connection aux_conn;
 
 void removeRequestFromConnection(connection *conn, node_l *req_node){
 
+	if(req_node->data == NULL){
+		fprintf(stderr, "removeRequestFromConnection req_node->data == NULL\n");
+	}
+
 	request *req = (request*) req_node->data;
 	//list_unlink(&conn->list, req_node);
 	//UNLINK
@@ -273,7 +277,7 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 			conn->port_client, conn->port_server, req->ts, 
 			res_ts, diff, responseCode, response_msg, req->url, req->op);
 	}
-	
+
 	// if(conn->n_request > 1){
 	// 	request *req_aux = (request*) conn->list->next->data;
 	// 	fprintf(stderr, "req_aux: %s\n", req_aux == NULL? "NULL" : "!NULL");

@@ -152,7 +152,9 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		}
 
 		node_l *n = last;
-		last = list_get_prev_node(&active_session_list, last);
+		// last = list_get_prev_node(&active_session_list, last);
+		
+		last = last->prev;
 
 		connection *conn = (connection*) n->data;
 		conn->active_node = n;
