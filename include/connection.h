@@ -62,7 +62,7 @@ void preFillConnection(packet_info *packet, connection *conn);
 int compareConnection(void *a, void *b);
 int check_dead_requests(connection *conn);
 
-int cleanUpConnection(connection *conn);
+void cleanUpConnection(connection *conn);
 int checkNextResponses(connection *conn);
 int addActiveConnexion(connection *conn);
 int removeActiveConnexion(connection *conn);
