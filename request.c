@@ -17,7 +17,7 @@ void allocRequestPool(void)
 {
 	int i=0;
 	node_l *n=NULL;
-	requests=calloc(REQUEST_POOL, sizeof(request));
+	requests=calloc(REQUEST_POOL,sizeof(request));
 	assert(requests!=NULL);
 	for(i=0;i<REQUEST_POOL;i++)
 	{
@@ -48,7 +48,7 @@ request * getRequest(void)
 	
 }
 
-node_l *request_search(node_l **list, tcp_seq seq, int *number, int max){
+node_l *request_search(node_l **list, tcp_seq seq, int *number){
 
 	node_l *n, *prev = NULL;
 	*number = 0;
@@ -58,22 +58,17 @@ node_l *request_search(node_l **list, tcp_seq seq, int *number, int max){
 	//primero de la lista
 	n = list_get_first_node(list);
 
-	while(n != NULL && n!=prev && *number < max) {
-
-		request *req = (request*) n->data;
-
+	while(n != NULL && n!=prev) {
+		request *req = (request *) n->data;
+		
 		if(req != NULL){
-			if(&(req->ack) == NULL){
-				fprintf(stderr, "REQ->ACK == NULL\n");
-			}
 			if(req->ack == seq){
 				return n;
 			}	
 		}
 		
 		prev = n;
-		// n = list_get_next_node(list, n);
-		n = n->next;
+		n = list_get_next_node(list, n);
 		*number += 1;
 	}
 

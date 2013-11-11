@@ -20,7 +20,7 @@ unsigned long long total_out_of_order = 0;
 
 node_l static_node;
 node_l *nodel_aux;
-hashvalue session_table[MAX_FLOWS_TABLE_SIZE] = {{0}};	//2^24
+node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { NULL };	//2^24
 unsigned long long no_cases = 0;
 packet_info *pktinfo = NULL;
 //
@@ -32,6 +32,11 @@ char version[32] = "Version 2.411";
 struct args_parse options;
 
 struct timespec last_packet;
+
+// static GStaticMutex table_mutex = G_STATIC_MUTEX_INIT;
+// GThread *recolector =  NULL;
+// GThread *progreso =  NULL;
+// GHashTable *table = NULL;
 
 struct rusage* memory = NULL;
 
@@ -152,21 +157,25 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		}
 
 		node_l *n = last;
-		// last = list_get_prev_node(&active_session_list, last);
-		
-		last = last->prev;
+		last = list_get_prev_node(&active_session_list, last);
 
 		connection *conn = (connection*) n->data;
-		if(getIndexFromConnection(conn) == 0){
-			fprintf(stderr, "EYYYYYYY\n");
-			processed--;
-			continue;
-		}
 		conn->active_node = n;
 		diff = tsSubtract(last_packet, conn->last_ts);
 		if(diff.tv_sec > 60){
 			cleanUpConnection(conn);
-			removeConnection(n);
+			uint32_t index = getIndexFromConnection(conn);
+			node_l *list = session_table[index];
+			node_l *conexion_node = NULL;
+			if(list == NULL){
+				ERR_MSG("list == NULL\n");
+				removeActiveConnexion(conn);
+			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){
+				ERR_MSG("conexion_node == NULL\n");
+				removeActiveConnexion(conn);
+			}else{
+				removeConnexion(conn, conexion_node, index);
+			}
 			removed++;
 		}
 		
@@ -603,7 +612,7 @@ int main(int argc, char *argv[]){
 	}
 
 	//NEW
-	allocConnectionPool();
+	allocHasvaluePool();
 	allocRequestPool();
 	allocResponsePool();
 	allocNodelPool();

@@ -3,7 +3,6 @@
 #include <syslog.h>
 #include <assert.h>
 #include "sorted_print.h"
-#include "hashvalue.h"
 #include "http.h"
 #include "err_mqueue.h"
 #include "list.h"
@@ -50,7 +49,7 @@ typedef struct {
 
 uint32_t getIndex(packet_info* packet);
 uint32_t getIndexFromConnection(connection *conn);
-void allocConnectionPool(void);
+void allocHasvaluePool(void);
 int insertPacket (packet_info *aux_packet);
 void removeRequestFromConnection(connection *conn, node_l *req_node);
 void cleanup_flows();
@@ -62,7 +61,7 @@ void preFillConnection(packet_info *packet, connection *conn);
 int compareConnection(void *a, void *b);
 int check_dead_requests(connection *conn);
 
-void cleanUpConnection(connection *conn);
+int cleanUpConnection(connection *conn);
 int checkNextResponses(connection *conn);
 int addActiveConnexion(connection *conn);
 int removeActiveConnexion(connection *conn);
@@ -70,7 +69,7 @@ int updateActiveConnexion(connection *conn);
 void addRequestToConnexion(connection *conn, packet_info *aux_packet);
 void printTransaction(connection *conn, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node);
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index);
-int addResponseToConnexion(connection *conn, packet_info *aux_packet);
-int insertNewConnexion(packet_info *aux_packet);
+int addResponseToConnexion(connection *conn, packet_info *aux_packet, node_l *conexion_node, uint32_t index);
+int insertNewConnexion(node_l *list, packet_info *aux_packet, uint32_t index);
 
 #endif 
