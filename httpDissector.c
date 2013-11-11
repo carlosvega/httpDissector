@@ -157,6 +157,11 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		last = last->prev;
 
 		connection *conn = (connection*) n->data;
+		if(getIndexFromConnection(conn) == 0){
+			fprintf(stderr, "EYYYYYYY\n");
+			processed--;
+			continue;
+		}
 		conn->active_node = n;
 		diff = tsSubtract(last_packet, conn->last_ts);
 		if(diff.tv_sec > 60){
