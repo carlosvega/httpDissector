@@ -1,4 +1,4 @@
-CC = gcc -mcmodel medium -g -Wall -Iinclude/ $(DEBUG)
+CC = gcc -mcmodel=medium -g -Wall -Iinclude/ $(DEBUG)
 LDFLAGS = -lm -lpthread
 #CFLAGS		= -g -O2 -D_BSD_SOURCE 
 COLOURFLAGS = -D _colours
