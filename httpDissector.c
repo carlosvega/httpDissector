@@ -135,37 +135,37 @@ void sigintHandler(int signal){
 unsigned long remove_old_active_nodes(struct timespec last_packet){
 
 	unsigned long removed = 0;
-	// uint32_t processed = active_session_list_size;
+	uint32_t processed = active_session_list_size;
 
-	// ERR_MSG("remove_old_active_nodes\n");
+	ERR_MSG("remove_old_active_nodes\n");
 
-	// if(active_session_list_size == 0){
-	// 	return removed;
-	// }
+	if(active_session_list_size == 0){
+		return removed;
+	}
 
-	// node_l *last = list_get_last_node(&active_session_list);
+	node_l *last = list_get_last_node(&active_session_list);
 
-	// struct timespec diff;
-	// while(processed>0){
-	// 	if(last == NULL){
-	// 		return removed;
-	// 	}
+	struct timespec diff;
+	while(processed>0){
+		if(last == NULL){
+			return removed;
+		}
 
-	// 	node_l *n = last;
-	// 	last = list_get_prev_node(&active_session_list, last);
+		node_l *n = last;
+		last = list_get_prev_node(&active_session_list, last);
 
-	// 	connection *conn = (connection*) n->data;
-	// 	conn->active_node = n;
-	// 	diff = tsSubtract(last_packet, conn->last_ts);
-	// 	if(diff.tv_sec > 60){
-	// 		cleanUpConnection(conn);
-	// 		removeConnection(n);
-	// 		removed++;
-	// 	}
+		connection *conn = (connection*) n->data;
+		conn->active_node = n;
+		diff = tsSubtract(last_packet, conn->last_ts);
+		if(diff.tv_sec > 60){
+			cleanUpConnection(conn);
+			removeConnection(n);
+			removed++;
+		}
 		
-	// 	processed--;
+		processed--;
 
-	// }
+	}
 
 	return removed;
 }
