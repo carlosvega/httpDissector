@@ -314,7 +314,7 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
 
     node_l *list=session_table[index];
     list_unlink(&list, conexion_node);          //Eliminar conexion
-    // conexion_node->data = NULL;
+    conexion_node->data = NULL;
     releaseNodel(conexion_node);
 
     //Devolver conn al pool
