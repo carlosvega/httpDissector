@@ -28,10 +28,6 @@ connection aux_conn;
 
 void removeRequestFromConnection(connection *conn, node_l *req_node){
 
-	if(req_node->data == NULL){
-		fprintf(stderr, "removeRequestFromConnection req_node->data == NULL\n");
-	}
-
 	request *req = (request*) req_node->data;
 	//list_unlink(&conn->list, req_node);
 	//UNLINK
@@ -303,23 +299,51 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 
 }
 
-int cleanUpConnection(connection *conn){
+void cleanUpConnection(connection *conn){
 
- 	ERR_MSG("DEBUG/ cleanUpConnection - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
+	node_l *n = n = conn->list;
 
-	if(conn->n_request <= 0){
-		return 0;
+	while(conn->n_request > 0){
+		
+		if(n == NULL){
+			break;
+		}
+
+		if(n->data!=NULL){
+			request *req = (request*) n->data;
+			releaseRequest(req);
+		}
+		
+		list_unlink(&conn->list, n);
+		releaseNodel(n);
+		conn->n_request--;
+		active_requests--;
+
+		n=n->next;
+
 	}
 
-	node_l *n = list_get_first_node(&conn->list);
+	conn->list = NULL;
 
-	if(n == NULL){
-		return 0;
-	}
-
-	removeRequestFromConnection(conn, n);
-	return cleanUpConnection(conn);
 }
+
+// int cleanUpConnection(connection *conn){
+
+//  	ERR_MSG("DEBUG/ cleanUpConnection - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
+
+// 	if(conn->n_request <= 0){
+// 		return 0;
+// 	}
+
+// 	node_l *n = list_get_first_node(&conn->list);
+
+// 	if(n == NULL){
+// 		return 0;
+// 	}
+
+// 	removeRequestFromConnection(conn, n);
+// 	return cleanUpConnection(conn);
+// }
 
 int checkFirst(connection *conn){
 	ERR_MSG("DEBUG/ checkFirst\n");
