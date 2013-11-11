@@ -241,13 +241,13 @@ void addRequestToConnexion(connection *conn, packet_info *aux_packet){
 	//CHECK IF LAST_CLIENT_SEQ == NEW SEQ
 	//CHECK IF LAST_CLIENT_ACK == NEW ACK
 
-	fprintf(stderr, "addRequestToConnexion %"PRIu32" - %d, %d, seq:%"PRIu32", ack:%"PRIu32"\n", 
-		getIndexFromConnection(conn),
-		conn->n_request,
-		conn->n_response,
-		aux_packet->tcp->th_seq,
-		aux_packet->tcp->th_seq
-	);
+	// fprintf(stderr, "addRequestToConnexion %"PRIu32" - %d, %d, seq:%"PRIu32", ack:%"PRIu32"\n", 
+	// 	getIndexFromConnection(conn),
+	// 	conn->n_request,
+	// 	conn->n_response,
+	// 	aux_packet->tcp->th_seq,
+	// 	aux_packet->tcp->th_seq
+	// );
 
 }
 
@@ -274,28 +274,28 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 			res_ts, diff, responseCode, response_msg, req->url, req->op);
 	}
 	
-	if(conn->n_request > 1){
-		request *req_aux = (request*) conn->list->next->data;
-		fprintf(stderr, "req_aux: %s\n", req_aux == NULL? "NULL" : "!NULL");
-	}
+	// if(conn->n_request > 1){
+	// 	request *req_aux = (request*) conn->list->next->data;
+	// 	fprintf(stderr, "req_aux: %s\n", req_aux == NULL? "NULL" : "!NULL");
+	// }
 
 	removeRequestFromConnection(conn, req_node);
 
 	conn->n_response--;
 	conn->deleted_nodes++;
 
-	fprintf(stderr, "PRINTED %"PRIu32" - %d, %d\n", 
-		getIndexFromConnection(conn),
-		conn->n_request,
-		conn->n_response
-	);
+	// fprintf(stderr, "PRINTED %"PRIu32" - %d, %d\n", 
+	// 	getIndexFromConnection(conn),
+	// 	conn->n_request,
+	// 	conn->n_response
+	// );
 
-	if(conn->n_request != 0){
-		if(conn->list != NULL){
-			request *req_aux = (request*) conn->list->data;
-			fprintf(stderr, "req_aux: %s\n", req_aux == NULL? "NULL" : "!NULL");
-		}
-	}
+	// if(conn->n_request != 0){
+	// 	if(conn->list != NULL){
+	// 		request *req_aux = (request*) conn->list->data;
+	// 		fprintf(stderr, "req_aux: %s\n", req_aux == NULL? "NULL" : "!NULL");
+	// 	}
+	// }
 
 }
 
@@ -379,13 +379,13 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
 	ERR_MSG("DEBUG/ addResponseToConnexion\n");
 
 	int position = -1;
-	fprintf(stderr, "NC: %d\tNR: %d\tNr: %d\tDN: %d %"PRIu32"\n", 
-		getNumberOfConnections(getIndex(aux_packet)),
-		conn->n_request,
-		conn->n_response,
-		conn->deleted_nodes,
-		getIndex(aux_packet)
-	);
+	// fprintf(stderr, "NC: %d\tNR: %d\tNr: %d\tDN: %d %"PRIu32"\n", 
+	// 	getNumberOfConnections(getIndex(aux_packet)),
+	// 	conn->n_request,
+	// 	conn->n_response,
+	// 	conn->deleted_nodes,
+	// 	getIndex(aux_packet)
+	// );
 	node_l *req_node = request_search(&conn->list, aux_packet->tcp->th_seq, &position, conn->n_request);
 	if(req_node == NULL || req_node->data == NULL){
 		ERR_MSG("DEBUG/ req_node %s\n", req_node == NULL ? "NULL" : "!NULL");
@@ -396,7 +396,7 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
 	conn->n_response++;
 	conn->last_ts = aux_packet->ts;		//Actualizar last timestamp
 
-	fprintf(stderr, "position: %d\n", position);
+	// fprintf(stderr, "position: %d\n", position);
 
 	if(position==0){
 		printTransaction(conn, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);	
