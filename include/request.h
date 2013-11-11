@@ -10,7 +10,7 @@ void allocRequestPool(void);
 request * getRequest(void);
 void releaseRequest(request * f);
 void freeRequestPool(void);
-node_l *request_search(node_l **list, tcp_seq seq, int *number);
+node_l *request_search(node_l **list, tcp_seq seq, int *number, int max);
 void fillRequest(packet_info *packet, request *req);
 
 #endif

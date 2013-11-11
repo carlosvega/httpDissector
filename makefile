@@ -35,6 +35,8 @@ err_mqueue: err_mqueue.c
 	$(CC) -c -lpthread err_mqueue.c -o err_mqueue.o
 list.o: list.c
 	$(CC) -c list.c -o list.o
+hashvalue.o: hashvalue.c
+	$(CC) -c hashvalue.c -o hashvalue.o
 sorted_print.o: sorted_print.c
 	$(CC) -c sorted_print.c -o sorted_print.o
 IPflow.o: IPflow.c
@@ -43,8 +45,8 @@ request.o: request.c
 	$(CC) -c request.c -o request.o
 response.o: response.c
 	$(CC) -c response.c -o response.o
-hashvalue.o: hashvalue.c
-	$(CC) -c hashvalue.c -o hashvalue.o
+connection.o: connection.c
+	$(CC) -c connection.c -o connection.o
 alist.o: alist.c
 	$(CC) -c alist.c -o alist.o
 tslist.o: tslist.c
@@ -53,9 +55,9 @@ http.o: http.c
 	$(CC) -c http.c -o http.o
 tools.o: tools.c
 	$(CC) -c tools.c -o tools.o
-httpDissector: httpDissector.c hashvalue.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o err_mqueue.o
+httpDissector: httpDissector.c hashvalue.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o err_mqueue.o
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
-	$(CC)  httpDissector.o hashvalue.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o err_mqueue.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
+	$(CC)  httpDissector.o connection.o hashvalue.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o err_mqueue.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c

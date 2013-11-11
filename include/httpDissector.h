@@ -2,6 +2,7 @@
 #define _hope
 
 #include <assert.h>
+#include "connection.h"
 #include "hashvalue.h"
 #include "err_mqueue.h"
 #include "list.h"

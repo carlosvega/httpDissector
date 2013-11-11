@@ -20,7 +20,7 @@ unsigned long long total_out_of_order = 0;
 
 node_l static_node;
 node_l *nodel_aux;
-node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { NULL };	//2^24
+hashvalue session_table[MAX_FLOWS_TABLE_SIZE] = {{0}};	//2^24
 unsigned long long no_cases = 0;
 packet_info *pktinfo = NULL;
 //
@@ -32,11 +32,6 @@ char version[32] = "Version 2.411";
 struct args_parse options;
 
 struct timespec last_packet;
-
-// static GStaticMutex table_mutex = G_STATIC_MUTEX_INIT;
-// GThread *recolector =  NULL;
-// GThread *progreso =  NULL;
-// GHashTable *table = NULL;
 
 struct rusage* memory = NULL;
 
@@ -128,7 +123,7 @@ void sigintHandler(int signal){
 	}
 
 	http_free_packet(&http);
-	freeHashvaluePool();
+	freeConnectionPool();
 	freeNodelPool();
 	freeRequestPool();
 	// err_mqueue_close();
@@ -159,23 +154,12 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		node_l *n = last;
 		last = list_get_prev_node(&active_session_list, last);
 
-		hash_value *hashvalue = (hash_value*) n->data;
-		hashvalue->active_node = n;
-		diff = tsSubtract(last_packet, hashvalue->last_ts);
+		connection *conn = (connection*) n->data;
+		conn->active_node = n;
+		diff = tsSubtract(last_packet, conn->last_ts);
 		if(diff.tv_sec > 60){
-			cleanUpHashvalue(hashvalue);
-			uint32_t index = getIndexFromHashvalue(hashvalue);
-			node_l *list = session_table[index];
-			node_l *conexion_node = NULL;
-			if(list == NULL){
-				ERR_MSG("list == NULL\n");
-				removeActiveConnexion(hashvalue);
-			}else if((conexion_node = list_search(&list, n, compareHashvalue))==NULL){
-				ERR_MSG("conexion_node == NULL\n");
-				removeActiveConnexion(hashvalue);
-			}else{
-				removeConnexion(hashvalue, conexion_node, index);
-			}
+			cleanUpConnection(conn);
+			removeConnection(n);
 			removed++;
 		}
 		
@@ -612,7 +596,7 @@ int main(int argc, char *argv[]){
 	}
 
 	//NEW
-	allocHasvaluePool();
+	allocConnectionPool();
 	allocRequestPool();
 	allocResponsePool();
 	allocNodelPool();
@@ -655,7 +639,7 @@ int main(int argc, char *argv[]){
 	}
 
 	http_free_packet(&http);
-	freeHashvaluePool();
+	freeConnectionPool();
 	freeNodelPool();
 	freeRequestPool();
 	// err_mqueue_close();
