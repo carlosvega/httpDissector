@@ -175,7 +175,7 @@ int removeActiveConnexion(connection *conn){
 
     list_unlink(&active_session_list, conn->active_node);
     releaseNodel(conn->active_node);
-    // conn->active_node = NULL;   
+    conn->active_node = NULL;   
 
     active_session_list_size--;
 
@@ -321,9 +321,9 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     // memset(conn, 0, sizeof(conn));   //Resetear conn
     releaseConnection(conn);                //Devolver conn al pool de conns
 
-    // if(list_size(&list) == 0){                  //Si la lista de colisiones esta vacia
-    //     session_table[index] = NULL;
-    // }
+    if(list_size(&list) == 0){                  //Si la lista de colisiones esta vacia
+        session_table[index] = NULL;
+    }
 
 }
 
