@@ -1,6 +1,7 @@
 #include "connection.h"
 
 extern struct msgbuf sbuf;
+extern node_l *session_table[MAX_FLOWS_TABLE_SIZE];
 extern node_l *active_session_list;
 extern uint32_t active_session_list_size;
 extern struct timespec last_packet;
@@ -29,23 +30,7 @@ connection aux_conn;
 void removeRequestFromConnection(connection *conn, node_l *req_node){
 
 	request *req = (request*) req_node->data;
-	//list_unlink(&conn->list, req_node);
-	//UNLINK
-	if(req_node->next == req_node){
-		conn->list = NULL;
-	}else{
-		if(conn->list == req_node){
-			conn->list = req_node->next;
-		}
-
-		req_node->prev->next = req_node->next;
-		req_node->next->prev = req_node->prev;
-	}
-
-	req_node->next = req_node;
-	req_node->prev = req_node;
-	//END UNLINK
-
+	list_unlink(&conn->list, req_node);
 	req_node->data = NULL;							//Resetear data del nodo
 	releaseNodel(req_node);
 		// memset(req, 0, sizeof(request));				//Resetear request
@@ -54,14 +39,10 @@ void removeRequestFromConnection(connection *conn, node_l *req_node){
 	conn->n_request--;
 	active_requests--;
 
-	if(conn->n_request == 0){
-		conn->list = NULL;
-	}
-
 	return;
 }
 
-void allocConnectionPool(void){
+void allocHasvaluePool(void){
 	
 	int i=0;
 	node_l *n=NULL;
@@ -150,7 +131,6 @@ void fulfillConnection(packet_info *packet, connection *conn){
 	conn->ip_server_int = inet_addr(packet->ip_addr_dst);
 	conn->port_client   = packet->port_src;
 	conn->port_server   = packet->port_dst;
-	conn->list 			= NULL;
 
 }
 
@@ -238,17 +218,6 @@ void addRequestToConnexion(connection *conn, packet_info *aux_packet){
 	active_requests++;
 	total_requests++;
 
-	//CHECK IF LAST_CLIENT_SEQ == NEW SEQ
-	//CHECK IF LAST_CLIENT_ACK == NEW ACK
-
-	// fprintf(stderr, "addRequestToConnexion %"PRIu32" - %d, %d, seq:%"PRIu32", ack:%"PRIu32"\n", 
-	// 	getIndexFromConnection(conn),
-	// 	conn->n_request,
-	// 	conn->n_response,
-	// 	aux_packet->tcp->th_seq,
-	// 	aux_packet->tcp->th_seq
-	// );
-
 }
 
 void printTransaction(connection *conn, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node){
@@ -274,77 +243,27 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 			res_ts, diff, responseCode, response_msg, req->url, req->op);
 	}
 
-	// if(conn->n_request > 1){
-	// 	request *req_aux = (request*) conn->list->next->data;
-	// 	fprintf(stderr, "req_aux: %s\n", req_aux == NULL? "NULL" : "!NULL");
-	// }
-
-	removeRequestFromConnection(conn, req_node);
-
 	conn->n_response--;
-	conn->deleted_nodes++;
-
-	// fprintf(stderr, "PRINTED %"PRIu32" - %d, %d\n", 
-	// 	getIndexFromConnection(conn),
-	// 	conn->n_request,
-	// 	conn->n_response
-	// );
-
-	// if(conn->n_request != 0){
-	// 	if(conn->list != NULL){
-	// 		request *req_aux = (request*) conn->list->data;
-	// 		fprintf(stderr, "req_aux: %s\n", req_aux == NULL? "NULL" : "!NULL");
-	// 	}
-	// }
-
+	removeRequestFromConnection(conn, req_node);
 }
 
-void cleanUpConnection(connection *conn){
+int cleanUpConnection(connection *conn){
 
-	node_l *n = n = conn->list;
-	fprintf(stderr, "cleanUpConnection: %"PRIu32"\n", getIndexFromConnection(conn));
+ 	ERR_MSG("DEBUG/ cleanUpConnection - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
 
-	while(conn->n_request > 0){
-		
-		if(n == NULL){
-			break;
-		}
-
-		if(n->data!=NULL){
-			request *req = (request*) n->data;
-			releaseRequest(req);
-		}
-		
-		list_unlink(&conn->list, n);
-		releaseNodel(n);
-		conn->n_request--;
-		active_requests--;
-
-		n=n->next;
-
+	if(conn->n_request <= 0){
+		return 0;
 	}
 
-	conn->list = NULL;
+	node_l *n = list_get_first_node(&conn->list);
 
+	if(n == NULL){
+		return 0;
+	}
+
+	removeRequestFromConnection(conn, n);
+	return cleanUpConnection(conn);
 }
-
-// int cleanUpConnection(connection *conn){
-
-//  	ERR_MSG("DEBUG/ cleanUpConnection - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
-
-// 	if(conn->n_request <= 0){
-// 		return 0;
-// 	}
-
-// 	node_l *n = list_get_first_node(&conn->list);
-
-// 	if(n == NULL){
-// 		return 0;
-// 	}
-
-// 	removeRequestFromConnection(conn, n);
-// 	return cleanUpConnection(conn);
-// }
 
 int checkFirst(connection *conn){
 	ERR_MSG("DEBUG/ checkFirst\n");
@@ -376,46 +295,39 @@ int checkFirst(connection *conn){
 
 }
 
-// void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
+void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
 	
-// 	ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
+	ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
 
-// 	//ASSERT
-// 	assert(!(conexion_node==NULL));//if(conexion_node==NULL) print_backtrace("removeConnexion conexion_node==NULL");
+	//ASSERT
+	assert(!(conexion_node==NULL));//if(conexion_node==NULL) print_backtrace("removeConnexion conexion_node==NULL");
 
-// //	ERR_MSG("NULL %s - %s\n", conexion_node->prev == NULL? "NULL" : "!NULL", conexion_node->prev == conexion_node? "YES" : "NO");
-// //	ERR_MSG("NULL %s - %s\n", conexion_node->next == NULL? "NULL" : "!NULL", conexion_node->next == conexion_node? "YES" : "NO");
+//	ERR_MSG("NULL %s - %s\n", conexion_node->prev == NULL? "NULL" : "!NULL", conexion_node->prev == conexion_node? "YES" : "NO");
+//	ERR_MSG("NULL %s - %s\n", conexion_node->next == NULL? "NULL" : "!NULL", conexion_node->next == conexion_node? "YES" : "NO");
 
-// 	removeActiveConnexion(conn);
+	removeActiveConnexion(conn);
 
-// 	node_l *list=session_table[index];
-// 	list_unlink(&list, conexion_node); 			//Eliminar conexion
-// 	conexion_node->data = NULL;
-// 	releaseNodel(conexion_node);
+	node_l *list=session_table[index];
+	list_unlink(&list, conexion_node); 			//Eliminar conexion
+	conexion_node->data = NULL;
+	releaseNodel(conexion_node);
 
-// 	//Devolver conn al pool
-// 	// memset(conn, 0, sizeof(conn));	//Resetear conn
-// 	releaseConnection(conn);				//Devolver conn al pool de conns
+	//Devolver conn al pool
+	// memset(conn, 0, sizeof(conn));	//Resetear conn
+	releaseConnection(conn);				//Devolver conn al pool de conns
 
-// 	if(list_size(&list) == 0){ 					//Si la lista de colisiones esta vacia
-// 		session_table[index] = NULL;
-// 	}
+	if(list_size(&list) == 0){ 					//Si la lista de colisiones esta vacia
+		session_table[index] = NULL;
+	}
 
-// }
+}
 
-int addResponseToConnexion(connection *conn, packet_info *aux_packet){
+int addResponseToConnexion(connection *conn, packet_info *aux_packet, node_l *conexion_node, uint32_t index){
 
 	ERR_MSG("DEBUG/ addResponseToConnexion\n");
 
 	int position = -1;
-	// fprintf(stderr, "NC: %d\tNR: %d\tNr: %d\tDN: %d %"PRIu32"\n", 
-	// 	getNumberOfConnections(getIndex(aux_packet)),
-	// 	conn->n_request,
-	// 	conn->n_response,
-	// 	conn->deleted_nodes,
-	// 	getIndex(aux_packet)
-	// );
-	node_l *req_node = request_search(&conn->list, aux_packet->tcp->th_seq, &position, conn->n_request);
+	node_l *req_node = request_search(&conn->list, aux_packet->tcp->th_seq, &position);
 	if(req_node == NULL || req_node->data == NULL){
 		ERR_MSG("DEBUG/ req_node %s\n", req_node == NULL ? "NULL" : "!NULL");
 		total_req_node++;
@@ -423,9 +335,6 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
 	}
 
 	conn->n_response++;
-	conn->last_ts = aux_packet->ts;		//Actualizar last timestamp
-
-	// fprintf(stderr, "position: %d\n", position);
 
 	if(position==0){
 		printTransaction(conn, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);	
@@ -434,12 +343,12 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
 		ERR_MSG("RESPONSE OUT OF ORDER POS: %d\n", position);
 		total_out_of_order++;
 	}
-
+	
 	return 0;
 }
 
 
-int insertNewConnexion(packet_info *aux_packet){
+int insertNewConnexion(node_l *list, packet_info *aux_packet, uint32_t index){
 
 	node_l *naux = NULL;
 
@@ -452,10 +361,11 @@ int insertNewConnexion(packet_info *aux_packet){
 	//CREAR CONEXION
 	connection *conn = getConnection(); 	//Obtener conn del pool
 	fulfillConnection(aux_packet, conn);	//Copiar datos
+
+	ERR_MSG("DEBUG/ insertNewConnexion - %"PRIu32" - %s:%u %s:%u \n", index, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
 	
 	//METER PETICION
 	addRequestToConnexion(conn, aux_packet);
-
 	ERR_MSG("after addRequestToConnexion\n");
 	//OBTENER NODO PARA LA CONEXION
 	getNodel();											  //Obtener nodo del pool
@@ -464,8 +374,13 @@ int insertNewConnexion(packet_info *aux_packet){
 	naux->prev = naux;
 	naux->next = naux;	
 
-	addConnection(naux);
-
+	if(list_is_empty(&list)){
+		ERR_MSG("list_is_empty\n");
+		session_table[index]=naux;
+	}else{
+		ERR_MSG("list_append_node\n");
+		list_append_node(&list, naux);					  //Meter en lista de colisiones		
+	}
 	total_connexions++;
 
 	addActiveConnexion(conn);
@@ -484,35 +399,66 @@ int insertPacket (packet_info *aux_packet){
 
 	// node_l *new_active_node = NULL;
 	
-	node_l* conn_node = getConnectionNode(aux_packet);
+	//ACK & SEQ
+	aux_packet->tcp->th_seq = ntohl(aux_packet->tcp->th_seq);
+	aux_packet->tcp->th_ack = ntohl(aux_packet->tcp->th_ack);
+	
 
-	//La conexion no esta en la tabla
-	if(conn_node == NULL){
-		return insertNewConnexion(aux_packet);
+	//Preparamos conn auxiliar y nodo auxiliar
+	preFillConnection(aux_packet, &aux_conn);
+	list_alloc_node_no_malloc(&aux_conn);
+
+	//Obtener hashkey
+	uint32_t index = getIndex (aux_packet);
+
+	//Obtener lista de colisiones
+	node_l *list=session_table[index];
+
+	//Lista de colisiones vacia y no hay conexion
+	if(list == NULL){
+		ERR_MSG("DEBUG/ insertNewConnexion list==NULL\n");
+		return insertNewConnexion(list, aux_packet, index);
+	}
+
+	//Buscar conexion en colisiones
+	node_l *conexion_node = list_search(&list, &static_node, compareConnection);
+
+	//La conexion no esta en la tabla, meter nueva
+	if(conexion_node == NULL){
+		ERR_MSG("DEBUG/ insertNewConnexion connexion_node==NULL\n");
+		return insertNewConnexion(list, aux_packet, index);
+	
 	}else{ //La conexion existe
-		connection *conn = (connection*) conn_node->data;
-		assert(conn!=NULL);
-		// if(conn == NULL){ //No deberia pasar
-		// 	fprintf(stderr, "conn == NULL\n");
-		// 	list_unlink(&list, conexion_node);
-		// 	return insertNewConnexion(aux_packet);
-		// }
+		connection *conn = (connection*) conexion_node->data;
+		if(conn == NULL){
+			list_unlink(&list, conexion_node);
+			return insertNewConnexion(list, aux_packet, index);
+		}
+
+		conn->last_ts = aux_packet->ts;		//Actualizar last timestamp
 		
 		//PETICION
 		if(aux_packet->op == GET || aux_packet->op == POST){
+		//&& 								 	// La PETICION debe tener un SEQ
+		//(conn->last_client_seq < aux_packet->tcp->th_seq)){ 	// mayor que el anterior
+			ERR_MSG("DEBUG/ addRequestToConnexion\n");
 			addRequestToConnexion(conn, aux_packet);
 			updateActiveConnexion(conn);
 		//RESPUESTA
 		}else if(aux_packet->op == RESPONSE){
-			if(addResponseToConnexion(conn, aux_packet) == -1){
+			// && 						  									// La RESPUESTA debe tener un ACK
+			//(conn->last_server_ack < aux_packet->tcp->th_ack)){  	// mayor que la anterior
+			ERR_MSG("DEBUG/ addResponseToConnexion\n");
+			if(addResponseToConnexion(conn, aux_packet, conexion_node, index) == -1){
 				return -1;
 			}else{
 				if(conn->n_request <= 0){
-					removeConnection(conn_node);
+					removeConnexion(conn, conexion_node, index);
 				}else{
 					updateActiveConnexion(conn);
 				}
 			}
+		
 		}else{ //Anadir mas casos 
 			no_cases++;
 			ERR_MSG("DEBUG/ NO CASE (%s)\n", http_op_to_char(aux_packet->op));

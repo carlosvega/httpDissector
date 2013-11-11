@@ -33,7 +33,7 @@ void addPrintElement(char *ip_client, char *ip_server,
 }
 
 void sortPrintElements(){
-    // mergesort(print_element_list, PRINT_POOL_SIZE, sizeof(print_element), sortedPrintCompareFunction);
+    qsort(print_element_list, PRINT_POOL_SIZE, sizeof(print_element), sortedPrintCompareFunction);
 }
 
 void printElements(){

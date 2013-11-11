@@ -88,7 +88,7 @@ node_l *list_alloc_node(void *data)
 {
 	node_l *n = NULL;
 
-	if((n = calloc(1, sizeof(node_l))) != NULL) {
+	if((n = malloc(sizeof(node_l))) != NULL) {
 		n->data = data;
 	}
 
@@ -216,29 +216,6 @@ int list_is_empty(node_l **list)
 	return(*list == NULL);
 }
 
-node_l * list_safe_search(node_l **list, node_l *node_to_find, int cmp(void *, void *), int max)
-{
-	node_l *n;
-	int counter = 0;
-
-	//ASSERT
-	assert(!(list==NULL));//if(list==NULL) print_backtrace("list_search list==NULL");
-	assert(!(node_to_find==NULL));//if(node_to_find==NULL) print_backtrace("list_search node_to_find==NULL");
-
-	//primero de la lista
-	n = list_get_first_node(list);
-
-	while(n != NULL && counter < max) {
-		if(cmp(n->data,node_to_find->data)==0)
-			return n;
-		   
-		n = list_get_next_node(list, n);
-		counter++;
-	}
-
-	return NULL;
-}
-
 node_l * list_search(node_l **list, node_l *node_to_find, int cmp(void *, void *))
 {
 	node_l *n;
@@ -269,7 +246,7 @@ void list_unlink(node_l **list,
 	assert(!(node==NULL));//if(node==NULL) print_backtrace("list_unlink node==NULL");
 
 	if(node->next == node) { 				//si la lista tiene 1 elemento
-		// assert(node->next == node->prev);
+		assert(node->next == node->prev);
 		*list = NULL; 		 				//lista a null
 	} else { 				 				//sino
 		assert(node->prev != NULL);
