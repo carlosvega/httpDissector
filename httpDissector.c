@@ -20,23 +20,16 @@ unsigned long long total_out_of_order = 0;
 
 node_l static_node;
 node_l *nodel_aux;
-node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { NULL };	//2^24
+node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { 0 };	//2^24
 unsigned long long no_cases = 0;
 packet_info *pktinfo = NULL;
-//
 
-#define FREE(x) do { free((x)); (x)=NULL;} while(0)
 #define GC_SLEEP_SECS 25
 
 char version[32] = "Version 2.411";
 struct args_parse options;
 
 struct timespec last_packet;
-
-// static GStaticMutex table_mutex = G_STATIC_MUTEX_INIT;
-// GThread *recolector =  NULL;
-// GThread *progreso =  NULL;
-// GHashTable *table = NULL;
 
 struct rusage* memory = NULL;
 
@@ -167,14 +160,32 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			uint32_t index = getIndexFromConnection(conn);
 			node_l *list = session_table[index];
 			node_l *conexion_node = NULL;
+			if(index == 60224551){
+				fprintf(stderr, "idx: %"PRIu32" %s:%d %s:%d\n", index,
+					conn->ip_client, conn->port_server, 
+					conn->ip_server, conn->port_server);
+			}
 			if(list == NULL){
-				ERR_MSG("list == NULL\n");
+				fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){
-				ERR_MSG("conexion_node == NULL\n");
+				if(index == 60224551){
+					fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
+					connection *aux = (connection*)  session_table[index]->data;
+					fprintf(stderr, "idx: %"PRIu32" %s:%d %s:%d\n", index,
+					aux->ip_client, aux->port_server, 
+					aux->ip_server, aux->port_server);
+
+				}
 				removeActiveConnexion(conn);
 			}else{
+				if(index == 60224551){
+					fprintf(stderr, "next %s\n", conexion_node->next == NULL? "NULL" : "!NULL");
+				}
 				removeConnexion(conn, conexion_node, index);
+				if(index == 60224551){
+					fprintf(stderr, "next %s\n", conexion_node->next == NULL? "NULL" : "!NULL");
+				}
 			}
 			removed++;
 		}
