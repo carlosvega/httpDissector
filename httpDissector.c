@@ -179,7 +179,6 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				}
 				conexion_node = session_table[index];
 				removeConnexion(((connection*)session_table[index]->data), conexion_node, index);
-				removeActiveConnexion(conn);
 			}else{
 				if(index == 60223832){
 					fprintf(stderr, "next %s\n", conexion_node->next->data == NULL? "NULL" : "!NULL");
