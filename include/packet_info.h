@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #define REQUEST_POOL 1000000
-#define RESPONSE_POOL 100000
+#define RESPONSE_POOL 10
 
 #define FREE(x) do { free((x)); (x)=NULL;} while(0)
 

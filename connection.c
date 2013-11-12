@@ -1,7 +1,7 @@
 #include "connection.h"
 
 extern struct msgbuf sbuf;
-extern node_l *session_table[MAX_FLOWS_TABLE_SIZE];
+extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24
 extern node_l *active_session_list;
 extern uint32_t active_session_list_size;
 extern struct timespec last_packet;
@@ -305,8 +305,9 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
 
     removeActiveConnexion(conn);
 
-    node_l *list=session_table[index];
+    node_l *list = session_table[index].list;
     list_unlink(&list, conexion_node);          //Eliminar conexion
+    session_table[index].n--;
     // conexion_node->data = NULL;
     releaseNodel(conexion_node);
 
@@ -314,9 +315,13 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     // memset(conn, 0, sizeof(conn));   //Resetear conn
     releaseConnection(conn);                //Devolver conn al pool de conns
 
-    if(list_size(&list) == 0){                  //Si la lista de colisiones esta vacia
-        session_table[index] = NULL;
+    if(session_table[index].n == 0){
+        session_table[index].list = NULL;
     }
+
+    // if(list_size(&list) == 0){                  //Si la lista de colisiones esta vacia
+    //     session_table[index] = NULL;
+    // }
 
 }
 
@@ -372,8 +377,12 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     naux->next = naux;  
 
 
-    list_append_node(&session_table[index], naux); //Meter en lista de colisiones        
-    
+    list_append_node(&session_table[index].list, naux); //Meter en lista de colisiones        
+    session_table[index].n++;
+    if(session_table[index].n!=1){
+        fprintf(stderr, "%d\n", session_table[index].n);
+    }
+
     total_connexions++;
 
     addActiveConnexion(conn);
@@ -399,7 +408,7 @@ int insertPacket (packet_info *aux_packet){
     list_alloc_node_no_malloc(&aux_conn);
 
     uint32_t index = getIndex (aux_packet); //Obtener hashkey
-    node_l *list=session_table[index];      //Obtener lista de colisiones
+    node_l *list = session_table[index].list;      //Obtener lista de colisiones
 
     //Buscar conexion en colisiones
     node_l *conexion_node = list_search(&list, &static_node, compareConnection);
