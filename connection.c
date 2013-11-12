@@ -314,11 +314,7 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     // memset(conn, 0, sizeof(conn));   //Resetear conn
     releaseConnection(conn);                //Devolver conn al pool de conns
 
-    // if(list_size(&list) == 0){                  //Si la lista de colisiones esta vacia
-    //     session_table[index] = NULL;
-    // }
-
-    if(list_is_empty(&list)){
+    if(list_size(&list) == 0){                  //Si la lista de colisiones esta vacia
         session_table[index] = NULL;
     }
 
