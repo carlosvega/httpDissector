@@ -162,10 +162,10 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			node_l *conexion_node = NULL;
 
 			if(list == NULL){
-				fprintf(stderr, "list == NULL\n");
+				// fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){				
-				fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
+				// fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
 				connection *aux = aux = (connection*)  session_table[index]->data;	
 				aux->active_node = n;
 				conexion_node = session_table[index];
