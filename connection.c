@@ -196,13 +196,6 @@ int updateActiveConnexion(connection *conn){
 }
 
 void addRequestToConnexion(connection *conn, packet_info *aux_packet){
-    
-    if(getIndex(aux_packet) == 60223832){
-        fprintf(stderr, "DEBUG/ addRequestToConnexion %"PRIu32" %s:%d %s:%d\n", 
-            getIndex(aux_packet),
-            conn->ip_client, conn->port_server, 
-            conn->ip_server, conn->port_server);
-    }
 
     node_l *naux = NULL;
 
