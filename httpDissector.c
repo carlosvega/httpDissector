@@ -166,10 +166,16 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){				
 				// fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
-				// connection *aux = aux = (connection*)  session_table[index]->list->data;	
-				// aux->active_node = n;
-				// conexion_node = session_table[index];
-				// removeConnexion(aux, conexion_node, index);
+				if(session_table[index].list == NULL && session_table[index].list->data){
+					connection *aux = (connection*) session_table[index].list->data;	
+					if(aux!=NULL){
+						aux->active_node = n;
+						conexion_node = session_table[index].list;
+						removeConnexion(aux, conexion_node, index);
+					}
+				}else{
+					removeActiveConnexion(conn);	
+				}
 				// removeActiveConnexion(conn);
 				// active_session_list_size++;
 			}else{
@@ -534,7 +540,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 }
 
 int main(int argc, char *argv[]){
-	
+
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
 	options = parse_args(argc, argv);
