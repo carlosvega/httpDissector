@@ -6,8 +6,6 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t collector;
 pthread_t progress;
 
-//________________
-// node_l *session_table[MAX_FLOWS_TABLE_SIZE];
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
 unsigned long long active_requests = 0;
@@ -20,7 +18,9 @@ unsigned long long total_out_of_order = 0;
 
 node_l static_node;
 node_l *nodel_aux;
-node_l *session_table[MAX_FLOWS_TABLE_SIZE] = { 0 };	//2^24
+
+collision_list session_table[MAX_FLOWS_TABLE_SIZE] = { {0} };	//2^24
+
 unsigned long long no_cases = 0;
 packet_info *pktinfo = NULL;
 
@@ -158,7 +158,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		if(diff.tv_sec > 60){
 			cleanUpConnection(conn);
 			uint32_t index = getIndexFromConnection(conn);
-			node_l *list = session_table[index];
+			node_l *list = session_table[index].list;
 			node_l *conexion_node = NULL;
 
 			if(list == NULL){
@@ -166,10 +166,10 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){				
 				// fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
-				connection *aux = aux = (connection*)  session_table[index]->data;	
-				aux->active_node = n;
-				conexion_node = session_table[index];
-				removeConnexion(aux, conexion_node, index);
+				// connection *aux = aux = (connection*)  session_table[index]->list->data;	
+				// aux->active_node = n;
+				// conexion_node = session_table[index];
+				// removeConnexion(aux, conexion_node, index);
 				// removeActiveConnexion(conn);
 				// active_session_list_size++;
 			}else{
@@ -534,7 +534,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 }
 
 int main(int argc, char *argv[]){
-
+	
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
 	options = parse_args(argc, argv);
