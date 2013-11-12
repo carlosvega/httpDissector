@@ -379,9 +379,6 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
 
     list_append_node(&session_table[index].list, naux); //Meter en lista de colisiones        
     session_table[index].n++;
-    if(session_table[index].n!=1){
-        fprintf(stderr, "%d\n", session_table[index].n);
-    }
 
     total_connexions++;
 
