@@ -169,15 +169,13 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){
-				if(index == 60224551){
-					fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == session_table[index]->next? "NULL": "!NULL");
-					connection *aux = (connection*)  session_table[index]->data;
-					fprintf(stderr, "idx: %"PRIu32" %s:%d %s:%d\n", index,
-					aux->ip_client, aux->port_server, 
-					aux->ip_server, aux->port_server);
-
-				}
-				removeActiveConnexion(conn);
+				
+				fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == session_table[index]->next? "NULL": "!NULL");
+				connection *aux = (connection*)  session_table[index]->data;
+				fprintf(stderr, "idx: %"PRIu32" %s:%d %s:%d\n", index,
+				aux->ip_client, aux->port_server, 
+				aux->ip_server, aux->port_server);
+				removeConnexion(aux, session_table[index], index);
 			}else{
 				if(index == 60224551){
 					fprintf(stderr, "next %s\n", conexion_node->next->data == NULL? "NULL" : "!NULL");
