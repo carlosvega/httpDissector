@@ -613,10 +613,15 @@ int main(int argc, char *argv[]){
 	//NEW
 	allocHasvaluePool();
 	allocRequestPool();
-	allocResponsePool();
+	// allocResponsePool();
 	allocNodelPool();
 	//HTTP
 	http_alloc(&http);
+	//SORTED PRINT LIST
+	if(options.sorted){
+		initPrintElementList();
+	}
+
 	//PACKET_INFO
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 	
@@ -634,6 +639,10 @@ int main(int argc, char *argv[]){
 		ERR_MSG("DEBUG/ Before calling parallel_processing()\n");
 		
 		parallel_processing();
+	}
+
+	if(options.sorted){
+		freePrintElementList();
 	}
 
 	if(options.output != NULL && options.parallel == 0){

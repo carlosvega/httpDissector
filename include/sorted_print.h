@@ -6,7 +6,7 @@
 #include "tools.h"
 #include "http.h"
 
-#define PRINT_POOL_SIZE 100000
+#define PRINT_POOL_SIZE 200000
 
 typedef struct {
   //IPs and ports
@@ -25,13 +25,13 @@ typedef struct {
   http_op op;
 } print_element;
 
-print_element print_element_list[PRINT_POOL_SIZE];
-
 void addPrintElement(char *ip_client, char *ip_server,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
  short responseCode, char *response_msg, char *url, http_op op);
 
+void initPrintElementList();
+void freePrintElementList();
 void sortPrintElements();
 void printElements();
 int sortedPrintCompareFunction(const void *a, const void *b);

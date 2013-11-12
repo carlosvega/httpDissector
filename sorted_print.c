@@ -4,6 +4,18 @@ extern FILE *output;
 
 unsigned long print_element_counter = 0; 
 
+print_element *print_element_list = NULL;
+
+void initPrintElementList(){
+    print_element_list = calloc(PRINT_POOL_SIZE, sizeof(print_element));
+}
+
+void freePrintElementList(){
+    sortPrintElements();
+    printElements();
+    FREE(print_element_list);
+}
+
 void addPrintElement(char *ip_client, char *ip_server,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
@@ -33,13 +45,13 @@ void addPrintElement(char *ip_client, char *ip_server,
 }
 
 void sortPrintElements(){
-    qsort(print_element_list, PRINT_POOL_SIZE, sizeof(print_element), sortedPrintCompareFunction);
+    qsort(print_element_list, print_element_counter, sizeof(print_element), sortedPrintCompareFunction);
 }
 
 void printElements(){
 
     unsigned long i; 
-    for(i=0; i<PRINT_POOL_SIZE; i++){
+    for(i=0; i<print_element_counter; i++){
         printElement(&print_element_list[i]);
         clearElement(&print_element_list[i]);
     }
