@@ -160,34 +160,19 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			uint32_t index = getIndexFromConnection(conn);
 			node_l *list = session_table[index];
 			node_l *conexion_node = NULL;
-			if(index == 60223832){
-				fprintf(stderr, "idx: %"PRIu32" %s:%d %s:%d\n", index,
-					conn->ip_client, conn->port_server, 
-					conn->ip_server, conn->port_server);
-			}
+
 			if(list == NULL){
 				fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
-			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){
-				
+			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){				
 				fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
 				connection *aux = aux = (connection*)  session_table[index]->data;	
 				aux->active_node = n;
-				fprintf(stderr, "idx: %"PRIu32" %s:%d %s:%d\n", index,
-					aux->ip_client, aux->port_server, 
-					aux->ip_server, aux->port_server);
-
 				conexion_node = session_table[index];
 				removeConnexion(aux, conexion_node, index);
 				removeActiveConnexion(conn);
 			}else{
-				if(index == 60223832){
-					fprintf(stderr, "next %s\n", conexion_node->next->data == NULL? "NULL" : "!NULL");
-				}
 				removeConnexion(conn, conexion_node, index);
-				if(index == 60223832){
-					fprintf(stderr, "next %s\n", (session_table[index])->data == NULL? "NULL" : "!NULL");
-				}
 			}
 			removed++;
 		}
