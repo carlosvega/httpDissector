@@ -185,41 +185,18 @@ void list_append_node(node_l **list,
 //     return(s);     
 // }
 
-// int list_size(node_l **list){
-
-// 	assert(list!=NULL);
-
-// 	int s = 0;
-// 	node_l *n, *first = NULL;
-
-// 	first = list_get_first_node(list);
-// 	n = first;
-
-// 	while(n != NULL){
-// 		s++;
-// 		n = n->next;
-// 		if(n==first){
-// 			break;
-// 		}
-// 	}
-
-// 	return s;
-
-// } 
-
 int list_size(node_l **list){
 
 	assert(list!=NULL);
 
 	int s = 0;
-	node_l *n, *first = NULL, *prev = NULL;
+	node_l *n, *first = NULL;
 
 	first = list_get_first_node(list);
 	n = first;
 
-	while(n != NULL && n!=prev){
+	while(n != NULL){
 		s++;
-		prev = n;
 		n = n->next;
 		if(n==first){
 			break;
@@ -286,6 +263,17 @@ void list_unlink(node_l **list,
 
 	node->next = node; //
 	node->prev = node; //NULL de los punteros primero y siguiente del que sacamos
+	
+	//REPAIR LIST IF BROKEN
+	// if((*list)!=NULL && (*list)->prev == NULL){
+	// 	node_l *aux = (*list);
+	// 	fprintf(stderr, "FIXING LIST aux->next: %s\n", aux->next == NULL? "NULL" : "!NULL");
+	// 	while(aux->next != NULL && aux != (*list)){
+	// 		aux = aux->next;
+	// 	}
+	// 	(*list)->prev = aux;
+	// 	aux->next = (*list);
+	// }
 
 }
 
