@@ -170,7 +170,8 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				aux->active_node = n;
 				conexion_node = session_table[index];
 				removeConnexion(aux, conexion_node, index);
-				removeActiveConnexion(conn);
+				// removeActiveConnexion(conn);
+				// active_session_list_size++;
 			}else{
 				removeConnexion(conn, conexion_node, index);
 			}
