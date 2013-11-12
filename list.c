@@ -263,17 +263,6 @@ void list_unlink(node_l **list,
 
 	node->next = node; //
 	node->prev = node; //NULL de los punteros primero y siguiente del que sacamos
-	
-	//REPAIR LIST IF BROKEN
-	// if((*list)!=NULL && (*list)->prev == NULL){
-	// 	node_l *aux = (*list);
-	// 	fprintf(stderr, "FIXING LIST aux->next: %s\n", aux->next == NULL? "NULL" : "!NULL");
-	// 	while(aux->next != NULL && aux != (*list)){
-	// 		aux = aux->next;
-	// 	}
-	// 	(*list)->prev = aux;
-	// 	aux->next = (*list);
-	// }
 
 }
 

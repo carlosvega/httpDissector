@@ -26,7 +26,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.411";
+char version[32] = "Version 2.412";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -166,10 +166,18 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){				
 				// fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
+				if(session_table[index] != NULL && session_table[index]->data != NULL){
 				connection *aux = aux = (connection*)  session_table[index]->data;	
-				aux->active_node = n;
-				conexion_node = session_table[index];
-				removeConnexion(aux, conexion_node, index);
+					if(aux != NULL){
+						aux->active_node = n;
+						conexion_node = session_table[index];
+						removeConnexion(aux, conexion_node, index);
+					}{
+						removeActiveConnexion(conn);
+					}
+				}else{
+					removeActiveConnexion(conn);
+				}
 				// removeActiveConnexion(conn);
 				// active_session_list_size++;
 			}else{
