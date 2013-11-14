@@ -619,7 +619,7 @@ int main(int argc, char *argv[]){
 	}
 
 	//NEW
-	allocHasvaluePool();
+	allocConnectionPool();
 	allocRequestPool();
 	// allocResponsePool();
 	allocNodelPool();

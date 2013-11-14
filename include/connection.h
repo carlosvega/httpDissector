@@ -50,20 +50,17 @@ typedef struct {
 
 uint32_t getIndex(packet_info* packet);
 uint32_t getIndexFromConnection(connection *conn);
-void allocHasvaluePool(void);
+void allocConnectionPool(void);
 int insertPacket (packet_info *aux_packet);
 void removeRequestFromConnection(connection *conn, node_l *req_node);
-void cleanup_flows();
 connection* getConnection(void);
 void releaseConnection(connection* f);
 void freeConnectionPool(void);
 void fulfillConnection(packet_info *packet, connection *conn);
 void preFillConnection(packet_info *packet, connection *conn);
 int compareConnection(void *a, void *b);
-int check_dead_requests(connection *conn);
 
-int cleanUpConnection(connection *conn);
-int checkNextResponses(connection *conn);
+void cleanUpConnection(connection *conn);
 int addActiveConnexion(connection *conn);
 int removeActiveConnexion(connection *conn);
 int updateActiveConnexion(connection *conn);
