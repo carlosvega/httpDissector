@@ -48,28 +48,28 @@ request * getRequest(void)
 	
 }
 
-node_l *request_search(node_l **list, tcp_seq seq, int *number){
+node_l *request_search(node_l *first, tcp_seq seq, int *number){
 
 	node_l *n, *prev = NULL;
 	*number = 0;
 
-	assert(list != NULL);
-
 	//primero de la lista
-	n = list_get_first_node(list);
+	n = first;
 
-	while(n != NULL && n!=prev) {
+	while(n!= NULL && n!=prev) {
 		request *req = (request *) n->data;
 		
-		if(req != NULL){
-			if(req->ack == seq){
-				return n;
-			}	
+		if(req->ack == seq){
+			return n;
 		}
 		
-		prev = n;
-		n = list_get_next_node(list, n);
 		*number += 1;
+
+		prev = n;
+		n = n->next;
+		if(n==first){
+			break;
+		}
 	}
 
 	return NULL;
@@ -90,16 +90,16 @@ void freeRequestPool(void)
 	while(request_pool_free!=NULL)
 	{
 		n=list_pop_first_node(&request_pool_free);
-		free(n);
+		FREE(n);
 	}
 
 	while(request_pool_used!=NULL)
 	{
 		n=list_pop_first_node(&request_pool_used);
-		free(n);
+		FREE(n);
 	}
 
-	free(requests);
+	FREE(requests);
 }
 
 void fillRequest(packet_info *packet, request *req){

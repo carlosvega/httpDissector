@@ -51,14 +51,14 @@ void freeHeaderListPool(void)
 	while(header_pool_free!=NULL)
 	{
 		n=list_pop_first_node(&header_pool_free);
-		free(n);
+		FREE(n);
 	}
 
 	while(header_pool_used!=NULL)
 	{
 		n=list_pop_first_node(&header_pool_used);
-		free(n);
+		FREE(n);
 	}
 
-	free(header_lists);
+	FREE(header_lists);
 }

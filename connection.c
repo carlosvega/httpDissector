@@ -90,15 +90,15 @@ void freeConnectionPool(void)
     while(conn_pool_free!=NULL)
     {
         n=list_pop_first_node(&conn_pool_free);
-        free(n);
+        FREE(n);
     }
 
     while(conn_pool_used!=NULL)
     {
         n=list_pop_first_node(&conn_pool_used);
-        free(n);
+        FREE(n);
     }
-    free(conns);
+    FREE(conns);
 }
 
 //Add enough data to compare two conns
@@ -160,8 +160,6 @@ int addActiveConnexion(connection *conn){
     getNodel();                                       //Obtener nodo del pool
     node_l *naux=nodel_aux;                           //Asignar conexion
     naux->data=conn;
-    naux->next = naux;
-    naux->prev = naux;
     list_prepend_node(&active_session_list, naux); //Anadir al principio de la lista de activos
     conn->active_node=naux;
     active_session_list_size++;
@@ -197,15 +195,15 @@ int updateActiveConnexion(connection *conn){
 
 void addRequestToConnexion(connection *conn, packet_info *aux_packet){
 
+    // fprintf(stderr, "addRequestToConnexion %"PRIu32"\n", getIndex(aux_packet));
+
     node_l *naux = NULL;
 
     request *req = getRequest();                            //Obtener request del pool
     fillRequest(aux_packet, req);                           //Rellenar request
     getNodel();                                             //Obtener nodo del pool para la peticion
     naux = nodel_aux;
-    naux->data = req;
-    naux->next = naux;
-    naux->prev = naux;              
+    naux->data = req;            
     list_append_node(&conn->list, naux);                //Meter peticion en la lista
 
     conn->last_client_seq = aux_packet->tcp->th_seq;    //Actualizar ultimos numeros
@@ -295,13 +293,10 @@ int checkFirst(connection *conn){
 
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     
-    ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
+    // ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
 
     //ASSERT
     assert(!(conexion_node==NULL));//if(conexion_node==NULL) print_backtrace("removeConnexion conexion_node==NULL");
-
-//  ERR_MSG("NULL %s - %s\n", conexion_node->prev == NULL? "NULL" : "!NULL", conexion_node->prev == conexion_node? "YES" : "NO");
-//  ERR_MSG("NULL %s - %s\n", conexion_node->next == NULL? "NULL" : "!NULL", conexion_node->next == conexion_node? "YES" : "NO");
 
     removeActiveConnexion(conn);
 
@@ -315,7 +310,7 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     // memset(conn, 0, sizeof(conn));   //Resetear conn
     releaseConnection(conn);                //Devolver conn al pool de conns
 
-    if(session_table[index].n == 0){
+    if(session_table[index].n <= 0){
         session_table[index].list = NULL;
     }
 
@@ -327,9 +322,11 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
 
 int addResponseToConnexion(connection *conn, packet_info *aux_packet){
 
+    // fprintf(stderr, "addResponseToConnexion %"PRIu32"\n", getIndex(aux_packet));
+
     int position = -1;
-    node_l *req_node = request_search(&conn->list, aux_packet->tcp->th_seq, &position);
-    if(req_node == NULL || req_node->data == NULL){
+    node_l *req_node = request_search(conn->list, aux_packet->tcp->th_seq, &position);
+    if(req_node == NULL){
         total_req_node++;
         return -1;
     }
@@ -345,7 +342,6 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
 
     conn->last_ts = aux_packet->ts;     //Actualizar last timestamp
 
-
     if(conn->n_request <= 0){
         return 1;
     }
@@ -358,7 +354,7 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
 
     node_l *naux = NULL;
 
-    if(aux_packet->op == RESPONSE){                     //Response sin request
+    if(aux_packet->op == RESPONSE){         //Response sin request
         lost++;
         return -1;
     }
@@ -373,11 +369,10 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     getNodel();                             //Obtener nodo del pool
     naux=nodel_aux;                         //
     naux->data=conn;                        //Asignar la conexion al nodo
-    naux->prev = naux;
-    naux->next = naux;  
 
 
     list_append_node(&session_table[index].list, naux); //Meter en lista de colisiones        
+    
     session_table[index].n++;
 
     total_connexions++;
@@ -408,7 +403,7 @@ int insertPacket (packet_info *aux_packet){
     node_l *list = session_table[index].list;      //Obtener lista de colisiones
 
     //Buscar conexion en colisiones
-    node_l *conexion_node = list_search(&list, &static_node, compareConnection);
+    node_l *conexion_node = list_search(list, &static_node, compareConnection);
 
     //La conexion no esta en la tabla, meter nueva
     if(conexion_node == NULL){
@@ -426,7 +421,6 @@ int insertPacket (packet_info *aux_packet){
         if(aux_packet->op == GET || aux_packet->op == POST){
             addRequestToConnexion(conn, aux_packet);
             updateActiveConnexion(conn);
-
         //RESPUESTA
         }else if(aux_packet->op == RESPONSE){
 
