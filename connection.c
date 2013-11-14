@@ -42,7 +42,7 @@ void removeRequestFromConnection(connection *conn, node_l *req_node){
     return;
 }
 
-void allocHasvaluePool(void){
+void allocConnectionPool(void){
     
     int i=0;
     node_l *n=NULL;
@@ -173,7 +173,7 @@ int removeActiveConnexion(connection *conn){
 
     list_unlink(&active_session_list, conn->active_node);
     releaseNodel(conn->active_node);
-    conn->active_node = NULL;   
+    conn->active_node = NULL;
 
     active_session_list_size--;
 
@@ -243,53 +243,41 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     removeRequestFromConnection(conn, req_node);
 }
 
-int cleanUpConnection(connection *conn){
-
-    ERR_MSG("DEBUG/ cleanUpConnection - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
-
-    if(conn->n_request <= 0){
-        return 0;
-    }
+void cleanUpConnection(connection *conn){
 
     node_l *n = list_get_first_node(&conn->list);
-
-    if(n == NULL){
-        return 0;
-    }
-
-    removeRequestFromConnection(conn, n);
-    return cleanUpConnection(conn);
-}
-
-int checkFirst(connection *conn){
-    ERR_MSG("DEBUG/ checkFirst\n");
-
-    if(conn->n_request <= 0){
-        return -1;
-    }
-
-    node_l *n = list_get_first_node(&conn->list);
-
     if(n==NULL){
-        return -1;
+        return;
     }
-
-    request *req = (request*) n->data;
-
-    if(req == NULL){
+    node_l *next = n->next;
+    while(conn->n_request > 0 && n!= NULL){
+        
         removeRequestFromConnection(conn, n);
-        return checkFirst(conn);
-    }
+        n = next;
+        if(n!=NULL){
+            next = n->next;
+        }
 
-    struct timespec diff = tsSubtract(last_packet, req->ts);
-    if(diff.tv_sec > 60){
-        removeRequestFromConnection(conn, n);
-        return checkFirst(conn);
-    }else{
-        return 0;
     }
 
 }
+
+// int cleanUpConnection(connection *conn){
+
+//     if(conn->n_request <= 0){
+//         return 0;
+//     }
+
+//     node_l *n = list_get_first_node(&conn->list);
+
+//     if(n == NULL){
+//         return 0;
+//     }
+
+//     removeRequestFromConnection(conn, n);
+//     return cleanUpConnection(conn);
+// }
+
 
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     
@@ -307,7 +295,7 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     releaseNodel(conexion_node);
 
     //Devolver conn al pool
-    // memset(conn, 0, sizeof(conn));   //Resetear conn
+    memset(conn, 0, sizeof(connection));   //Resetear conn
     releaseConnection(conn);                //Devolver conn al pool de conns
 
     if(session_table[index].n <= 0){

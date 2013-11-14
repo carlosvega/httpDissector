@@ -232,6 +232,14 @@ void list_unlink(node_l **list,
 
         if(*list == node)           //si el que sacamos es el primero de la lista
             *list = node->next;     //ahora el primero es el siguiente
+    
+        //Si la lista se queda con solo un elemento
+        node_l *first = *list;
+        if(first->next == first && first->prev == first){
+            first->next = NULL;
+            first->prev = NULL;
+        }
+
     }
 
     node->next = NULL; // NULL de los punteros primero 
