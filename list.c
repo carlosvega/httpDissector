@@ -201,7 +201,7 @@ node_l * list_search(node_l *first, node_l *node_to_find, int cmp(void *, void *
     //primero de la lista
     n = first;
 
-    while(n != prev) {
+    while(n!=NULL && n != prev) {
         if(cmp(n->data, node_to_find->data)==0)
             return n;
         
