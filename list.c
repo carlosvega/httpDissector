@@ -201,7 +201,7 @@ node_l * list_search(node_l *first, node_l *node_to_find, int cmp(void *, void *
     //primero de la lista
     n = first;
 
-    while(n!= NULL && n != prev) {
+    while(n != prev) {
         if(cmp(n->data, node_to_find->data)==0)
             return n;
         
@@ -309,16 +309,20 @@ void releaseNodel(node_l* f)
 void freeNodelPool(void)
 {
     node_l *n=NULL;
+    int i=0;
     while(nodel_pool_free!=NULL)
     {
+        i = i+1;
         n=list_pop_first_node(&nodel_pool_free);
-        FREE(n);
+        free(n);
     }
 
     while(nodel_pool_used!=NULL)
     {
         n=list_pop_first_node(&nodel_pool_used);
-        FREE(n);
+        free(n);
     }
-    FREE(nl);
+
+
+    free(nl);
 }

@@ -671,9 +671,11 @@ int main(int argc, char *argv[]){
 	}
 
 	http_free_packet(&http);
-	freeConnectionPool();
-	freeNodelPool();
-	freeRequestPool();
+	#ifndef __APPLE__
+		freeNodelPool();
+		freeConnectionPool();
+		freeRequestPool();
+	#endif
 	// err_mqueue_close();
 
 	return 0;
