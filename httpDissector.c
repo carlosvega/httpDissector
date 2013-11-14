@@ -26,7 +26,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.411";
+char version[32] = "Version 2.5";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -663,11 +663,11 @@ int main(int argc, char *argv[]){
 	}
 
 	http_free_packet(&http);
-	#ifndef __APPLE__
+	// #ifndef __APPLE__
 		freeNodelPool();
 		freeConnectionPool();
 		freeRequestPool();
-	#endif
+	// #endif
 	// err_mqueue_close();
 
 	return 0;
