@@ -278,7 +278,6 @@ void cleanUpConnection(connection *conn){
 //     return cleanUpConnection(conn);
 // }
 
-
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     
     // ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
@@ -288,23 +287,19 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
 
     removeActiveConnexion(conn);
 
-    node_l *list = session_table[index].list;
-    list_unlink(&list, conexion_node);          //Eliminar conexion
+    list_unlink(&session_table[index].list, conexion_node);          //Eliminar conexion    session_table[index].list = list;
     session_table[index].n--;
     // conexion_node->data = NULL;
     releaseNodel(conexion_node);
 
     //Devolver conn al pool
-    memset(conn, 0, sizeof(connection));   //Resetear conn
+    //memset(conn, 0, sizeof(connection));   //Resetear conn
+    //reset_connection(conn);
     releaseConnection(conn);                //Devolver conn al pool de conns
 
     if(session_table[index].n <= 0){
         session_table[index].list = NULL;
     }
-
-    // if(list_size(&list) == 0){                  //Si la lista de colisiones esta vacia
-    //     session_table[index] = NULL;
-    // }
 
 }
 

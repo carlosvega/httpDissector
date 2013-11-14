@@ -160,26 +160,18 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			uint32_t index = getIndexFromConnection(conn);
 			node_l *list = session_table[index].list;
 			node_l *conexion_node = NULL;
-
 			if(list == NULL){
 				// fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(list, n, compareConnection))==NULL){				
-				// fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
+				fprintf(stderr, "conexion_node == NULL %"PRIu32" %s\n", index, session_table[index].list == NULL? "NULL": "!NULL");
 				if(session_table[index].list != NULL && session_table[index].list->data != NULL){
-					connection *aux = (connection*) session_table[index].list->data;	
-					if(aux!=NULL){
-						aux->active_node = n;
-						conexion_node = session_table[index].list;
-						removeConnexion(aux, conexion_node, index);
-					}else{
-						removeActiveConnexion(conn);	
-					}
+					conn->active_node = n;
+					conexion_node = session_table[index].list;
+					removeConnexion(conn, conexion_node, index);
 				}else{
 					removeActiveConnexion(conn);	
 				}
-				// removeActiveConnexion(conn);
-				// active_session_list_size++;
 			}else{
 				removeConnexion(conn, conexion_node, index);
 			}
