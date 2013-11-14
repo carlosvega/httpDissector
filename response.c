@@ -86,16 +86,16 @@ void freeResponsePool(void)
 	while(response_pool_free!=NULL)
 	{
 		n=list_pop_first_node(&response_pool_free);
-		free(n);
+		FREE(n);
 	}
 
 	while(response_pool_used!=NULL)
 	{
 		n=list_pop_first_node(&response_pool_used);
-		free(n);
+		FREE(n);
 	}
 
-	free(responses);
+	FREE(responses);
 }
 
 void fillResponse(packet_info *packet, response *res){

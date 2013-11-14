@@ -150,7 +150,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		}
 
 		node_l *n = last;
-		last = list_get_prev_node(&active_session_list, last);
+		last = last->prev;
 
 		connection *conn = (connection*) n->data;
 		conn->active_node = n;
@@ -164,7 +164,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			if(list == NULL){
 				// fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
-			}else if((conexion_node = list_search(&list, n, compareConnection))==NULL){				
+			}else if((conexion_node = list_search(list, n, compareConnection))==NULL){				
 				// fprintf(stderr, "conexion_node == NULL %s\n", session_table[index] == NULL? "NULL": "!NULL");
 				if(session_table[index].list != NULL && session_table[index].list->data != NULL){
 					connection *aux = (connection*) session_table[index].list->data;	
