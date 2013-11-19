@@ -174,7 +174,7 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 	// 	return -1;
 	// }
 	
-	int no_data = 0, ret = 0;
+	int no_data = 0;
 	// char *aux_hdr = NULL;
 	struct _internal_http_packet *http = *http_t;
 	http->headers = NULL;
@@ -225,9 +225,8 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 		// http_print_headers(&http);
 		
 	}else{
-		ret = -2;
 		strcpy(http->method, "RESPONSE");
-		ret = sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
+		sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
 		
 		char *hdr = strstr(cadena, "\r\n");
 		if(hdr == NULL){ 
