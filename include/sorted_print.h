@@ -6,7 +6,7 @@
 #include "tools.h"
 #include "http.h"
 
-#define PRINT_POOL_SIZE 200000
+#define PRINT_POOL_SIZE 1000000
 
 typedef struct {
   //IPs and ports
