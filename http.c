@@ -1,5 +1,6 @@
 #include "http.h"
 #include <stdio.h>
+#include <regex.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@ struct _internal_http_packet{
 	short has_host;
 };
 
+regex_t hostname_regex;
 char cadena[CADENA_SIZE];
 char cadena_aux[CADENA_AUX_SIZE];
 
@@ -194,8 +196,8 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 	http->has_host = 0;
 	if(http->op != RESPONSE){
 		
-		ret = sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
-		ret = 0;
+		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
+		
 		char *host = get_host_from_headers(cadena);
 		// ret = http_parse_headers(&http, cadena, length);
 		// if(ret >= 0 && http->headers->n_fields>0){
@@ -335,18 +337,26 @@ int http_parse_headers(http_packet *http_t, char *cadena, int length){
 }
 
 char *get_host_from_headers(char *cadena){
+
+	int reti;
+
 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
 	char *host_1 = strstr(cadena, "Host");
-	if(host_1 != NULL){
-		char *host_val = strstr(host_1, "\r\n");
-		if(host_val == NULL){
-			return NULL;
-		}
-		char *colon = host_1+6;
-		memcpy(cadena_aux, colon, host_val-colon);
+	if(host_1 != NULL){		
+		sscanf (host_1, "Host: %s\r\n", cadena_aux);
+
+		/* Execute regular expression */
+		reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
+	    if( !reti ){
+	        return cadena_aux;
+	    }
+	    else{
+	        return NULL;
+	    }
 	}else{
 		return NULL;
 	}
+
 	return cadena_aux;
 }
 
@@ -402,6 +412,10 @@ int http_clean_up(http_packet *http_t){
 
 int http_alloc(http_packet *http_t){
 	
+	/* Compile regular expression */
+	int reti = regcomp(&hostname_regex, "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+)", REG_EXTENDED);
+    if( reti ){ fprintf(stderr, "Could not compile regex\n"); exit(1); }
+
 	struct _internal_http_packet *http;
 	
 	http = (struct _internal_http_packet *) malloc(sizeof(* http));
@@ -466,5 +480,8 @@ void http_free_packet(http_packet *http_t){
 		ERR_MSG("6.\n");
 	}
 	
+	/* Free compiled regular expression if you want to use the regex_t again */
+    regfree(&hostname_regex);
+
 	return;
 }
