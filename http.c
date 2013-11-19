@@ -412,7 +412,7 @@ int http_clean_up(http_packet *http_t){
 int http_alloc(http_packet *http_t){
 	
 	/* Compile regular expression */
-	int reti = regcomp(&hostname_regex, "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+)", REG_EXTENDED);
+	int reti = regcomp(&hostname_regex, "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", REG_EXTENDED);
     if( reti ){ fprintf(stderr, "Could not compile regex\n"); exit(1); }
 
 	struct _internal_http_packet *http;
