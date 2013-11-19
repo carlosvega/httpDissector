@@ -26,7 +26,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.5";
+char version[32] = "Version 2.51";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -355,12 +355,12 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     }
 
     pktinfo->op = http_get_op(http);
-	if(http_get_op(http) == RESPONSE){
+	if(pktinfo->op == RESPONSE){
 		pktinfo->request = 0;
 		pktinfo->responseCode = http_get_response_code(http);
 		strncpy(pktinfo->response_msg, http_get_response_msg(http), RESP_MSG_SIZE);
 		pktinfo->response_msg[RESP_MSG_SIZE - 1] = 0;
-	}else if(http_get_op(http) == GET){
+	}else if(pktinfo->op == GET || pktinfo->op == POST){
 		char * host = http_get_host(http);
 		size_t t_host = strlen(host);
 		char * uri = http_get_uri(http);
@@ -383,30 +383,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		}
 
 		pktinfo->request = 1;
-	}else if(http_get_op(http) == POST){
-		char * host = http_get_host(http);
-		size_t t_host = strlen(host);
-		char * uri = http_get_uri(http);
-		size_t t_uri = strlen(uri);
-		if(strlen(host) != 0){
-			memcpy(pktinfo->url, host, t_host);
-			memcpy(pktinfo->url+t_host, uri, t_uri);
-		}else{
-			strcpy(pktinfo->url, uri);
-		}
-
-		if(options.url != NULL){
-			if(boyermoore_search(pktinfo->url, options.url) == NULL){
-				http_clean_up(&http);
-				
-				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search returned NULL\n");
-				
-				return 1;
-			}
-		}
-
-		pktinfo->request = 1;
-
 	}else{
 		pktinfo->request = -1;
 	}
