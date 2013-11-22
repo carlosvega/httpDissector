@@ -599,7 +599,11 @@ int main(int argc, char *argv[]){
 	}
 
 	//PACKET_INFO
-	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
+	pktinfo = (packet_info *) calloc(1, sizeof(packet_info));
+	if(pktinfo == NULL){
+		fprintf(stderr, "Error calloc pktinfo\n");
+		return -1;
+	}
 	
 	if(options.parallel == 0){
 		
@@ -626,7 +630,7 @@ int main(int argc, char *argv[]){
 	}
 
 	FREE(filter);
-	// FREE(pktinfo);
+	FREE(pktinfo);
 
 	if(files_path != NULL){
 		int i=0;

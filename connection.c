@@ -262,22 +262,6 @@ void cleanUpConnection(connection *conn){
 
 }
 
-// int cleanUpConnection(connection *conn){
-
-//     if(conn->n_request <= 0){
-//         return 0;
-//     }
-
-//     node_l *n = list_get_first_node(&conn->list);
-
-//     if(n == NULL){
-//         return 0;
-//     }
-
-//     removeRequestFromConnection(conn, n);
-//     return cleanUpConnection(conn);
-// }
-
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     
     // ERR_MSG("DEBUG/ removeConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", index, conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
