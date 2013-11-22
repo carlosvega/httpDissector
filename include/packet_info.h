@@ -10,7 +10,7 @@
 #define REQUEST_POOL 1000000
 #define RESPONSE_POOL 10
 
-#define FREE(x) do { free((x)); (x)=NULL;} while(0)
+#define FREE(x) do { if ((x)!=NULL) { free((x)); (x)=NULL;} } while(0)
 
 #define SIZE_ETHERNET 14
 #define ADDR_CONST 16
