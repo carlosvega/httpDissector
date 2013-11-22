@@ -26,7 +26,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.51";
+char version[32] = "Version 2.53";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -626,9 +626,8 @@ int main(int argc, char *argv[]){
 	}
 
 	FREE(filter);
-	FREE(pktinfo);
+	// FREE(pktinfo);
 
-	filter = NULL;
 	if(files_path != NULL){
 		int i=0;
 		for(i=0; i<nFiles; i++){
