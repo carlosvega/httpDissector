@@ -83,9 +83,6 @@ void sigintHandler(int signal){
 
 	fprintf(stderr, "\n\nSkipping, wait...\n");
 
-	FREE(filter);
-	FREE(pktinfo);
-
 	if(options.interface == NULL && progress_bar){
 		// g_thread_join(progreso);
 		pthread_join(progress, NULL);
@@ -107,9 +104,16 @@ void sigintHandler(int signal){
 		}
 	}
 
+	if(options.sorted){
+		freePrintElementList();
+	}
+
 	if(options.output != NULL && options.parallel == 0){
 		fclose(output);
 	}
+
+	FREE(filter);
+	FREE(pktinfo);
 
 	if(files_path != NULL){
 		int i=0;
