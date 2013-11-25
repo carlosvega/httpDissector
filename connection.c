@@ -222,8 +222,6 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     assert(response_msg!=NULL);
     assert(req_node!=NULL);
 
-    ERR_MSG("DEBUG/ printTransaction\n");
-
     request *req = (request*) req_node->data;
 
     assert(req!=NULL);
