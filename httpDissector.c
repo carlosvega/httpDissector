@@ -294,25 +294,16 @@ void *barra_de_progreso(){
 
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
 
-	
-	ERR_MSG("DEBUG/ begining parse_packet().\n");
-	
 	memset(pktinfo->url, 0, URL_SIZE);
 	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
 	pktinfo->ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
 	pktinfo->size_ip = IP_HL(pktinfo->ip)*4;
 
-	if (pktinfo->size_ip < 20) {
-		
-		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_ip < 20\n");
-		
+	if (pktinfo->size_ip < 20) {		
 		return 1;
 	}
 
-	if(pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)){
-		
-		ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)\n");
-		
+	if(pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)){		
 		return 1;
 	}
 
@@ -322,10 +313,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	pktinfo->port_src = ntohs(pktinfo->tcp->th_sport);       /* source port */
 	pktinfo->port_dst = ntohs(pktinfo->tcp->th_dport);       /* destination port */
       
-    if (pktinfo->size_tcp < 20) {
-    	
-		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
-		
+    if (pktinfo->size_tcp < 20) {		
 	    return 1;
     }
 
@@ -334,23 +322,15 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     pktinfo->ts = pkthdr->ts;
 	inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
     inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
-
-  	ERR_MSG("DEBUG/ calling http_parse_packet().\n");
 	
   	if(http_parse_packet((char*) pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip_addr_src, pktinfo->ip_addr_dst) == -1){
  		http_clean_up(&http);
- 		
-		ERR_MSG("DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");
-		
  		return 1;
  	}
 
     if(pktinfo->size_payload <= 0){
     	pktinfo->request = -1;
     	http_clean_up(&http);
-    	
-		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_payload <= 0\n");
-		
     	return 1;
     }
 
@@ -376,8 +356,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 			if(boyermoore_search(pktinfo->url, options.url) == NULL){
 				http_clean_up(&http);
 				
-				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search returned NULL\n");
-				
 				return 1;
 			}
 		}
@@ -386,13 +364,8 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	}else{
 		pktinfo->request = -1;
 	}
-
 	
-	ERR_MSG("DEBUG/ calling http_clean_up().\n");
-
 	http_clean_up(&http);
-
-	ERR_MSG("DEBUG/ finish parse_packet().\n");
 
 	return 0;
 }
@@ -537,7 +510,6 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "DEBUG/ Verbose: %s\n", options.verbose ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Parallel: %s\n", options.parallel ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Interface: %s\n", options.interface ? options.interface : "false");
-		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
 		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Debug: %d\n", options.debug);
 		fprintf(stderr, "DEBUG/ Filter: %s\n", filter);
