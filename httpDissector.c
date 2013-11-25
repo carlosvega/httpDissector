@@ -397,29 +397,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	return 0;
 }
 
-void print_packet(packet_info *pktinfo){
-
-	char *timestamp = NULL;
-	char *hashkey = NULL;
-	char method[5] = {0};
-    timestamp = timeval_to_char(pktinfo->ts);
-
-    if(pktinfo->request == 0){ //RESPONSE
-    	strcpy(method, "RESP");
-    }else if(pktinfo->request == 1){ //GET
-    	strcpy(method, "GET");
-    }else{
-    	return;
-    }
-	
-	fprintf(output, "%ld\t(%d)\t%.4s\t%s:%i\t-->\t%s:%i\t%s", packets, pktinfo->size_payload, method , pktinfo->ip_addr_src, pktinfo->port_src, pktinfo->ip_addr_dst, pktinfo->port_dst, timestamp);
-	hashkey = hash_key(pktinfo);
-	fprintf(output, "\tKEY: |%s|\n", hashkey);
-
-	FREE(timestamp);
-	FREE(hashkey);
-}
-
 void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet){
 
 	struct NDLTpkthdr pkthdr2;
