@@ -13,7 +13,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t    --log\t\t\tWrites debug stuff in the log (httpDissector)\n");
   fprintf(stderr, "\t-o  --output=<file>\t\tOutput file instead of stdout.\n");
   fprintf(stderr, "\t-p  --pcap\t\t\tSets the input file format as pcap. (Set by Default)\n");
-  fprintf(stderr, "\t-P  --parallel=<n_processes>\tParallel processing. Needs number of processes.\n");
+  // fprintf(stderr, "\t-P  --parallel=<n_processes>\tParallel processing. Needs number of processes.\n");
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
@@ -36,11 +36,11 @@ void how_to_use(char *name){
   fprintf(stderr, "Instead of \"~/file.pcap\" use the absolute path \"/Users/user/file.pcap\"\n");
   fprintf(stderr, "There is no problem using \"../file.pcap\" paths.\n\n");
 
-  fprintf(stderr, "\t\t\t\tPARALLEL PROCESSING\n");
-  fprintf(stderr, "When no output file has been specified, the information is printed in the Standard Output\n");
-  fprintf(stderr, "Otherwise a new output file will be created for each processed file.\n");
-  fprintf(stderr, "The naming pattern it's the specified filename followed by a number.\n");
-  fprintf(stderr, "This number represents the file position in the provided file list.\n");
+  // fprintf(stderr, "\t\t\t\tPARALLEL PROCESSING\n");
+  // fprintf(stderr, "When no output file has been specified, the information is printed in the Standard Output\n");
+  // fprintf(stderr, "Otherwise a new output file will be created for each processed file.\n");
+  // fprintf(stderr, "The naming pattern it's the specified filename followed by a number.\n");
+  // fprintf(stderr, "This number represents the file position in the provided file list.\n");
 
   fprintf(stderr, "\n");
 
