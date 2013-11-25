@@ -17,7 +17,6 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
-  fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
   fprintf(stderr, "\t    --sorted\t\t\tSorted output by request timestamp\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
@@ -29,14 +28,8 @@ void how_to_use(char *name){
   fprintf(stderr, "\t*SourceIP is the requester IP\n");
   fprintf(stderr, "\t*The vertical bar ( | ) has been chosen as the separator character instead of the blank space due to the blank spaces inside the HTTP response message.\n\t It's faster than replace the blank spaces of the messages by low dashes in each message.\n\t It would take a lot of CPU time.\n\n");
 
-  fprintf(stderr, "Two lines output\n");
-  fprintf(stderr, "\tReqMethod<TAB>SourceIP:SourcePort<TAB>==><TAB>DestIP:DestPort<TAB>TS URL\n");
-  fprintf(stderr, "\tRESP<TAB>DestIP:DestPort<TAB><==<TAB>SourceIP:SourcePort<TAB>TS DIFF: DiffTS ResponseMSG ResponseCode\n");
-  fprintf(stderr, "\t*\"DIFF:\" is literal\n\n");
-
   fprintf(stderr, "RRD output\n");
   fprintf(stderr, "\tSEC AVG_DIFF\n");
-  fprintf(stderr, "\t*If both options (--rrd and --two-lines) are enabled the RRD output has the priority\n\n");
 
   fprintf(stderr, "\t\t\t\tFILE OF FILES FORMAT\n");
   fprintf(stderr, "One file path per line.\n");
@@ -66,7 +59,6 @@ struct args_parse parse_args(int argc, char **argv){
   options.rrd         = 0;
   options.debug       = 0;
   options.log         = 0;
-  options.twolines    = 0;
   options.files       = 0;
   options.err         = -1;
   options.interface   = NULL;
@@ -100,7 +92,6 @@ struct args_parse parse_args(int argc, char **argv){
     { "url",            1,  NULL,   'u'},
     { "verbose",        0,  NULL,   'v'},
     { "input-files",    0,  NULL,   'I'},
-    { "two-lines",      0,  NULL,   'T'},
     { "version",        0,  NULL,   'V'},
     { "rrd",            0,  NULL,   'R'},
 		{ NULL,             0,  NULL,    0 }
@@ -134,6 +125,7 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'R' : /* -rrd */
           options.rrd = 1;
+          options.sorted = 1;
           break;
 
         case 'S' : /* --sorted */
@@ -182,10 +174,6 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'I' :
           options.files = 1;
-          break;
-
-        case 'T' :
-          options.twolines = 1;
           break;
 
         case 'u' :

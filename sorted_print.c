@@ -3,7 +3,6 @@
 extern FILE *output;
 
 unsigned long print_element_counter = 0; 
-
 print_element *print_element_list = NULL;
 
 void initPrintElementList(){
@@ -48,12 +47,48 @@ void sortPrintElements(){
     qsort(print_element_list, print_element_counter, sizeof(print_element), sortedPrintCompareFunction);
 }
 
+void rrdPrint(){
+
+    static time_t last_rrd_second = 0;
+    static struct timespec diff_rrd_acc = {0};
+    static double rrd_elements_counter = 0;
+
+    double d_diff = 0;
+    unsigned long i = 0;
+
+    for(i=0; i<print_element_counter; i++){
+        if(print_element_list[i].req_ts.tv_sec > last_rrd_second){
+            if(last_rrd_second!=0){
+                d_diff = tsFloat (diff_rrd_acc);
+                d_diff = d_diff / rrd_elements_counter;
+                //PRINT AND RESET
+                fprintf(output, "%ld %f\n", last_rrd_second, d_diff);
+            }
+            last_rrd_second = print_element_list[i].req_ts.tv_sec;
+            rrd_elements_counter = 0;
+            diff_rrd_acc.tv_sec = 0;
+            diff_rrd_acc.tv_nsec = 0;
+            //ADD
+            diff_rrd_acc = tsAdd (diff_rrd_acc, print_element_list[i].diff);
+            rrd_elements_counter++;
+        }else if(print_element_list[i].req_ts.tv_sec == last_rrd_second){
+            diff_rrd_acc = tsAdd (print_element_list[i].diff, diff_rrd_acc);
+            rrd_elements_counter++;
+        }
+        clearElement(&print_element_list[i]);
+    }
+}
+
 void printElements(){
 
-    unsigned long i; 
-    for(i=0; i<print_element_counter; i++){
-        printElement(&print_element_list[i]);
-        clearElement(&print_element_list[i]);
+    if(options.rrd){
+        rrdPrint();
+    }else{
+        unsigned long i; 
+        for(i=0; i<print_element_counter; i++){
+            printElement(&print_element_list[i]);
+            clearElement(&print_element_list[i]);
+        }
     }
 
     print_element_counter = 0;
