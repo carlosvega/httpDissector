@@ -2,7 +2,7 @@
 
 void how_to_use(char *name){
   
-	fprintf(stderr, "\n\t\t\t\tHTTP Packet Dissector\n\n");
+  fprintf(stderr, "\n\t\t\t\tHTTP Packet Dissector\n\n");
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
   fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
@@ -69,48 +69,48 @@ struct args_parse parse_args(int argc, char **argv){
 
   strcpy(options.errbuf, "Invalid arguments");
 
-	int next_op;
+  int next_op;
 
-	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "D:hrIvpf:i:P:o:u:c:" ;
+  /* Una cadena que lista las opciones cortas válidas */
+  const char* const short_op = "D:hrIvpf:i:P:o:u:c:" ;
 
-	/* Una estructura de varios arrays describiendo los valores largos */
-	const struct option long_op[] =
-	{
-		{ "help",           0,  NULL,   'h'},
+  /* Una estructura de varios arrays describiendo los valores largos */
+  const struct option long_op[] =
+  {
+    { "help",           0,  NULL,   'h'},
     { "debug",          1,  NULL,   'D'},
-		{ "output",         1,  NULL,   'o'},
-		{ "raw",		        0, 	NULL, 	'r'},
+    { "output",         1,  NULL,   'o'},
+    { "raw",            0,  NULL,   'r'},
     { "no-collector",   0,  NULL,   'C'},
     { "sorted",         0,  NULL,   'S'},
     { "log",            0,  NULL,   'L'},
-		{ "pcap",			      0, 	NULL, 	'p'},
-		{ "input",		      1, 	NULL, 	'i'},
+    { "pcap",           0,  NULL,   'p'},
+    { "input",          1,  NULL,   'i'},
     { "parallel",       1,  NULL,   'P'},
     { "capture",        1,  NULL,   'c'},
-		{ "filter", 		    1, 	NULL, 	'f'},
+    { "filter",         1,  NULL,   'f'},
     { "url",            1,  NULL,   'u'},
     { "verbose",        0,  NULL,   'v'},
     { "input-files",    0,  NULL,   'I'},
     { "version",        0,  NULL,   'V'},
     { "rrd",            0,  NULL,   'R'},
-		{ NULL,             0,  NULL,    0 }
-	};
+    { NULL,             0,  NULL,    0 }
+  };
 
-	while(1){
-		/* Llamamos a la función getopt */
-	  next_op = getopt_long (argc, argv, short_op, long_op, NULL);
+  while(1){
+    /* Llamamos a la función getopt */
+    next_op = getopt_long (argc, argv, short_op, long_op, NULL);
 
-	 if (next_op == -1)
-      	break; /* No hay más opciones. Rompemos el bucle */
+   if (next_op == -1)
+        break; /* No hay más opciones. Rompemos el bucle */
 
         switch (next_op)
-      	{
+        {
         case 'h' : /* -h o --help */
           options.err = -3;
           strcpy(options.errbuf, "Help:");
           return options;
-			  case 'D' : 
+        case 'D' : 
           options.debug = atoi(optarg);
           break;
         case 'i' : /* -i o --input */
@@ -159,14 +159,14 @@ struct args_parse parse_args(int argc, char **argv){
           if(options.raw == 1){
             options.err = -2;
             strcpy(options.errbuf, "Raw & pcap? Just choose one");
-          	return options;
+            return options;
           }
           options.raw = 0;
           break;
 
         case 'f' : /*filter*/
-        	options.filter = optarg;
-        	break;
+          options.filter = optarg;
+          break;
 
         case 'v' :
           options.verbose = 1;
@@ -205,8 +205,8 @@ struct args_parse parse_args(int argc, char **argv){
           options.err = -1;
           strcpy(options.errbuf, "Invalid arguments");
           return options;
-	  }
-	}
+    }
+  }
 
 
   if(options.raw == -1){
