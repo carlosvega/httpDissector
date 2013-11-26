@@ -10,8 +10,7 @@ extern struct msgbuf sbuf;
 extern struct args_parse options;
 #define ERR_MSG(...) do{if(options.debug){fprintf(stderr, __VA_ARGS__);}}while(0)
 #define CADENA_SIZE 3072
-#define ADDR_CONST 16
-#define HOST_SIZE 256
+#define CADENA_AUX_SIZE 256
 
 // char aux_str[MAX_PAYLOAD_STRING];
 
@@ -22,7 +21,7 @@ struct _internal_http_packet{
 	char method[32];
 	char version[32];
 	char uri[2048];
-	char host[HOST_SIZE];
+	char host[256];
 	int response_code;
 	char response_msg[256];
 	short has_host;
@@ -30,7 +29,7 @@ struct _internal_http_packet{
 
 regex_t hostname_regex;
 char cadena[CADENA_SIZE];
-char cadena_aux[HOST_SIZE];
+char cadena_aux[CADENA_AUX_SIZE];
 
 http_header *http_get_headers(http_packet http){
 
@@ -162,6 +161,7 @@ http_op http_which_method(char * tcp_payload){
 		return PATCH;
 	}
 
+
 	return ERR;
 }
 
@@ -169,6 +169,10 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 
 	if(length <= 0 || http_t == NULL || tcp_payload == NULL)
 		return -1;
+	
+	// if(http_alloc(http_t) == -1){
+	// 	return -1;
+	// }
 	
 	// int no_data = 0;
 	// char *aux_hdr = NULL;
@@ -181,27 +185,32 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 		return -1;
 	}
 	
-	// memset(cadena, 0, CADENA_SIZE);
+	// char *cadena = NULL;
+	// cadena = (char*) malloc(length+1 * sizeof(char));
+	memset(cadena, 0, CADENA_SIZE);
+	// if(cadena == NULL){
+	// 	return -1;
+	// }
 
-	// strncpy(cadena, tcp_payload, length);
+	strncpy(cadena, tcp_payload, length);
 	http->has_host = 0;
 	if(http->op != RESPONSE){
 		
-		sscanf(tcp_payload, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
+		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
 		
-		char *host = get_host_from_headers(tcp_payload);
-		
+		char *host = get_host_from_headers(cadena);
+
 		if(host == NULL){
 			http->has_host = 0;
-			strncpy(http->host, ip_addr_dst, ADDR_CONST);
+			strcpy(http->host, ip_addr_dst);
 		}else{
-			strncpy(http->host, host, HOST_SIZE);
+			strcpy(http->host, host);
 			http->has_host = 1;
 		}
-
+		
 	}else{
 		strcpy(http->method, "RESPONSE");
-		sscanf(tcp_payload, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
+		sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
 		
 		// char *hdr = strstr(cadena, "\r\n");
 		// if(hdr == NULL){ 
@@ -274,12 +283,12 @@ int http_parse_headers(http_packet *http_t, char *cadena, int length){
 		return ret;
 }
 
-char *get_host_from_headers(char *tcp_payload){
+char *get_host_from_headers(char *cadena){
 
 	int reti;
 
-	memset(cadena_aux, 0, HOST_SIZE);
-	char *host_1 = strstr(tcp_payload, "Host");
+	memset(cadena_aux, 0, CADENA_AUX_SIZE);
+	char *host_1 = strstr(cadena, "Host");
 	if(host_1 != NULL){		
 		sscanf (host_1, "Host: %s\r\n", cadena_aux);
 
@@ -332,6 +341,15 @@ int http_clean_up(http_packet *http_t){
 		return -1;
 
 	FREE(http->data);
+
+	// memset(http->method, 0, 32);
+	// memset(http->version, 0, 32);
+	// memset(http->uri, 0, 2048);
+	// memset(http->host, 0, 256);
+	// memset(http->response_msg, 0, 256);
+	// http->has_host = 0;
+	// http->op = 0;
+	// http->response_code = 0;
 
 	http_free_header(http->headers);
 	memset(http, 0, sizeof(*http));

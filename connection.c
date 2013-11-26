@@ -222,6 +222,8 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     assert(response_msg!=NULL);
     assert(req_node!=NULL);
 
+    ERR_MSG("DEBUG/ printTransaction\n");
+
     request *req = (request*) req_node->data;
 
     assert(req!=NULL);
@@ -259,6 +261,22 @@ void cleanUpConnection(connection *conn){
     }
 
 }
+
+// int cleanUpConnection(connection *conn){
+
+//     if(conn->n_request <= 0){
+//         return 0;
+//     }
+
+//     node_l *n = list_get_first_node(&conn->list);
+
+//     if(n == NULL){
+//         return 0;
+//     }
+
+//     removeRequestFromConnection(conn, n);
+//     return cleanUpConnection(conn);
+// }
 
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     
