@@ -165,7 +165,6 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			node_l *list = session_table[index].list;
 			node_l *conexion_node = NULL;
 			if(list == NULL){
-				// fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(list, n, compareConnection))==NULL){				
 				fprintf(stderr, "conexion_node == NULL %"PRIu32" %s\n", index, session_table[index].list == NULL? "NULL": "!NULL");
