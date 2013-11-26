@@ -9,7 +9,6 @@ pthread_t progress;
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
 unsigned long long active_requests = 0;
-
 unsigned long long total_requests = 0;
 unsigned long long total_connexions = 0;
 
