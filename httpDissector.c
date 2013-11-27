@@ -9,6 +9,7 @@ pthread_t progress;
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
 unsigned long long active_requests = 0;
+
 unsigned long long total_requests = 0;
 unsigned long long total_connexions = 0;
 
@@ -25,7 +26,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.522";
+char version[32] = "Version 2.52b";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -82,6 +83,9 @@ void sigintHandler(int signal){
 
 	fprintf(stderr, "\n\nSkipping, wait...\n");
 
+	FREE(filter);
+	FREE(pktinfo);
+
 	if(options.interface == NULL && progress_bar){
 		// g_thread_join(progreso);
 		pthread_join(progress, NULL);
@@ -103,16 +107,9 @@ void sigintHandler(int signal){
 		}
 	}
 
-	if(options.sorted){
-		freePrintElementList();
-	}
-
 	if(options.output != NULL && options.parallel == 0){
 		fclose(output);
 	}
-
-	FREE(filter);
-	FREE(pktinfo);
 
 	if(files_path != NULL){
 		int i=0;
@@ -131,7 +128,6 @@ void sigintHandler(int signal){
 	
 	exit(0);
 }
-
 
 
 unsigned long remove_old_active_nodes(struct timespec last_packet){
@@ -165,6 +161,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 			node_l *list = session_table[index].list;
 			node_l *conexion_node = NULL;
 			if(list == NULL){
+				// fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(list, n, compareConnection))==NULL){				
 				fprintf(stderr, "conexion_node == NULL %"PRIu32" %s\n", index, session_table[index].list == NULL? "NULL": "!NULL");
@@ -514,8 +511,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 
 int main(int argc, char *argv[]){
 
-	fprintf(stderr, "httpDissector %s\n", version);
-
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
 	options = parse_args(argc, argv);
@@ -565,6 +560,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "DEBUG/ Verbose: %s\n", options.verbose ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Parallel: %s\n", options.parallel ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Interface: %s\n", options.interface ? options.interface : "false");
+		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
 		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Debug: %d\n", options.debug);
 		fprintf(stderr, "DEBUG/ Filter: %s\n", filter);
@@ -603,11 +599,7 @@ int main(int argc, char *argv[]){
 	}
 
 	//PACKET_INFO
-	pktinfo = (packet_info *) calloc(1, sizeof(packet_info));
-	if(pktinfo == NULL){
-		fprintf(stderr, "Error calloc pktinfo\n");
-		return -1;
-	}
+	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 	
 	if(options.parallel == 0){
 		

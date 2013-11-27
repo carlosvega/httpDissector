@@ -5,11 +5,8 @@
 #include "list.h"
 #include "tools.h"
 #include "http.h"
-#include "args_parse.h"
 
 #define PRINT_POOL_SIZE 1000000
-
-extern struct args_parse options;
 
 typedef struct {
   //IPs and ports
