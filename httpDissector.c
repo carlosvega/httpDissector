@@ -107,9 +107,16 @@ void sigintHandler(int signal){
 		}
 	}
 
+	if(options.sorted){
+		freePrintElementList();
+	}
+
 	if(options.output != NULL && options.parallel == 0){
 		fclose(output);
 	}
+
+	FREE(filter);
+	FREE(pktinfo);
 
 	if(files_path != NULL){
 		int i=0;
@@ -560,7 +567,6 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "DEBUG/ Verbose: %s\n", options.verbose ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Parallel: %s\n", options.parallel ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Interface: %s\n", options.interface ? options.interface : "false");
-		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
 		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Debug: %d\n", options.debug);
 		fprintf(stderr, "DEBUG/ Filter: %s\n", filter);
@@ -599,7 +605,11 @@ int main(int argc, char *argv[]){
 	}
 
 	//PACKET_INFO
-	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
+	pktinfo = (packet_info *) calloc(1, sizeof(packet_info));
+	if(pktinfo == NULL){
+		fprintf(stderr, "Error calloc pktinfo\n");
+		return -1;
+	}
 	
 	if(options.parallel == 0){
 		
