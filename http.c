@@ -141,12 +141,10 @@ http_op http_which_method(char * tcp_payload){
 
 	if(strncmp("GET", method, 3) == 0){
 		return GET;
-	}else if(strncmp("HTTP/", method, 5) == 0){
-		return RESPONSE;
-	}else if(strncmp("POST", method, 4) == 0){
-		return POST;
 	}else if(strncmp("HEAD", method, 4) == 0){
 		return HEAD;
+	}else if(strncmp("POST", method, 4) == 0){
+		return POST;
 	}else if(strncmp("PUT", method, 3) == 0){
 		return PUT;
 	}else if(strncmp("DELETE", method, 6) == 0){
@@ -159,6 +157,8 @@ http_op http_which_method(char * tcp_payload){
 		return CONNECT;
 	}else if(strncmp("PATCH", method, 5) == 0){
 		return PATCH;
+	}else if(strncmp("HTTP/", method, 5) == 0){
+		return RESPONSE;
 	}
 
 
@@ -174,7 +174,7 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 	// 	return -1;
 	// }
 	
-	// int no_data = 0;
+	int no_data = 0;
 	// char *aux_hdr = NULL;
 	struct _internal_http_packet *http = *http_t;
 	http->headers = NULL;
@@ -199,6 +199,18 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
 		
 		char *host = get_host_from_headers(cadena);
+		// ret = http_parse_headers(&http, cadena, length);
+		// if(ret >= 0 && http->headers->n_fields>0){
+		// 	char * host = find("Host", http->headers->fields);
+		// 	memset(http->host, 0, 256);
+		//  	if(host != NULL){
+		//  		strcpy(http->host, host);
+		//  		http->has_host = 1;
+		//   	}else{
+		//			strcpy(http->host, ip_addr_dst);
+		//   		http->has_host = 0;
+		//   	}
+		// }
 
 		if(host == NULL){
 			http->has_host = 0;
@@ -207,30 +219,70 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 			strcpy(http->host, host);
 			http->has_host = 1;
 		}
+
+		// fprintf(stdout, "// REQ: |%s|%s|%s|%s|\n", http->method, http->uri, http->version, http->has_host == 1? http->host : "NO HOST");
+
+		// http_print_headers(&http);
 		
 	}else{
 		strcpy(http->method, "RESPONSE");
 		sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
 		
-		// char *hdr = strstr(cadena, "\r\n");
-		// if(hdr == NULL){ 
+		char *hdr = strstr(cadena, "\r\n");
+		if(hdr == NULL){ 
+			// FREE(cadena);
+			return -1;
+		}
+		
+		char *data = strstr(cadena, "\r\n\r\n");
+		if(data == NULL){
+			no_data = 1;
+			data = cadena+length+1;
+		}
+
+		//Copy HTTP headers
+		// if(no_data == 0){
+		// 	data+=2; //Jump \r\n, THE HEADERS MUST END WITH \r\n
+		// }
+		
+		// hdr+=2; //Jump \r\n
+		// memset(aux_hdr, 0, MAX_PAYLOAD_STRING);
+		// // aux_hdr = (char*) calloc(((data-hdr)+1),sizeof(char));
+		// // if(aux_hdr == NULL){
+		// // 	// FREE(cadena);
+		// // 	return -1;
+		// // }
+
+		// memcpy(aux_hdr, hdr, data-hdr);
+		
+		// if(no_data == 0 && *data == '\r')
+		// 	data+=2;	//Jump \r\n of the empty line
+
+		// NO NECESITAMOS LAS CABECERAS AUN		
+		// http->headers = (http_header *) calloc(sizeof(http_header), 1);
+		// if(http->headers == NULL){
+		// 	FREE(aux_hdr);
 		// 	// FREE(cadena);
 		// 	return -1;
 		// }
 		
-		// char *data = strstr(cadena, "\r\n\r\n");
-		// if(data == NULL){
-		// 	no_data = 1;
-		// 	data = cadena+length+1;
+		 
+		// if(getLines(aux_hdr, http->headers) == -1){
+		// 	FREE(aux_hdr);
+		// 	FREE(cadena);
+		// 	return -1;
 		// }
+		
+		
+		// FREE(aux_hdr);
 
-		// if(no_data == 0){
-		// 	//Copy HTTP data
-		// 	// http->data = strdup(data);
-		// 	// if(http->data == NULL){
-		// 	// 	return -1;
-		// 	// }
-		// }
+		if(no_data == 0){
+			//Copy HTTP data
+			// http->data = strdup(data);
+			// if(http->data == NULL){
+			// 	return -1;
+			// }
+		}
 	}
 
 	// FREE(cadena);
