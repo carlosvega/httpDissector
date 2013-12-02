@@ -432,55 +432,30 @@ int http_alloc(http_packet *http_t){
 
 void http_free_packet(http_packet *http_t){
 	
-	if(http_t == 0) return;
-	
-	if(options.debug > 1){
-		ERR_MSG("DEBUG/ http_free_packet 1, ");
-	}
+	/* Free compiled regular expression if you want to use the regex_t again */
+    regfree(&hostname_regex);
+
+	if(http_t == NULL || *http_t == NULL) return;
 
 	struct _internal_http_packet *http = *http_t;
-	if(http == 0)
+	if(http == NULL)
 		return;
-
-	if(options.debug > 1){
-		ERR_MSG("2, ");
-	}
 
 	FREE(http->data);
 
-	if(options.debug > 1){
-		ERR_MSG("3, [");
-	}
-
 	if(http->headers != NULL){
 		http_free_header(http->headers);
-
-		if(options.debug > 1){
-			ERR_MSG("], 4, ");
-		}
-
 		FREE(http->headers);
 	}
 
-	if(options.debug > 1){
-		ERR_MSG("5, ");
-	}
-
-	if(http_t != 0){
-		if(*http_t != 0){
+	if(http_t != NULL){
+		if(*http_t != NULL){
 			FREE(http);
 		}
 	}
 		
-	http=NULL;
+	http = NULL;
 	*http_t = NULL;
-
-	if(options.debug > 1){
-		ERR_MSG("6.\n");
-	}
-	
-	/* Free compiled regular expression if you want to use the regex_t again */
-    regfree(&hostname_regex);
 
 	return;
 }

@@ -3,7 +3,7 @@
 #include "alist.h"
 #include "err_mqueue.h"
 
-#define FREE(x) do { free((x)); (x)=NULL;} while(0)
+#define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
 
 typedef enum {HEAD = 0, GET, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH, RESPONSE, ERR} http_op;
 

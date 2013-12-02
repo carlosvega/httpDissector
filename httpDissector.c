@@ -26,7 +26,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.52b";
+char version[32] = "Version 2.525";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -83,9 +83,6 @@ void sigintHandler(int signal){
 
 	fprintf(stderr, "\n\nSkipping, wait...\n");
 
-	FREE(filter);
-	FREE(pktinfo);
-
 	if(options.interface == NULL && progress_bar){
 		// g_thread_join(progreso);
 		pthread_join(progress, NULL);
@@ -107,16 +104,9 @@ void sigintHandler(int signal){
 		}
 	}
 
-	if(options.sorted){
-		freePrintElementList();
-	}
-
 	if(options.output != NULL && options.parallel == 0){
 		fclose(output);
 	}
-
-	FREE(filter);
-	FREE(pktinfo);
 
 	if(files_path != NULL){
 		int i=0;
@@ -127,7 +117,9 @@ void sigintHandler(int signal){
 		files_path = NULL;
 	}
 
-	http_free_packet(&http);
+	// FREE(filter);
+	// FREE(pktinfo);
+	// http_free_packet(&http);
 	freeConnectionPool();
 	freeNodelPool();
 	freeRequestPool();
@@ -404,29 +396,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	return 0;
 }
 
-void print_packet(packet_info *pktinfo){
-
-	char *timestamp = NULL;
-	char *hashkey = NULL;
-	char method[5] = {0};
-    timestamp = timeval_to_char(pktinfo->ts);
-
-    if(pktinfo->request == 0){ //RESPONSE
-    	strcpy(method, "RESP");
-    }else if(pktinfo->request == 1){ //GET
-    	strcpy(method, "GET");
-    }else{
-    	return;
-    }
-	
-	fprintf(output, "%ld\t(%d)\t%.4s\t%s:%i\t-->\t%s:%i\t%s", packets, pktinfo->size_payload, method , pktinfo->ip_addr_src, pktinfo->port_src, pktinfo->ip_addr_dst, pktinfo->port_dst, timestamp);
-	hashkey = hash_key(pktinfo);
-	fprintf(output, "\tKEY: |%s|\n", hashkey);
-
-	FREE(timestamp);
-	FREE(hashkey);
-}
-
 void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet){
 
 	struct NDLTpkthdr pkthdr2;
@@ -505,7 +474,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 			inserts--;
 		}
 	}
-	
 	 
     gettimeofday(&t4, NULL);
     insert_time += ((t4.tv_usec - t3.tv_usec)  + ((t4.tv_sec - t3.tv_sec) * 1000000.0f));
@@ -517,6 +485,8 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 }
 
 int main(int argc, char *argv[]){
+
+	fprintf(stderr, "httpDissector %s\n", version);
 
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
@@ -567,6 +537,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "DEBUG/ Verbose: %s\n", options.verbose ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Parallel: %s\n", options.parallel ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Interface: %s\n", options.interface ? options.interface : "false");
+		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
 		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Debug: %d\n", options.debug);
 		fprintf(stderr, "DEBUG/ Filter: %s\n", filter);
@@ -605,11 +576,7 @@ int main(int argc, char *argv[]){
 	}
 
 	//PACKET_INFO
-	pktinfo = (packet_info *) calloc(1, sizeof(packet_info));
-	if(pktinfo == NULL){
-		fprintf(stderr, "Error calloc pktinfo\n");
-		return -1;
-	}
+	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 	
 	if(options.parallel == 0){
 		
@@ -635,10 +602,6 @@ int main(int argc, char *argv[]){
 		fclose(output);
 	}
 
-	FREE(filter);
-	FREE(pktinfo);
-
-	filter = NULL;
 	if(files_path != NULL){
 		int i=0;
 		for(i=0; i<nFiles; i++){
@@ -648,13 +611,15 @@ int main(int argc, char *argv[]){
 		files_path = NULL;
 	}
 
-	http_free_packet(&http);
+	// http_free_packet(&http);
 	// #ifndef __APPLE__
-		freeNodelPool();
-		freeConnectionPool();
-		freeRequestPool();
+	freeNodelPool();
+	freeConnectionPool();
+	freeRequestPool();
 	// #endif
 	// err_mqueue_close();
+	// FREE(filter);
+	// FREE(pktinfo);
 
 	return 0;
 }
