@@ -4,7 +4,7 @@
 #define ALPHABET_SIZE (1 << CHAR_BIT)
 #define LIST_OF_FILES 10
 
-#define FREE(x) do { free((x)); (x)=NULL;} while(0)
+#define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
 
 void print_backtrace(char *err){
 	fprintf(stderr, "%s\n", err);

@@ -7,7 +7,7 @@
 
 extern struct args_parse options;
 
-#define FREE(x) do { free((x)); (x)=NULL;} while(0)
+#define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
 
 /*
 	THE LAST HEADER MUST TO END WITH \r\n
