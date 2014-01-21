@@ -10,14 +10,14 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-h  --help\t\t\tShows this message.\n");
   fprintf(stderr, "\t-i  --input=<file>\t\tInput file. This parameter is mandatory.\n");
   fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
-  fprintf(stderr, "\t    --log\t\t\tWrites debug stuff in the log (httpDissector)\n");
+  fprintf(stderr, "\t    --log\t\t\tWrites more debug stuff in the log (httpDissector)\n");
   fprintf(stderr, "\t-o  --output=<file>\t\tOutput file instead of stdout.\n");
   fprintf(stderr, "\t-p  --pcap\t\t\tSets the input file format as pcap. (Set by Default)\n");
-  fprintf(stderr, "\t-P  --parallel=<n_processes>\tParallel processing. Needs number of processes.\n");
+  // fprintf(stderr, "\t-P  --parallel=<n_processes>\tParallel processing. Needs number of processes.\n");
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
-  fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
+  // fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
   fprintf(stderr, "\t    --sorted\t\t\tSorted output by request timestamp\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
@@ -29,10 +29,10 @@ void how_to_use(char *name){
   fprintf(stderr, "\t*SourceIP is the requester IP\n");
   fprintf(stderr, "\t*The vertical bar ( | ) has been chosen as the separator character instead of the blank space due to the blank spaces inside the HTTP response message.\n\t It's faster than replace the blank spaces of the messages by low dashes in each message.\n\t It would take a lot of CPU time.\n\n");
 
-  fprintf(stderr, "Two lines output\n");
-  fprintf(stderr, "\tReqMethod<TAB>SourceIP:SourcePort<TAB>==><TAB>DestIP:DestPort<TAB>TS URL\n");
-  fprintf(stderr, "\tRESP<TAB>DestIP:DestPort<TAB><==<TAB>SourceIP:SourcePort<TAB>TS DIFF: DiffTS ResponseMSG ResponseCode\n");
-  fprintf(stderr, "\t*\"DIFF:\" is literal\n\n");
+  // fprintf(stderr, "Two lines output\n");
+  // fprintf(stderr, "\tReqMethod<TAB>SourceIP:SourcePort<TAB>==><TAB>DestIP:DestPort<TAB>TS URL\n");
+  // fprintf(stderr, "\tRESP<TAB>DestIP:DestPort<TAB><==<TAB>SourceIP:SourcePort<TAB>TS DIFF: DiffTS ResponseMSG ResponseCode\n");
+  // fprintf(stderr, "\t*\"DIFF:\" is literal\n\n");
 
   fprintf(stderr, "RRD output\n");
   fprintf(stderr, "\tSEC AVG_DIFF\n");
@@ -43,11 +43,11 @@ void how_to_use(char *name){
   fprintf(stderr, "Instead of \"~/file.pcap\" use the absolute path \"/Users/user/file.pcap\"\n");
   fprintf(stderr, "There is no problem using \"../file.pcap\" paths.\n\n");
 
-  fprintf(stderr, "\t\t\t\tPARALLEL PROCESSING\n");
-  fprintf(stderr, "When no output file has been specified, the information is printed in the Standard Output\n");
-  fprintf(stderr, "Otherwise a new output file will be created for each processed file.\n");
-  fprintf(stderr, "The naming pattern it's the specified filename followed by a number.\n");
-  fprintf(stderr, "This number represents the file position in the provided file list.\n");
+  // fprintf(stderr, "\t\t\t\tPARALLEL PROCESSING\n");
+  // fprintf(stderr, "When no output file has been specified, the information is printed in the Standard Output\n");
+  // fprintf(stderr, "Otherwise a new output file will be created for each processed file.\n");
+  // fprintf(stderr, "The naming pattern it's the specified filename followed by a number.\n");
+  // fprintf(stderr, "This number represents the file position in the provided file list.\n");
 
   fprintf(stderr, "\n");
 

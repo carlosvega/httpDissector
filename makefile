@@ -55,9 +55,9 @@ http.o: http.c
 	$(CC) -c http.c -o http.o
 tools.o: tools.c
 	$(CC) -c tools.c -o tools.o
-httpDissector: httpDissector.c header_list_pool.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o err_mqueue.o
+httpDissector: httpDissector.c connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
-	$(CC)  httpDissector.o header_list_pool.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o err_mqueue.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
+	$(CC)  httpDissector.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
