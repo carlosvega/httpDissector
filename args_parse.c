@@ -8,31 +8,27 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
   fprintf(stderr, "\t-D  --debug=<debug_level>\t\tActivates debug lines.\n");
   fprintf(stderr, "\t-h  --help\t\t\tShows this message.\n");
+  fprintf(stderr, "\t-H  --host=<host>\t\t\tFilter the request by host\n");
   fprintf(stderr, "\t-i  --input=<file>\t\tInput file. This parameter is mandatory.\n");
   fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
   fprintf(stderr, "\t    --log\t\t\tWrites more debug stuff in the log (httpDissector)\n");
   fprintf(stderr, "\t-o  --output=<file>\t\tOutput file instead of stdout.\n");
+  fprintf(stderr, "\t    --gc-output=<file>\t\tOutput file for the garbage collector. Prints the requests without responses.\n");
   fprintf(stderr, "\t-p  --pcap\t\t\tSets the input file format as pcap. (Set by Default)\n");
-  // fprintf(stderr, "\t-P  --parallel=<n_processes>\tParallel processing. Needs number of processes.\n");
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
-  fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
-  // fprintf(stderr, "\t    --two-lines\t\t\tTwo-Lines output. See details below.\n");
   fprintf(stderr, "\t    --sorted\t\t\tSorted output by request timestamp\n");
+  fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
 
 
   fprintf(stderr, "\t\t\t\tOUTPUT FORMAT DETAILS\n");
   fprintf(stderr, "Default output\n");
-  fprintf(stderr, "\tSourceIP|SourcePort|DestIP|DestPort|ReqTS|ResTS|Diff|ResponseMSG|ResponseCode|URL\n");
+  fprintf(stderr, "\tSourceIP|SourcePort|DestIP|DestPort|ReqTS|ResTS|Diff|ResponseMSG|ResponseCode|RequestType|Host|URL\n");
   fprintf(stderr, "\t*SourceIP is the requester IP\n");
+  fprintf(stderr, "\t*The RequestType: HEAD, POST, GET, PUT, etc.\n");
   fprintf(stderr, "\t*The vertical bar ( | ) has been chosen as the separator character instead of the blank space due to the blank spaces inside the HTTP response message.\n\t It's faster than replace the blank spaces of the messages by low dashes in each message.\n\t It would take a lot of CPU time.\n\n");
-
-  // fprintf(stderr, "Two lines output\n");
-  // fprintf(stderr, "\tReqMethod<TAB>SourceIP:SourcePort<TAB>==><TAB>DestIP:DestPort<TAB>TS URL\n");
-  // fprintf(stderr, "\tRESP<TAB>DestIP:DestPort<TAB><==<TAB>SourceIP:SourcePort<TAB>TS DIFF: DiffTS ResponseMSG ResponseCode\n");
-  // fprintf(stderr, "\t*\"DIFF:\" is literal\n\n");
 
   fprintf(stderr, "RRD output\n");
   fprintf(stderr, "\tSEC AVG_DIFF\n");
@@ -42,12 +38,6 @@ void how_to_use(char *name){
   fprintf(stderr, "One file path per line.\n");
   fprintf(stderr, "Instead of \"~/file.pcap\" use the absolute path \"/Users/user/file.pcap\"\n");
   fprintf(stderr, "There is no problem using \"../file.pcap\" paths.\n\n");
-
-  // fprintf(stderr, "\t\t\t\tPARALLEL PROCESSING\n");
-  // fprintf(stderr, "When no output file has been specified, the information is printed in the Standard Output\n");
-  // fprintf(stderr, "Otherwise a new output file will be created for each processed file.\n");
-  // fprintf(stderr, "The naming pattern it's the specified filename followed by a number.\n");
-  // fprintf(stderr, "This number represents the file position in the provided file list.\n");
 
   fprintf(stderr, "\n");
 
@@ -59,9 +49,10 @@ struct args_parse parse_args(int argc, char **argv){
   struct args_parse options;
   options.input       = NULL;
   options.output      = NULL;
+  options.gcoutput    = NULL;
   options.filter      = NULL;
   options.url         = NULL;
-  options.parallel    = 0;
+  options.host        = NULL;
   options.raw         = -1;
   options.rrd         = 0;
   options.debug       = 0;
@@ -80,7 +71,7 @@ struct args_parse parse_args(int argc, char **argv){
 	int next_op;
 
 	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "D:hrIvpf:i:P:o:u:c:" ;
+	const char* const short_op = "D:hrIvpf:i:o:u:H:c:" ;
 
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
@@ -89,15 +80,16 @@ struct args_parse parse_args(int argc, char **argv){
     { "debug",          1,  NULL,   'D'},
 		{ "output",         1,  NULL,   'o'},
 		{ "raw",		        0, 	NULL, 	'r'},
+    { "gc-output",      1,  NULL,   'O'},
     { "no-collector",   0,  NULL,   'C'},
     { "sorted",         0,  NULL,   'S'},
     { "log",            0,  NULL,   'L'},
 		{ "pcap",			      0, 	NULL, 	'p'},
 		{ "input",		      1, 	NULL, 	'i'},
-    { "parallel",       1,  NULL,   'P'},
     { "capture",        1,  NULL,   'c'},
 		{ "filter", 		    1, 	NULL, 	'f'},
     { "url",            1,  NULL,   'u'},
+    { "host",           1,  NULL,   'H'},
     { "verbose",        0,  NULL,   'v'},
     { "input-files",    0,  NULL,   'I'},
     { "two-lines",      0,  NULL,   'T'},
@@ -127,13 +119,12 @@ struct args_parse parse_args(int argc, char **argv){
           options.err = 0;
           break;
 
-        case 'P' : /* -P o --parallel */
-          options.parallel = atoi(optarg);
-          options.err = 0;
-          break;
-
         case 'R' : /* -rrd */
           options.rrd = 1;
+          break;
+
+        case 'O' :
+          options.gcoutput = optarg;
           break;
 
         case 'S' : /* --sorted */
@@ -190,6 +181,20 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'u' :
           options.url = optarg;
+          if(options.host!=NULL){
+            fprintf(stderr, "Choose just one filter, URL or HOST\n");
+            exit(0);
+            return options;
+          }
+          break;
+
+        case 'H' :
+          options.host = optarg;
+          if(options.url!=NULL){
+            fprintf(stderr, "Choose just one filter, URL or HOST\n");
+            exit(0);
+            return options;
+          }
           break;
 
         case 'C' :

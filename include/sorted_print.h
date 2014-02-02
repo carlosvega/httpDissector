@@ -22,13 +22,14 @@ typedef struct {
   short responseCode;
   char  response_msg[RESP_MSG_SIZE];
   char  url[URL_SIZE];
+  char  host[HOST_SIZE];
   http_op op;
 } print_element;
 
 void addPrintElement(char *ip_client, char *ip_server,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
- short responseCode, char *response_msg, char *url, http_op op);
+ short responseCode, char *response_msg, char *host, char *url, http_op op);
 
 void initPrintElementList();
 void freePrintElementList();

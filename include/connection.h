@@ -60,7 +60,7 @@ void fulfillConnection(packet_info *packet, connection *conn);
 void preFillConnection(packet_info *packet, connection *conn);
 int compareConnection(void *a, void *b);
 
-void cleanUpConnection(connection *conn);
+void cleanUpConnection(connection *conn, FILE *gcoutput);
 int addActiveConnexion(connection *conn);
 int removeActiveConnexion(connection *conn);
 int updateActiveConnexion(connection *conn);
