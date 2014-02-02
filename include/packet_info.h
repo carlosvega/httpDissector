@@ -15,6 +15,7 @@
 #define SIZE_ETHERNET 14
 #define ADDR_CONST 16
 #define URL_SIZE 2500
+#define HOST_SIZE 256
 #define RESP_MSG_SIZE 256
 
 typedef struct {
@@ -32,6 +33,7 @@ typedef struct {
 	short request;
 	struct timespec ts;
 	char url[URL_SIZE];
+  char host[HOST_SIZE];
 	short responseCode;
 	char response_msg[RESP_MSG_SIZE];
 	http_op op;
@@ -50,6 +52,7 @@ typedef struct {
 
 typedef struct {
 	char url[URL_SIZE];
+  char host[HOST_SIZE];
 	http_op op;
 	tcp_seq seq;					// Sequence number
 	tcp_seq ack;					// Acknowledgement number

@@ -15,15 +15,16 @@ struct args_parse{
 	short collector;
 	short rrd;
 	short verbose;
-	short parallel;
 	short twolines;
 	short files;
 	short log;
 	char *output;
+	char *gcoutput;
 	char *input;
 	char *filter;
 	char *interface;
 	char *url;
+	char *host;
 	short version;
 	short debug;
 	short sorted;

@@ -19,7 +19,7 @@ void freePrintElementList(){
 void addPrintElement(char *ip_client, char *ip_server,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
- short responseCode, char *response_msg, char *url, http_op op){
+ short responseCode, char *response_msg, char *host, char *url, http_op op){
 
     //COPY ELEMENT
     strncpy(print_element_list[print_element_counter].ip_client, ip_client, ADDR_CONST);
@@ -32,6 +32,7 @@ void addPrintElement(char *ip_client, char *ip_server,
     print_element_list[print_element_counter].responseCode = responseCode;
     strncpy(print_element_list[print_element_counter].response_msg, response_msg, RESP_MSG_SIZE);
     strncpy(print_element_list[print_element_counter].url, url, URL_SIZE);
+    strncpy(print_element_list[print_element_counter].host, host, HOST_SIZE);
     print_element_list[print_element_counter].op = op;
 
     print_element_counter++;
@@ -74,11 +75,12 @@ void clearElement(print_element *e){
 }
 
 void printElement(print_element *e){
-    fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s\n", 
+
+    fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
         e->ip_client, e->port_client, e->ip_server, 
         e->port_server, e->req_ts.tv_sec, e->req_ts.tv_nsec, e->res_ts.tv_sec, 
         e->res_ts.tv_nsec, e->diff.tv_sec, e->diff.tv_nsec, RESP_MSG_SIZE, e->response_msg, 
-        e->responseCode, e->url, e->op == POST ? "POST" : "GET");    
+        e->responseCode, http_op_to_char(e->op), e->host, e->url);    
     return;
 }
 

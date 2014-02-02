@@ -1,5 +1,15 @@
 #include "connection.h"
 
+//REQUEST STATS
+extern unsigned long long get_requests;
+extern unsigned long long post_requests;
+extern unsigned long long head_requests;
+extern unsigned long long put_requests;
+extern unsigned long long trace_requests;
+extern unsigned long long delete_requests;
+extern unsigned long long options_requests;
+extern unsigned long long patch_requests;
+
 extern struct msgbuf sbuf;
 extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24
 extern node_l *active_session_list;
@@ -26,6 +36,37 @@ node_l *nodel_aux;
 
 connection *conns;
 connection aux_conn;
+
+void increment_request_counter(http_op h){
+switch(h){
+        case HEAD:
+            head_requests++;
+            return;
+        case GET:
+            get_requests++;
+            return;
+        case POST:
+            post_requests++;
+            return;
+        case PUT:
+            put_requests++;
+            return;
+        case DELETE:
+            delete_requests++;
+            return;
+        case TRACE:
+            trace_requests++;
+            return;
+        case OPTIONS:
+            options_requests++;
+            return;
+        case PATCH:
+            patch_requests++;
+            return;
+        default:
+            return;
+    }
+}
 
 void removeRequestFromConnection(connection *conn, node_l *req_node){
 
@@ -195,7 +236,7 @@ int updateActiveConnexion(connection *conn){
 
 void addRequestToConnexion(connection *conn, packet_info *aux_packet){
 
-    // fprintf(stderr, "addRequestToConnexion %"PRIu32"\n", getIndex(aux_packet));
+    increment_request_counter(aux_packet->op);
 
     node_l *naux = NULL;
 
@@ -232,18 +273,18 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     struct timespec diff = tsSubtract(res_ts, req->ts);
     
     if(options.sorted == 0){
-        fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, req->url, req->op == POST ? "POST" : "GET");
+        fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);
     }else{
         addPrintElement(conn->ip_client, conn->ip_server, 
             conn->port_client, conn->port_server, req->ts, 
-            res_ts, diff, responseCode, response_msg, req->url, req->op);
+            res_ts, diff, responseCode, response_msg, req->host, req->url, req->op);
     }
 
     conn->n_response--;
     removeRequestFromConnection(conn, req_node);
 }
 
-void cleanUpConnection(connection *conn){
+void cleanUpConnection(connection *conn, FILE *gcoutput){
 
     node_l *n = list_get_first_node(&conn->list);
     if(n==NULL){
@@ -251,7 +292,10 @@ void cleanUpConnection(connection *conn){
     }
     node_l *next = n->next;
     while(conn->n_request > 0 && n!= NULL){
-        
+        if(gcoutput != NULL){
+            request *req = (request*) n->data;
+            fprintf(gcoutput, "%s|%i|%s|%i|%ld.%09ld|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, http_op_to_char(req->op), req->host, req->url);
+        }
         removeRequestFromConnection(conn, n);
         n = next;
         if(n!=NULL){
@@ -261,22 +305,6 @@ void cleanUpConnection(connection *conn){
     }
 
 }
-
-// int cleanUpConnection(connection *conn){
-
-//     if(conn->n_request <= 0){
-//         return 0;
-//     }
-
-//     node_l *n = list_get_first_node(&conn->list);
-
-//     if(n == NULL){
-//         return 0;
-//     }
-
-//     removeRequestFromConnection(conn, n);
-//     return cleanUpConnection(conn);
-// }
 
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index){
     
@@ -401,7 +429,7 @@ int insertPacket (packet_info *aux_packet){
         }
         
         //PETICION
-        if(aux_packet->op == GET || aux_packet->op == POST){
+        if(http_is_request(aux_packet->op)){
             addRequestToConnexion(conn, aux_packet);
             updateActiveConnexion(conn);
         //RESPUESTA
@@ -428,8 +456,6 @@ int insertPacket (packet_info *aux_packet){
 
     return 0;
 }
-
-
 
 /*******************************************************
 *

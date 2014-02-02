@@ -78,7 +78,8 @@ public class FileParser {
 			while ((line = br.readLine()) != null) {
 
 				// SPLIT LINE
-				String[] splitted_line = line.split("\\|");
+				String[] splitted_line = line.split("\\|", 12);
+				String url = splitted_line[10] + splitted_line[11];
 
 				if (main.getFilterMode() == 1) {
 					// IP
@@ -87,13 +88,12 @@ public class FileParser {
 					}
 				} else if (main.getFilterMode() == 2) {
 					// URL
-					if (!main.getPattern().matcher(splitted_line[9]).find()) {
+					if (!main.getPattern().matcher(url).find()) {
 						continue;
 					}
 				} else if (main.getFilterMode() == 3) {
 					// DOMAIN
-					if (!main.getPattern()
-							.matcher(splitted_line[9].split("/")[0]).find()) {
+					if (!main.getPattern().matcher(splitted_line[10]).find()) {
 						continue;
 					}
 				}
@@ -111,8 +111,8 @@ public class FileParser {
 
 				// HITS
 				ips.update(ip);
-				urls.update(splitted_line[9]);
-				domains.update(splitted_line[9].split("/")[0]);
+				urls.update(url);
+				domains.update(splitted_line[10]);
 
 				// RESPONSE_TIMES
 				Double r = Double.parseDouble(splitted_line[6]);

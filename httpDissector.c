@@ -6,6 +6,16 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t collector;
 pthread_t progress;
 
+//REQUEST STATS
+unsigned long long get_requests = 0;
+unsigned long long post_requests = 0;
+unsigned long long head_requests = 0;
+unsigned long long put_requests = 0;
+unsigned long long trace_requests = 0;
+unsigned long long delete_requests = 0;
+unsigned long long options_requests = 0;
+unsigned long long patch_requests = 0;
+
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
 unsigned long long active_requests = 0;
@@ -43,6 +53,7 @@ unsigned long transacctions = 0;
 char format[8] = {0};
 
 char *filter = NULL;
+char *global_filename = NULL;
 
 //PARALLEL PROCESSING
 
@@ -54,58 +65,39 @@ char *child_filename = NULL;
 char new_filename[256] = {0};
 
 FILE *output = NULL;
+FILE *gcoutput = NULL;
 
 //HTTP
 http_packet http = NULL;
 
-void create_process();
-void handler(int sig);
-int parallel_processing();
+void print_info(long elapsed);
 int main_process(char *format, char *filename);
+unsigned long remove_old_active_nodes(struct timespec last_packet);
 
 void sigintHandler(int signal){
-
-	running = 0;
-
-	if(options.parallel){
-		if(father_pid == getpid()){
-			while (waitpid(-1, NULL, 0)) {
-		   		if (errno == ECHILD) {
-		      		break;
-		   		}
-			}
-			return;
-		}
-	}
-
 	struct timeval end;
 	gettimeofday(&end, NULL);
 
 	fprintf(stderr, "\n\nSkipping, wait...\n");
-
+	
+	remove_old_active_nodes(last_packet);
+	running = 0;
+	
 	if(options.interface == NULL && progress_bar){
-		// g_thread_join(progreso);
 		pthread_join(progress, NULL);
 	}
 
-	if(options.parallel){
-		fprintf(stderr,"\n\nInput File: %s\nOutput File: %s\n", child_filename, options.output != NULL ? new_filename : "Standard Output");
-	}else{
-		fprintf(stderr, "\n\n");
-	}
-	fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%% (%lld)\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100, lost);
-
+	
 	long elapsed = end.tv_sec - start.tv_sec;
 
-	if(elapsed != 0){
-		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
-		if(options.log){
-			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
-		}
+	print_info(elapsed);
+
+	if(options.output != NULL){
+		fclose(output);
 	}
 
-	if(options.output != NULL && options.parallel == 0){
-		fclose(output);
+	if(options.gcoutput != NULL){
+		fclose(gcoutput);
 	}
 
 	if(files_path != NULL){
@@ -155,7 +147,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 		conn->active_node = n;
 		diff = tsSubtract(last_packet, conn->last_ts);
 		if(diff.tv_sec > 60){
-			cleanUpConnection(conn);
+			cleanUpConnection(conn, gcoutput);
 			uint32_t index = getIndexFromConnection(conn);
 			node_l *list = session_table[index].list;
 			node_l *conexion_node = NULL;
@@ -292,7 +284,6 @@ void *barra_de_progreso(){
 }
 
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
-
 	
 	ERR_MSG("DEBUG/ begining parse_packet().\n");
 	
@@ -359,23 +350,29 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		pktinfo->responseCode = http_get_response_code(http);
 		strncpy(pktinfo->response_msg, http_get_response_msg(http), RESP_MSG_SIZE);
 		pktinfo->response_msg[RESP_MSG_SIZE - 1] = 0;
-	}else if(pktinfo->op == GET || pktinfo->op == POST){
+	}else if(http_is_request(pktinfo->op)){
 		char * host = http_get_host(http);
-		size_t t_host = strlen(host);
 		char * uri = http_get_uri(http);
-		size_t t_uri = strlen(uri);
-		if(strlen(host) != 0){
-			memcpy(pktinfo->url, host, t_host);
-			memcpy(pktinfo->url+t_host, uri, t_uri);
-		}else{
-			strcpy(pktinfo->url, uri);
-		}
+		
+		strcpy(pktinfo->host, host);
+		strcpy(pktinfo->url, uri);
+		
 
 		if(options.url != NULL){
 			if(boyermoore_search(pktinfo->url, options.url) == NULL){
 				http_clean_up(&http);
 				
-				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search returned NULL\n");
+				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search url returned NULL\n");
+				
+				return 1;
+			}
+		}
+
+		if(options.host != NULL){
+			if(boyermoore_search(pktinfo->host, options.host) == NULL){
+				http_clean_up(&http);
+				
+				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search host returned NULL\n");
 				
 				return 1;
 			}
@@ -425,7 +422,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
   	gettimeofday(&t, NULL);
  
 	ERR_MSG("DEBUG/ calling parse_packet().\n");
-
   	int ret = parse_packet(packet, pkthdr, pktinfo);
 
   	gettimeofday(&t2, NULL);
@@ -487,8 +483,24 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 int main(int argc, char *argv[]){
 
 	fprintf(stderr, "httpDissector %s\n", version);
-
-	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
+	//GET 
+	//POST
+	//HEAD
+	//PUT
+	//DELETE
+	//PATCH
+	//TRACE
+	//OPTIONS
+	//HTTP
+	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 \
+		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 \
+		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48454144 \
+		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x50555420 \
+		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x44454c45 && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:2] = 0x5445) \
+		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x50415443 && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:2] = 0x4820) \
+		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x54524143 && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:2] = 0x4520) \
+		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x4f505449 && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:4] = 0x4f4e5320) \
+		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
 
 	options = parse_args(argc, argv);
 	if(options.err == -3){
@@ -523,10 +535,6 @@ int main(int argc, char *argv[]){
 	}
 
 	if(options.debug != 0){
-		// if(err_mqueue_init()){
-		// 	fprintf(stderr, "ERROR CREANDO HILO DE DEBUG\n");
-		// 	exit(0);
-		// }
 		fprintf(stderr, "DEBUG/ Activated\n");
 		fprintf(stderr, "DEBUG/ RAW: %s\n", options.raw ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Files: %s\n", options.files ? "true" : "false");
@@ -535,7 +543,6 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "DEBUG/ Output File: %s\n", options.output ? options.output : "STDOUT");
 		fprintf(stderr, "DEBUG/ Version: %s\n", version);
 		fprintf(stderr, "DEBUG/ Verbose: %s\n", options.verbose ? "true" : "false");
-		fprintf(stderr, "DEBUG/ Parallel: %s\n", options.parallel ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Interface: %s\n", options.interface ? options.interface : "false");
 		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
 		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
@@ -544,7 +551,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "\n");
 	}
 
-	if(options.output != NULL && options.parallel == 0){
+	if(options.output != NULL){
 		output = fopen(options.output, "w");
 		if(output == NULL){
 			fprintf(stderr, "ERROR TRYING TO OPEN THE OUTPUT FILE\n");
@@ -553,6 +560,15 @@ int main(int argc, char *argv[]){
 		}
 	}else{
 		output = stdout;
+	}
+
+	if(options.gcoutput != NULL){
+		gcoutput = fopen(options.gcoutput, "w");
+		if(output == NULL){
+			fprintf(stderr, "ERROR TRYING TO OPEN THE GC-OUTPUT FILE\n");
+			FREE(filter);
+			return -8;
+		}
 	}
 
 	if(options.files){
@@ -578,28 +594,19 @@ int main(int argc, char *argv[]){
 	//PACKET_INFO
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 	
-	if(options.parallel == 0){
-		
-		ERR_MSG("DEBUG/ Before calling main_process()\n");
-		
-		main_process(format, options.input);
-	}else if(options.parallel == 1){
-		fprintf(stderr, "PARALLEL PROCESSING WITH 1 PROCESS?\n");
-	}else if(options.parallel > 0 && options.files == 0){
-		fprintf(stderr, "PARALLEL PROCESSING WITHOUT A LIST OF FILES?\n");
-	}else if(options.parallel > 0){
-		
-		ERR_MSG("DEBUG/ Before calling parallel_processing()\n");
-		
-		parallel_processing();
-	}
+	main_process(format, options.input);
+	
 
 	if(options.sorted){
 		freePrintElementList();
 	}
 
-	if(options.output != NULL && options.parallel == 0){
+	if(options.output != NULL){
 		fclose(output);
+	}
+
+	if(options.gcoutput != NULL){
+		fclose(gcoutput);
 	}
 
 	if(files_path != NULL){
@@ -611,98 +618,20 @@ int main(int argc, char *argv[]){
 		files_path = NULL;
 	}
 
-	// http_free_packet(&http);
-	// #ifndef __APPLE__
 	freeNodelPool();
 	freeConnectionPool();
 	freeRequestPool();
-	// #endif
-	// err_mqueue_close();
-	// FREE(filter);
-	// FREE(pktinfo);
 
 	return 0;
 }
 
-void create_process(){
-	last_file++;
-
-	if(last_file >= nFiles){
-		running = 0;
-		return;
-	}
-
-	if(!fork()) {
-		fprintf(stderr, "%s child created [%s] process id is %d of %d\n", last_file%options.parallel==0 ? "+++" : "---", files_path[last_file], getpid(), getppid());
-		main_process(format, files_path[last_file]);
-		kill(getppid(), SIGUSR1);
-		exit(0);
-	}
-}
-
-void handler(int sig) {
-	create_process();
-}
-
-int parallel_processing(){
-	
-	progress_bar = 0;
-	options.files = 0;
-
-	father_pid = getpid();
-
-	struct sigaction act;
-	act.sa_handler=handler;
-	sigaction(SIGUSR1, &act, NULL);
-
-	running = 1;
-
-	int i;
-	for(i=0; i<options.parallel; i++){
-		create_process();
-	}
-
-	while(running){
-		while (waitpid(-1, NULL, 0)) {
-	   		if (errno == ECHILD) {
-	      		break;
-	   		}
-		}
-	}
-
-	// struct sigaction act2;
-	// act2.sa_handler=handler;
-	// sigaction(SIGCHLD, &act2, NULL);
-	//wait(&status);
-
-	return 0;
-}
 
 int main_process(char *format, char *filename){
 
-	
-	ERR_MSG("DEBUG/ main_process() begining\n");
-
+	global_filename = filename;
 	struct bpf_program fp;
 
-	if(options.parallel){
-		
-		ERR_MSG("DEBUG/ Parallel\n");
-		
-		child_filename = filename;
-		if(options.output != NULL){
-			snprintf(new_filename, 256, "%s%d", options.output, last_file);
-			output = fopen(new_filename, "w");
-			if(output == NULL){
-				fprintf(stderr, "ERROR TRYING TO OPEN THE OUTPUT FILE %s\n", new_filename);
-				return -2;
-			}
-		}
-	}
-
 	if(options.log){
-		
-		ERR_MSG("DEBUG/ Log\n");
 		
 		if(options.interface != NULL){
 			options.log = 0;
@@ -716,7 +645,6 @@ int main_process(char *format, char *filename){
 	    	memory = malloc(sizeof(struct rusage));
     	}
 	}
-
 
 	char errbuf[PCAP_ERRBUF_SIZE] = {0};
 	pcap_t *handle = NULL;
@@ -787,37 +715,17 @@ int main_process(char *format, char *filename){
 		}
 	}
 
-	//ERR_MSG("DEBUG/ initialising GLIB g_thread_supported()\n");
-
-	//inicializamos el soporte para hilos en glib
-	//g_thread_supported() is actually a macro
-	// if(!GLIB_CHECK_VERSION (2, 32, 0)){
-	// 	if (!g_thread_supported ()) g_thread_init (NULL);
-	// }
+	
 
 	ERR_MSG("DEBUG/ Creating hash table\n");
 
-   	//TABLA HASH
-	// table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, funcionLiberacion);
-	// if(table == NULL){
-	// 	fprintf(stderr, "Error al crear tabla hash.");
-	// 	return -5;
-	// }
-
-	//creamos los hilos
+   	//creamos los hilos
 
 	ERR_MSG("DEBUG/ Creating collector thread\n");
 
 	//RECOLECTOR
 	if(options.collector){
-		// if (!GLIB_CHECK_VERSION (2, 32, 0)){
-		// 	recolector = g_thread_create( (GThreadFunc)recolector_de_basura, NULL , TRUE, NULL);
-		// }else{
-		// 	recolector = g_thread_new("recolector de basura", (GThreadFunc)recolector_de_basura, NULL);
-		// }
-
 		pthread_create(&collector, NULL, recolector_de_basura, NULL);
-
 	}
 	
 	gettimeofday(&start, NULL);
@@ -827,11 +735,6 @@ int main_process(char *format, char *filename){
 
 	//BARRA DE PROGRESO
 	if(options.interface == NULL && progress_bar){
-		// if (!GLIB_CHECK_VERSION (2, 32, 0)){
-		// 	progreso = g_thread_create( (GThreadFunc)barra_de_progreso, NULL , TRUE, NULL);
-		// }else{
-		// 	progreso = g_thread_new("barra de progreso", (GThreadFunc)barra_de_progreso, NULL);
-		// }
 		pthread_create(&progress, NULL, barra_de_progreso, NULL);
 	}
 
@@ -849,20 +752,17 @@ int main_process(char *format, char *filename){
 	}else{
 		pcap_loop(handle, -1, online_callback, NULL);
 	}
+	gettimeofday(&end, NULL);
+	remove_old_active_nodes(last_packet);
 
 	ERR_MSG("DEBUG/ After loop\n");
 	ERR_MSG("DEBUG/ ===============\n");
 
-	gettimeofday(&end, NULL);
 	running = 0;
 
 	ERR_MSG("DEBUG/ closing collector\n");
 
 	if(options.collector){
-		// g_thread_join(recolector);
-		// if (GLIB_CHECK_VERSION (2, 32, 0)){
-		// 	g_thread_unref (recolector);
-		// }
 		pthread_join(collector, NULL);
   	}
 
@@ -871,41 +771,40 @@ int main_process(char *format, char *filename){
 	ERR_MSG("DEBUG/ closing progress_bar\n");
 
   	if(options.interface == NULL && progress_bar){
-  		// g_thread_join(progreso);
   		pthread_join(progress, NULL);
   		loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, 40);
   		NDLTclose(ndldata);
   	}
 
 	long elapsed = end.tv_sec - start.tv_sec;
+	print_info(elapsed);
 
+	return 0;
+}
+
+void print_info(long elapsed){
 
 	fprintf(stderr,"\n\n");
-	if(options.parallel){
-		fprintf(stderr,"Input File: %s\nOutput File: %s\n", child_filename, options.output != NULL ? new_filename : "Standard Output");
-		fprintf(stderr, "Total packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
-	}else{
-		fprintf(stderr, "File: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", filename, packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
-	}
+	
+	fprintf(stderr, "File: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
+	
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		if(options.log){
 			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		}
 	}
-	
-	if(options.parallel){
-		fprintf(stderr,"\n\n");
-	}
 
-	ERR_MSG("DEBUG/ destroying hash table\n");
-
-	// g_hash_table_destroy(table);
-
-	fprintf(stderr, "NO CASES: %lld\n", no_cases);
-	fprintf(stderr, "REQ_NODE == NULL: %lld\n", total_req_node);
 	fprintf(stderr, "RESPONSES OUT OF ORDER: %lld\n", total_out_of_order);
 	fprintf(stderr, "RESPONSES WITHOUT REQUEST: %lld\n", lost);
 
-	return 0;
+	fprintf(stderr, "\nREQUEST STATS\n");
+	fprintf(stderr, "GET: %lld\n", get_requests);
+	fprintf(stderr, "POST: %lld\n", post_requests);
+	fprintf(stderr, "HEAD: %lld\n", head_requests);
+	fprintf(stderr, "PATCH: %lld\n", patch_requests);
+	fprintf(stderr, "PUT: %lld\n", put_requests);
+	fprintf(stderr, "DELETE: %lld\n", delete_requests);
+	fprintf(stderr, "OPTIONS: %lld\n", options_requests);
+	fprintf(stderr, "TRACE: %lld\n", trace_requests);
 }

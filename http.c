@@ -29,7 +29,7 @@ struct _internal_http_packet{
 
 regex_t hostname_regex;
 char cadena[CADENA_SIZE];
-char cadena_aux[CADENA_AUX_SIZE];
+char cadena_aux[CADENA_SIZE];
 
 http_header *http_get_headers(http_packet http){
 
@@ -38,6 +38,34 @@ http_header *http_get_headers(http_packet http){
 	}
 	
 	return http->headers;
+}
+
+int http_is_request(http_op h){
+	switch(h){
+		case HEAD:
+			return 1;
+		case GET:
+			return 1;
+		case POST:
+			return 1;
+		case PUT:
+			return 1;
+		case DELETE:
+			return 1;
+		case TRACE:
+			return 1;
+		case OPTIONS:
+			return 1;
+		case CONNECT:
+			fprintf(stderr, "CONNECT !\n");
+			return 1;
+		case PATCH:
+			return 1;
+		case RESPONSE:
+			return 0;
+		default:
+			return 0;
+	}
 }
 
 char *http_get_data(http_packet http){
@@ -195,22 +223,9 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 	strncpy(cadena, tcp_payload, length);
 	http->has_host = 0;
 	if(http->op != RESPONSE){
-		
 		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
 		
 		char *host = get_host_from_headers(cadena);
-		// ret = http_parse_headers(&http, cadena, length);
-		// if(ret >= 0 && http->headers->n_fields>0){
-		// 	char * host = find("Host", http->headers->fields);
-		// 	memset(http->host, 0, 256);
-		//  	if(host != NULL){
-		//  		strcpy(http->host, host);
-		//  		http->has_host = 1;
-		//   	}else{
-		//			strcpy(http->host, ip_addr_dst);
-		//   		http->has_host = 0;
-		//   	}
-		// }
 
 		if(host == NULL){
 			http->has_host = 0;
@@ -219,15 +234,17 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 			strcpy(http->host, host);
 			http->has_host = 1;
 		}
-
-		// fprintf(stdout, "// REQ: |%s|%s|%s|%s|\n", http->method, http->uri, http->version, http->has_host == 1? http->host : "NO HOST");
-
-		// http_print_headers(&http);
 		
 	}else{
-		strcpy(http->method, "RESPONSE");
-		sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
-		
+		char *i = strstr(cadena, "\r\n");
+		if(i==NULL){
+			sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
+		}else{
+			memset(cadena_aux, 0, CADENA_SIZE);
+			memcpy(cadena_aux, cadena, i-cadena);
+			sscanf(cadena_aux, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
+		}
+
 		char *hdr = strstr(cadena, "\r\n");
 		if(hdr == NULL){ 
 			// FREE(cadena);

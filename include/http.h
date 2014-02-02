@@ -12,6 +12,7 @@ typedef struct _internal_http_packet * http_packet;
 http_op http_which_method(char * tcp_payload);
 int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *ip_addr_src, char *ip_addr_dst);
 
+int http_is_request(http_op h);
 char *http_op_to_char(http_op h);
 http_header *http_get_headers(http_packet http);
 char *http_get_data(http_packet http);

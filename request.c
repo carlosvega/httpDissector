@@ -104,6 +104,7 @@ void freeRequestPool(void)
 
 void fillRequest(packet_info *packet, request *req){
 	strncpy(req->url, packet->url, URL_SIZE);
+	strncpy(req->host, packet->host, HOST_SIZE);
 	req->op = packet->op;
 	req->seq = packet->tcp->th_seq;
 	req->ack = packet->tcp->th_ack;
