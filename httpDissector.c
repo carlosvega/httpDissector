@@ -36,7 +36,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.53";
+char version[32] = "Version 2.6";
 struct args_parse options;
 
 struct timespec last_packet;

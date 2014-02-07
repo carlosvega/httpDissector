@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,8 +72,15 @@ public class FileParser {
 
 		BufferedReader br = null;
 		try {
-			FileReader f = new FileReader(this.filename);
-			br = new BufferedReader(f, 512 * 1024);
+			FileReader f = null;
+
+			if (this.filename.equals("-")) {
+				br = new BufferedReader(new InputStreamReader(System.in),
+						512 * 1024);
+			} else {
+				f = new FileReader(this.filename);
+				br = new BufferedReader(f, 512 * 1024);
+			}
 			String line = "";
 
 			while ((line = br.readLine()) != null) {
@@ -129,6 +137,7 @@ public class FileParser {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
 		System.out.println("Fichero Leido");
 		DataParser parser = new DataParser();
 		parser.parse_ip_hits(ips);

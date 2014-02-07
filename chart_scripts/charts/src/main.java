@@ -9,7 +9,7 @@ public class main {
 
 	String[] caca = new String[] { "ip", "url", "domain" };
 
-	@Option(name = "-i", usage = "Input File", required = true, aliases = "--input")
+	@Option(name = "-i", usage = "Input File. Type '-i -' for reading from sdtin.", required = true, aliases = "--input")
 	private static String filename;
 
 	@Option(name = "-r", usage = "DPI resolution. Default 1000.", aliases = "--dpi")
@@ -21,11 +21,11 @@ public class main {
 	@Option(name = "-t", usage = "Chart bars top.", aliases = "--top")
 	private static int top = 10;
 
-	@Option(name = "-fm", usage = "Filter Mode.", aliases = "--filter-mode")
+	@Option(name = "-fm", usage = "Filter Mode: {ip, url, domain}", aliases = "--filter-mode")
 	private static String filter_mode = null;
 	private static int filter_mode_int = 0;
 
-	@Option(name = "-f", usage = "Filter Mode.", aliases = "--filter")
+	@Option(name = "-f", usage = "Filter.", aliases = "--filter")
 	private static String filter = null;
 
 	private static Pattern pattern = null;
@@ -97,7 +97,11 @@ public class main {
 			}
 		}
 
-		System.out.println(filename);
+		if (filename.equals("-")) {
+			System.out.println(filename);
+		} else {
+			System.out.println("Reading from STDIN");
+		}
 
 		FileParser fileParser = new FileParser(filename);
 		fileParser.createDirectories();
