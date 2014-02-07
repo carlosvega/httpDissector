@@ -6,9 +6,9 @@ void how_to_use(char *name){
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
   fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
-  fprintf(stderr, "\t-D  --debug=<debug_level>\t\tActivates debug lines.\n");
+  fprintf(stderr, "\t-D  --debug=<debug_level>\tActivates debug lines.\n");
   fprintf(stderr, "\t-h  --help\t\t\tShows this message.\n");
-  fprintf(stderr, "\t-H  --host=<host>\t\t\tFilter the request by host\n");
+  fprintf(stderr, "\t-H  --host=<host>\t\tFilter the request by host\n");
   fprintf(stderr, "\t-i  --input=<file>\t\tInput file. This parameter is mandatory.\n");
   fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
   fprintf(stderr, "\t    --log\t\t\tWrites more debug stuff in the log (httpDissector)\n");
