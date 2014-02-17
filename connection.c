@@ -89,6 +89,10 @@ void allocConnectionPool(void){
     node_l *n=NULL;
     conns = calloc(MAX_POOL_FLOW, sizeof(connection));
 
+    if(conns == NULL){
+        fprintf(stderr, "Execute the program on a host with enought memory.\n");
+    }
+
     //ASSERT
     assert(!(conns==NULL));//if(conns==NULL) print_backtrace("AllocConnectionPool conns==NULL");
 

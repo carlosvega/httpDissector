@@ -18,6 +18,11 @@ void allocResponsePool(void)
 	int i=0;
 	node_l *n=NULL;
 	responses=calloc(RESPONSE_POOL,sizeof(response));
+
+	if(responses == NULL){
+		fprintf(stderr, "Execute the program on a host with enought memory.\n");
+	}
+
 	assert(responses!=NULL);
 	for(i=0;i<RESPONSE_POOL;i++)
 	{

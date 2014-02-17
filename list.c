@@ -270,6 +270,10 @@ void allocNodelPool(void)
     node_l *n=NULL;
     nl=malloc(sizeof(node_l)*MAX_POOL_NODE);
 
+    if(nl == NULL){
+        fprintf(stderr, "Execute the program on a host with enought memory.\n");
+    }
+
     //ASSERT
     assert(!(nl==NULL));//if(nl==NULL) print_backtrace("allocNodelPool nl==NULL");
 
