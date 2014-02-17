@@ -75,6 +75,7 @@ int main_process(char *format, char *filename);
 unsigned long remove_old_active_nodes(struct timespec last_packet);
 
 void sigintHandler(int signal){
+	signal(SIGINT, SIG_DFL);
 	struct timeval end;
 	gettimeofday(&end, NULL);
 
