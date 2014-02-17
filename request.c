@@ -18,6 +18,11 @@ void allocRequestPool(void)
 	int i=0;
 	node_l *n=NULL;
 	requests=calloc(REQUEST_POOL,sizeof(request));
+	
+	if(requests == NULL){
+		fprintf(stderr, "Execute the program on a host with enought memory.\n");
+	}
+
 	assert(requests!=NULL);
 	for(i=0;i<REQUEST_POOL;i++)
 	{
