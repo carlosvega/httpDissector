@@ -92,8 +92,7 @@ void sigintHandler(int sig){
 
 	fprintf(stderr, "HEY\n");
 	print_info(elapsed);
-	fflush(stdout);
-	fflush(stderr);
+	fprintf(stderr, "HEY\n");
 
 	if(options.output != NULL){
 		fclose(output);
@@ -811,6 +810,8 @@ void print_info(long elapsed){
 	fprintf(stderr, "DELETE: %lld\n", delete_requests);
 	fprintf(stderr, "OPTIONS: %lld\n", options_requests);
 	fprintf(stderr, "TRACE: %lld\n", trace_requests);
+
+	fflush(stderr);
 
 	return;
 }
