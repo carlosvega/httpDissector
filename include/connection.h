@@ -2,6 +2,7 @@
 #define CONNECTION_H
 #include <syslog.h>
 #include <assert.h>
+#include "counters.h"
 #include "sorted_print.h"
 #include "header_list_pool.h"
 #include "http.h"
