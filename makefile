@@ -41,6 +41,8 @@ IPflow.o: IPflow.c
 	$(CC) -c IPflow.c -o IPflow.o
 counters.o: counters.c
 	$(CC) -c counters.c -o counters.o
+index.o: index.c
+	$(CC) -c index.c -o index.o
 request.o: request.c
 	$(CC) -c request.c -o request.o
 header_list_pool.o: header_list_pool.c
@@ -57,9 +59,9 @@ http.o: http.c
 	$(CC) -c http.c -o http.o
 tools.o: tools.c
 	$(CC) -c tools.c -o tools.o
-httpDissector: httpDissector.c counters.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
+httpDissector: httpDissector.c counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
-	$(CC)  httpDissector.o counters.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
+	$(CC)  httpDissector.o counters.o index.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c

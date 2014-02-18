@@ -19,6 +19,7 @@ struct args_parse{
 	short files;
 	short log;
 	char *output;
+	char *index;
 	char *gcoutput;
 	char *input;
 	char *filter;

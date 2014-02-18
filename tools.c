@@ -139,6 +139,13 @@ void prepare_goodsuffix_heuristic(const char *normal, size_t size,
  return NULL;
 }
 
+struct timespec timeval_to_timespec(struct timeval ts){
+	struct timespec t;
+	t.tv_sec = ts.tv_sec;
+	t.tv_nsec = ts.tv_usec*1000;
+	return t;
+}
+
 char *timeval_to_char(struct timespec ts){
 
 	// char time_buf[64] = {0};
