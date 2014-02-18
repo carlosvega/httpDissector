@@ -766,10 +766,10 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
-	fprintf(stderr, "EY %lld\n", get_total_requests());
 	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, get_inserts(), get_total_requests() == 0 ? 0 : (((long double)get_lost()) / get_total_requests())*100);
 	
 	if(elapsed != 0){
+		fprintf(stderr, "ey\n");
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		if(options.log){
 			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
