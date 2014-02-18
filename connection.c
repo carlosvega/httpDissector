@@ -19,7 +19,6 @@ extern struct timespec last_packet;
 extern uint64_t last_packet_timestamp;
 extern unsigned long long no_cases;
 extern unsigned long long active_requests;
-extern unsigned long long total_requests;
 extern unsigned long long total_connexions;
 extern unsigned long long lost;
 extern unsigned long long total_req_node;
@@ -257,9 +256,8 @@ void addRequestToConnexion(connection *conn, packet_info *aux_packet){
     conn->last_ts = aux_packet->ts;                 //Actualizar last timestamp
 
     active_requests++;
-    total_requests++;
-
-    fprintf(stderr, "%lld\n", total_requests);
+    // total_requests++;
+    increment_total_requests();
 
 }
 

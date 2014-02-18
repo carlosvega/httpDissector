@@ -20,7 +20,6 @@ node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
 unsigned long long active_requests = 0;
 
-unsigned long long total_requests = 0;
 unsigned long long total_connexions = 0;
 
 unsigned long long total_req_node = 0;
@@ -251,7 +250,7 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
 	}
 	if(options.log){
 		syslog (LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ((int)(ratio*100)));
-		syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), total_requests, active_requests, active_session_list_size, total_connexions, getGottenResponses());
+		syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), get_total_requests(), active_requests, active_session_list_size, total_connexions, getGottenResponses());
     	getrusage(RUSAGE_SELF, memory);
 		if(errno == EFAULT){
 		    syslog (LOG_NOTICE, "MEM Error: EFAULT\n");
@@ -786,8 +785,8 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
-	fprintf(stderr, "EY %lld - %lld\n", lost, total_requests);
-	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, total_requests == 0 ? 0 : (((long double)lost) / total_requests)*100);
+	fprintf(stderr, "EY %lld - %lld\n", lost, get_total_requests());
+	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, get_total_requests() == 0 ? 0 : (((long double)lost) / get_total_requests())*100);
 	
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);

@@ -13,6 +13,8 @@
 // #include "util.h"
 #include "packet_info.h"
 
+void increment_total_requests();
+unsigned long long get_total_requests();
 void print_backtrace(char *err);
 struct  timespec  tsSubtract (struct  timespec  t1, struct  timespec  t2);
 struct  timespec  tsAdd (struct  timespec  time1, struct  timespec  time2);

@@ -6,6 +6,16 @@
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
 
+static unsigned long long total_requests = 0;
+
+void increment_total_requests(){
+	total_requests++;
+}
+
+unsigned long long get_total_requests(){
+	return total_requests;
+}
+
 void print_backtrace(char *err){
 	fprintf(stderr, "%s\n", err);
 
