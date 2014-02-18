@@ -766,6 +766,7 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
+	setvbuf(stderr, NULL, _IONBF, 0);
 	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\n", global_filename, packets, get_inserts());
 	fprintf(stderr, "Response lost ratio (Requests without response): %f%%\n", response_lost_ratio());
 	
