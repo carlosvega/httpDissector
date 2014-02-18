@@ -259,6 +259,8 @@ void addRequestToConnexion(connection *conn, packet_info *aux_packet){
     active_requests++;
     total_requests++;
 
+    fprintf(stderr, "%lld\n", total_requests);
+
 }
 
 void printTransaction(connection *conn, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node){
