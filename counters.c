@@ -23,6 +23,17 @@ static unsigned long long lost = 0;
 static unsigned long transactions = 0;
 static unsigned long long inserts = 0;
 
+ double response_lost_ratio(){
+	if(lost == 0 || total_requests == 0){
+		return 0;
+	}
+
+	long double a = lost;
+	long double b = total_requests;
+
+	return ((double) (a/b)*100);
+}
+
 //total requests
 void increment_total_requests(){
 	total_requests++;

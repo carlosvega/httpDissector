@@ -767,7 +767,7 @@ int main_process(char *format, char *filename){
 void print_info(long elapsed){
 	
 	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\n", global_filename, packets, get_inserts());
-	fprintf(stderr, "Response lost ratio (Requests without response): %Lf%%\n", get_total_requests() == 0 ? 0 : (((long double)get_lost()) / get_total_requests())*100);
+	fprintf(stderr, "Response lost ratio (Requests without response): %f%%\n", response_lost_ratio());
 	
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
@@ -788,8 +788,6 @@ void print_info(long elapsed){
 	fprintf(stderr, "DELETE: %lld\n", get_delete_requests());
 	fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
 	fprintf(stderr, "TRACE: %lld\n", get_trace_requests());
-
-	sleep(1);
 
 	return;
 }
