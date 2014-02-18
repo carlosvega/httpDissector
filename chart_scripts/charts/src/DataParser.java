@@ -6,9 +6,23 @@ import java.util.PriorityQueue;
 
 public class DataParser {
 
-	private ChartCreator chartCreator = new ChartCreator();
-	CounterComparator<String> comparator = new CounterComparator<String>();
-	CounterComparator<InetAddress> comparatorIP = new CounterComparator<InetAddress>();
+	private ChartCreator chartCreator = null;
+	private CounterComparator<String> comparator = null;
+	private CounterComparator<InetAddress> comparatorIP = null;
+	private String path = null;
+
+	public DataParser(String path) {
+		this.path = path;
+		chartCreator = new ChartCreator(path);
+		comparator = new CounterComparator<String>();
+		comparatorIP = new CounterComparator<InetAddress>();
+	}
+
+	public DataParser() {
+		chartCreator = new ChartCreator();
+		comparator = new CounterComparator<String>();
+		comparatorIP = new CounterComparator<InetAddress>();
+	}
 
 	public void parse_ip_hits(Counter<InetAddress> ips) {
 

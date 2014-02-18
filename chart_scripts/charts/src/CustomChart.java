@@ -197,7 +197,7 @@ public class CustomChart {
 			ChartUtilities.saveChartAsPNG(new File(filename), this.chart,
 					this.width, this.height);
 		} catch (IOException e) {
-			System.out.println("Error al crear el fichero");
+			System.out.println("Error al crear el fichero: " + this.filename);
 		}
 	}
 
@@ -214,11 +214,10 @@ public class CustomChart {
 			out.write(data);
 			out.close();
 		} catch (FileNotFoundException e) {
-			System.out.println("Couldn't create the file.");
+			System.out.println("Couldn't create the file: " + this.filename);
 		} catch (IOException e) {
-			System.out.println("Couldn't write to file.");
+			System.out.println("Couldn't write to file: " + this.filename);
 		}
 
 	}
-
 }

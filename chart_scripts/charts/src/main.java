@@ -12,6 +12,9 @@ public class main {
 	@Option(name = "-i", usage = "Input File. Type '-i -' for reading from sdtin.", required = true, aliases = "--input")
 	private static String filename;
 
+	@Option(name = "-q", usage = "Quota. Hours. Create a folder full of charts every <quota> hours.", aliases = "--quota")
+	private static int quota = 0;
+
 	@Option(name = "-r", usage = "DPI resolution. Default 1000.", aliases = "--dpi")
 	private static int dpi = 1000;
 
@@ -32,6 +35,10 @@ public class main {
 
 	public static Pattern getPattern() {
 		return pattern;
+	}
+
+	public static int getQuota() {
+		return quota;
 	}
 
 	public static String getPath() {
@@ -64,11 +71,14 @@ public class main {
 			parser.parseArgument(args);
 		} catch (CmdLineException e) {
 			System.err.println(e.getMessage());
-			System.err
-					.println("java -cp \"../lib/*:\" main [options...] arguments...");
+			System.err.println("java -jar chart_scripts.jar arguments...");
 			parser.printUsage(System.err);
 			System.err.println();
 			return;
+		}
+
+		if (getQuota() > 0) {
+			path = filename + "_folder";
 		}
 
 		if (filter_mode != null || filter != null) {
@@ -97,7 +107,7 @@ public class main {
 			}
 		}
 
-		if (filename.equals("-")) {
+		if (!filename.equals("-")) {
 			System.out.println(filename);
 		} else {
 			System.out.println("Reading from STDIN");

@@ -25,6 +25,10 @@ public class Counter<X> {
 		return dictionary.size();
 	}
 
+	public void clear() {
+		dictionary.clear();
+	}
+
 	public void update(X[] keys) {
 
 		for (X s : keys) {
@@ -34,6 +38,7 @@ public class Counter<X> {
 			else
 				dictionary.put(s, 1);
 		}
+
 	}
 
 	public void update(X key) {
