@@ -789,7 +789,7 @@ void print_info(long elapsed){
 	fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
 	fprintf(stderr, "TRACE: %lld\n", get_trace_requests());
 
-	fflush(stderr);
+	sleep(1);
 
 	return;
 }
