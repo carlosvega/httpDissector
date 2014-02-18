@@ -36,7 +36,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.6";
+char version[32] = "Version 2.61";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -87,11 +87,12 @@ void sigintHandler(int sig){
 	if(options.interface == NULL && progress_bar){
 		pthread_join(progress, NULL);
 	}
-
 	
 	long elapsed = end.tv_sec - start.tv_sec;
 
 	print_info(elapsed);
+	fflush(stdout);
+	fflush(stderr);
 
 	if(options.interface != NULL){
 		exit(1);
