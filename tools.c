@@ -10,7 +10,6 @@ static unsigned long long total_requests = 0;
 
 void increment_total_requests(){
 	total_requests++;
-	fprintf(stderr, "%lld\n", total_requests);
 }
 
 unsigned long long get_total_requests(){
