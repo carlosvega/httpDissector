@@ -1,3 +1,5 @@
+double response_lost_ratio();
+
 //total requests
 void increment_total_requests();
 
