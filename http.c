@@ -213,14 +213,10 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 		return -1;
 	}
 	
-	// char *cadena = NULL;
-	// cadena = (char*) malloc(length+1 * sizeof(char));
 	memset(cadena, 0, CADENA_SIZE);
-	// if(cadena == NULL){
-	// 	return -1;
-	// }
 
-	strncpy(cadena, tcp_payload, length);
+	// strncpy(cadena, tcp_payload, length);
+	strncpy(cadena, tcp_payload, CADENA_SIZE);
 	http->has_host = 0;
 	if(http->op != RESPONSE){
 		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);

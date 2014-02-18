@@ -75,7 +75,7 @@ int main_process(char *format, char *filename);
 unsigned long remove_old_active_nodes(struct timespec last_packet);
 
 void sigintHandler(int sig){
-	// signal(SIGINT, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
 	struct timeval end;
 	gettimeofday(&end, NULL);
 
@@ -92,6 +92,10 @@ void sigintHandler(int sig){
 	long elapsed = end.tv_sec - start.tv_sec;
 
 	print_info(elapsed);
+
+	if(options.interface != NULL){
+		exit(1);
+	}
 
 	if(options.output != NULL){
 		fclose(output);
