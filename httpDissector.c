@@ -83,6 +83,8 @@ void sigintHandler(int sig){
 	
 	remove_old_active_nodes(last_packet);
 	running = 0;
+
+	fprintf(stderr, "HEY\n");
 	
 	if(options.interface == NULL && progress_bar){
 		pthread_join(progress, NULL);
