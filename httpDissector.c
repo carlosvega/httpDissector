@@ -83,8 +83,6 @@ void sigintHandler(int sig){
 	
 	remove_old_active_nodes(last_packet);
 	running = 0;
-
-	fprintf(stderr, "HEY\n");
 	
 	if(options.interface == NULL && progress_bar){
 		pthread_join(progress, NULL);
@@ -92,6 +90,7 @@ void sigintHandler(int sig){
 	
 	long elapsed = end.tv_sec - start.tv_sec;
 
+	fprintf(stderr, "HEY\n");
 	print_info(elapsed);
 	fflush(stdout);
 	fflush(stderr);
