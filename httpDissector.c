@@ -94,10 +94,6 @@ void sigintHandler(int sig){
 	fflush(stdout);
 	fflush(stderr);
 
-	if(options.interface != NULL){
-		exit(1);
-	}
-
 	if(options.output != NULL){
 		fclose(output);
 	}
@@ -118,9 +114,12 @@ void sigintHandler(int sig){
 	// FREE(filter);
 	// FREE(pktinfo);
 	// http_free_packet(&http);
-	freeConnectionPool();
-	freeNodelPool();
-	freeRequestPool();
+	if(options.interface == NULL){
+		freeConnectionPool();
+		freeNodelPool();
+		freeRequestPool();	
+	}
+	
 	// err_mqueue_close();
 	
 	exit(0);
