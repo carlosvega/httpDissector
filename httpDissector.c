@@ -785,7 +785,7 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
-	fprintf(stderr, "EY %lld - %lld\n", lost, get_total_requests());
+	fprintf(stderr, "EY %lld\n", get_total_requests());
 	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, get_total_requests() == 0 ? 0 : (((long double)lost) / get_total_requests())*100);
 	
 	if(elapsed != 0){
