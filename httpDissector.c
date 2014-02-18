@@ -789,7 +789,7 @@ void print_info(long elapsed){
 	
 	fprintf(stderr, "EY\n");
 	// fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
-	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\n\n", global_filename, packets, inserts);
+	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, (requests == 0 || lost == 0) ? 0 : (((long double)lost) / requests)*100);
 	
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
