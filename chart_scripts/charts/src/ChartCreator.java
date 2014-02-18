@@ -10,15 +10,25 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class ChartCreator {
 
-	private static String IP_CHART_FILENAME = "hits/ips.png";
-	private static String URL_CHART_FILENAME = "hits/urls.png";
-	private static String DOMAIN_CHART_FILENAME = "hits/domains.png";
-	private static String CCDF_CHART_FILENAME = "stats/ccdf.png";
-	private static String RESPONSE_CODES_CHART_DIR = "response_codes/";
+	private String IP_CHART_FILENAME = "hits/ips.png";
+	private String URL_CHART_FILENAME = "hits/urls.png";
+	private String DOMAIN_CHART_FILENAME = "hits/domains.png";
+	private String CCDF_CHART_FILENAME = "stats/ccdf.png";
+	private String RESPONSE_CODES_CHART_DIR = "response_codes/";
 
 	public ChartCreator() {
 		if (main.getPath() != null) {
 			String path = main.getPath();
+			IP_CHART_FILENAME = path + "/" + IP_CHART_FILENAME;
+			URL_CHART_FILENAME = path + "/" + URL_CHART_FILENAME;
+			DOMAIN_CHART_FILENAME = path + "/" + DOMAIN_CHART_FILENAME;
+			CCDF_CHART_FILENAME = path + "/" + CCDF_CHART_FILENAME;
+			RESPONSE_CODES_CHART_DIR = path + "/" + RESPONSE_CODES_CHART_DIR;
+		}
+	}
+
+	public ChartCreator(String path) {
+		if (path != null) {
 			IP_CHART_FILENAME = path + "/" + IP_CHART_FILENAME;
 			URL_CHART_FILENAME = path + "/" + URL_CHART_FILENAME;
 			DOMAIN_CHART_FILENAME = path + "/" + DOMAIN_CHART_FILENAME;
