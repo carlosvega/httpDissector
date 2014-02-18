@@ -47,7 +47,6 @@ unsigned long long parse_time = 0;
 unsigned long long insert_time = 0;
 unsigned long long inserts = 0;
 unsigned long long lost = 0;
-unsigned long long requests = 0;
 unsigned long transacctions = 0;
 
 char format[8] = {0};
@@ -787,8 +786,8 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
-	fprintf(stderr, "EY %lld - %lld\n", lost, requests);
-	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, requests == 0 ? 0 : (((long double)lost) / requests)*100);
+	fprintf(stderr, "EY %lld - %lld\n", lost, total_requests);
+	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, total_requests == 0 ? 0 : (((long double)lost) / total_requests)*100);
 	
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
