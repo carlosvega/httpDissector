@@ -6,31 +6,15 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t collector;
 pthread_t progress;
 
-//REQUEST STATS
-unsigned long long get_requests = 0;
-unsigned long long post_requests = 0;
-unsigned long long head_requests = 0;
-unsigned long long put_requests = 0;
-unsigned long long trace_requests = 0;
-unsigned long long delete_requests = 0;
-unsigned long long options_requests = 0;
-unsigned long long patch_requests = 0;
-
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
-unsigned long long active_requests = 0;
 
-unsigned long long total_connexions = 0;
-
-unsigned long long total_req_node = 0;
-unsigned long long total_out_of_order = 0;
 
 node_l static_node;
 node_l *nodel_aux;
 
 collision_list session_table[MAX_FLOWS_TABLE_SIZE] = { {0} };	//2^24
 
-unsigned long long no_cases = 0;
 packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
@@ -44,9 +28,6 @@ struct rusage* memory = NULL;
 
 unsigned long long parse_time = 0;
 unsigned long long insert_time = 0;
-unsigned long long inserts = 0;
-unsigned long long lost = 0;
-unsigned long transacctions = 0;
 
 char format[8] = {0};
 
@@ -250,7 +231,7 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
 	}
 	if(options.log){
 		syslog (LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ((int)(ratio*100)));
-		syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), get_total_requests(), active_requests, active_session_list_size, total_connexions, getGottenResponses());
+		syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), get_total_requests(), get_active_requests(), active_session_list_size, get_total_connexions(), getGottenResponses());
     	getrusage(RUSAGE_SELF, memory);
 		if(errno == EFAULT){
 		    syslog (LOG_NOTICE, "MEM Error: EFAULT\n");
@@ -456,7 +437,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 			
 			ERR_MSG("DEBUG/ error inserting GET\n");
 			
-			inserts--;
+			decrement_inserts();
 		}
 
 	}else if(pktinfo->request == 0){ //RESPONSE
@@ -468,13 +449,13 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 			
 			ERR_MSG("DEBUG/ error inserting RESP\n");
 			
-			inserts--;
+			decrement_inserts();
 		}
 	}
 	 
     gettimeofday(&t4, NULL);
     insert_time += ((t4.tv_usec - t3.tv_usec)  + ((t4.tv_sec - t3.tv_sec) * 1000000.0f));
-    inserts++;
+    increment_inserts();
 
 	ERR_MSG("DEBUG/ finish callback\n");
 	
@@ -786,7 +767,7 @@ int main_process(char *format, char *filename){
 void print_info(long elapsed){
 	
 	fprintf(stderr, "EY %lld\n", get_total_requests());
-	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, inserts, get_total_requests() == 0 ? 0 : (((long double)lost) / get_total_requests())*100);
+	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\nResponse lost ratio (Requests without response): %Lf%%\n", global_filename, packets, get_inserts(), get_total_requests() == 0 ? 0 : (((long double)get_lost()) / get_total_requests())*100);
 	
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
@@ -795,18 +776,18 @@ void print_info(long elapsed){
 		}
 	}
 
-	fprintf(stderr, "RESPONSES OUT OF ORDER: %lld\n", total_out_of_order);
-	fprintf(stderr, "RESPONSES WITHOUT REQUEST: %lld\n", lost);
+	fprintf(stderr, "RESPONSES OUT OF ORDER: %lld\n", get_total_out_of_order());
+	fprintf(stderr, "RESPONSES WITHOUT REQUEST: %lld\n", get_lost());
 
 	fprintf(stderr, "\nREQUEST STATS\n");
-	fprintf(stderr, "GET: %lld\n", get_requests);
-	fprintf(stderr, "POST: %lld\n", post_requests);
-	fprintf(stderr, "HEAD: %lld\n", head_requests);
-	fprintf(stderr, "PATCH: %lld\n", patch_requests);
-	fprintf(stderr, "PUT: %lld\n", put_requests);
-	fprintf(stderr, "DELETE: %lld\n", delete_requests);
-	fprintf(stderr, "OPTIONS: %lld\n", options_requests);
-	fprintf(stderr, "TRACE: %lld\n", trace_requests);
+	fprintf(stderr, "GET: %lld\n", get_get_requests());
+	fprintf(stderr, "POST: %lld\n", get_post_requests());
+	fprintf(stderr, "HEAD: %lld\n", get_head_requests());
+	fprintf(stderr, "PATCH: %lld\n", get_patch_requests());
+	fprintf(stderr, "PUT: %lld\n", get_put_requests());
+	fprintf(stderr, "DELETE: %lld\n", get_delete_requests());
+	fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
+	fprintf(stderr, "TRACE: %lld\n", get_trace_requests());
 
 	fflush(stderr);
 

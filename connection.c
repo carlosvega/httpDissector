@@ -1,15 +1,5 @@
 #include "connection.h"
 
-//REQUEST STATS
-extern unsigned long long get_requests;
-extern unsigned long long post_requests;
-extern unsigned long long head_requests;
-extern unsigned long long put_requests;
-extern unsigned long long trace_requests;
-extern unsigned long long delete_requests;
-extern unsigned long long options_requests;
-extern unsigned long long patch_requests;
-
 extern struct msgbuf sbuf;
 extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24
 extern node_l *active_session_list;
@@ -17,12 +7,6 @@ extern uint32_t active_session_list_size;
 extern struct timespec last_packet;
 
 extern uint64_t last_packet_timestamp;
-extern unsigned long long no_cases;
-extern unsigned long long active_requests;
-extern unsigned long long total_connexions;
-extern unsigned long long lost;
-extern unsigned long long total_req_node;
-extern unsigned long long total_out_of_order;
 
 extern FILE *output;
 
@@ -39,28 +23,28 @@ connection aux_conn;
 void increment_request_counter(http_op h){
 switch(h){
         case HEAD:
-            head_requests++;
+            increment_head_requests();
             return;
         case GET:
-            get_requests++;
+            increment_get_requests();
             return;
         case POST:
-            post_requests++;
+            increment_post_requests();
             return;
         case PUT:
-            put_requests++;
+            increment_put_requests();
             return;
         case DELETE:
-            delete_requests++;
+            increment_delete_requests();
             return;
         case TRACE:
-            trace_requests++;
+            increment_trace_requests();
             return;
         case OPTIONS:
-            options_requests++;
+            increment_options_requests();
             return;
         case PATCH:
-            patch_requests++;
+            increment_patch_requests();
             return;
         default:
             return;
@@ -77,7 +61,7 @@ void removeRequestFromConnection(connection *conn, node_l *req_node){
     req->aux_res = NULL;
     releaseRequest(req);                            //Devolver request al pool de requests
     conn->n_request--;
-    active_requests--;
+    decrement_active_requests();
 
     return;
 }
@@ -255,8 +239,7 @@ void addRequestToConnexion(connection *conn, packet_info *aux_packet){
     conn->n_request++;
     conn->last_ts = aux_packet->ts;                 //Actualizar last timestamp
 
-    active_requests++;
-    // total_requests++;
+    increment_active_requests();
     increment_total_requests();
 
 }
@@ -342,7 +325,7 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
     int position = -1;
     node_l *req_node = request_search(conn->list, aux_packet->tcp->th_seq, &position);
     if(req_node == NULL){
-        total_req_node++;
+        increment_total_req_node();
         return -1;
     }
 
@@ -352,7 +335,7 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
         printTransaction(conn, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);   
     }else{
         printTransaction(conn, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);   
-        total_out_of_order++;
+        increment_total_out_of_order();
     }
 
     conn->last_ts = aux_packet->ts;     //Actualizar last timestamp
@@ -370,7 +353,7 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     node_l *naux = NULL;
 
     if(aux_packet->op == RESPONSE){         //Response sin request
-        lost++;
+        increment_lost();
         return -1;
     }
 
@@ -390,7 +373,7 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     
     session_table[index].n++;
 
-    total_connexions++;
+    increment_total_connexions();
 
     addActiveConnexion(conn);
 
@@ -453,7 +436,7 @@ int insertPacket (packet_info *aux_packet){
 
         //OTRO CASO NO ESPERADO
         }else{ //Anadir mas casos 
-            no_cases++;
+            increment_no_cases();
             return -1;
         }
     }
