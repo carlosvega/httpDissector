@@ -1,5 +1,5 @@
-#ifndef _hope
-#define _hope
+#ifndef _httpDissector
+#define _httpDissector
 
 #include <assert.h>
 #include "counters.h"
@@ -43,7 +43,7 @@ typedef struct {
 } colisiones;
 
 static unsigned long packets = 0;
-struct timeval start; 
+struct timeval start;
 static int running = 0;
 NDLTdata_t *ndldata = NULL;
 unsigned int nFiles = 0;

@@ -1,3 +1,6 @@
+#ifndef _counters
+#define _counters
+
 double response_lost_ratio();
 
 //total requests
@@ -90,3 +93,5 @@ unsigned long long get_get_requests();
 void increment_post_requests();
 
 unsigned long long get_post_requests();
+
+#endif

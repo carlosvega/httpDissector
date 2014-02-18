@@ -13,7 +13,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
   fprintf(stderr, "\t    --log\t\t\tWrites more debug stuff in the log (httpDissector)\n");
   fprintf(stderr, "\t-o  --output=<file>\t\tOutput file instead of stdout.\n");
-  fprintf(stderr, "\t    --gc-output=<file>\t\tOutput file for the garbage collector. Prints the requests without responses.\n");
+  fprintf(stderr, "\t    --gc-output=<file>\t\tOutput file for the garbage collector. Writes the requests without responses in the given file.\n");
   fprintf(stderr, "\t-p  --pcap\t\t\tSets the input file format as pcap. (Set by Default)\n");
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
@@ -21,6 +21,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
+  fprintf(stderr, "\t-x  --index=<file>\t\t\tCreate index file. Writes an index in the given file. An entry every 5 minutes of traffic.\n");
 
 
   fprintf(stderr, "\t\t\t\tOUTPUT FORMAT DETAILS\n");
@@ -65,13 +66,14 @@ struct args_parse parse_args(int argc, char **argv){
   options.verbose     = 0;
   options.version     = 0;
   options.sorted      = 0;
+  options.index       = NULL;
 
   strcpy(options.errbuf, "Invalid arguments");
 
 	int next_op;
 
 	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "D:hrIvpf:i:o:u:H:c:" ;
+	const char* const short_op = "D:hrIvpf:i:o:u:H:c:x:" ;
 
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
@@ -81,6 +83,7 @@ struct args_parse parse_args(int argc, char **argv){
 		{ "output",         1,  NULL,   'o'},
 		{ "raw",		        0, 	NULL, 	'r'},
     { "gc-output",      1,  NULL,   'O'},
+    { "index",          1,  NULL,   'x'},
     { "no-collector",   0,  NULL,   'C'},
     { "sorted",         0,  NULL,   'S'},
     { "log",            0,  NULL,   'L'},
@@ -117,6 +120,10 @@ struct args_parse parse_args(int argc, char **argv){
         case 'i' : /* -i o --input */
           options.input = optarg;
           options.err = 0;
+          break;
+          
+        case 'x' :
+          options.index = optarg;
           break;
 
         case 'R' : /* -rrd */

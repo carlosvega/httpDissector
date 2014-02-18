@@ -45,6 +45,7 @@ char new_filename[256] = {0};
 
 FILE *output = NULL;
 FILE *gcoutput = NULL;
+FILE *index_file = NULL;
 
 //HTTP
 http_packet http = NULL;
@@ -529,6 +530,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
 		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Debug: %d\n", options.debug);
+		fprintf(stderr, "DEBUG/ Index: %s\n", options.index);
 		fprintf(stderr, "DEBUG/ Filter: %s\n", filter);
 		fprintf(stderr, "\n");
 	}
@@ -548,6 +550,15 @@ int main(int argc, char *argv[]){
 		gcoutput = fopen(options.gcoutput, "w");
 		if(output == NULL){
 			fprintf(stderr, "ERROR TRYING TO OPEN THE GC-OUTPUT FILE\n");
+			FREE(filter);
+			return -8;
+		}
+	}
+
+	if(options.index != NULL){
+		index_file = fopen(options.index, "w");
+		if(index_file == NULL){
+			fprintf(stderr, "ERROR TRYING TO OPEN THE INDEX FILE\n");
 			FREE(filter);
 			return -8;
 		}
