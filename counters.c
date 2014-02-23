@@ -15,7 +15,9 @@ static unsigned long long total_connexions = 0;
 static unsigned long long total_req_node = 0;
 static unsigned long long total_out_of_order = 0;
 
+static unsigned long long total_removed_requests = 0;
 static unsigned long long total_requests = 0;
+static unsigned long long total_responses = 0;
 
 static unsigned long long no_cases = 0;
 
@@ -23,18 +25,37 @@ static unsigned long long lost = 0;
 static unsigned long transactions = 0;
 static unsigned long long inserts = 0;
 
- double response_lost_ratio(){
-	if(lost == 0 || total_requests == 0){
+double get_responses_without_request_ratio(){
+	if(lost == 0 || total_responses == 0){
 		return 0;
 	}
 
 	long double a = lost;
-	long double b = total_requests;
+	long double b = total_responses;
 
-	return ((double) (a/b)*100);
+	return ((double) (a/(a+b))*100);
 }
 
-//total requests
+double get_requests_without_response_lost_ratio(){
+	if(total_removed_requests == 0 || total_requests == 0){
+		return 0;
+	}
+
+	long double a = total_removed_requests;
+	long double b = total_requests;
+
+	return ((double) (a/(a+b))*100);
+}
+
+void increment_total_removed_requests(unsigned long add){
+	total_removed_requests+=add;
+}
+
+unsigned long long get_total_removed_requests(){
+	return total_removed_requests;
+}
+
+//increment requests
 void increment_total_requests(){
 	total_requests++;
 }
@@ -43,7 +64,17 @@ unsigned long long get_total_requests(){
 	return total_requests;
 }
 
-//total connexions
+//increment responses
+void increment_total_responses(){
+	total_responses++;
+}
+
+//total responses
+unsigned long long get_total_responses(){
+	return total_responses;
+}
+
+//increment connexions
 void increment_total_connexions(){
 	total_connexions++;
 }

@@ -32,6 +32,8 @@ public class DataParser {
 		ips_heap.addAll(ips.getDictionary().entrySet());
 
 		chartCreator.ip_chart(ips_heap);
+		ips_heap.clear();
+		ips_heap = null;
 	}
 
 	public void parse_url_hits(Counter<String> urls) {
@@ -42,6 +44,8 @@ public class DataParser {
 		urls_heap.addAll(urls.getDictionary().entrySet());
 
 		chartCreator.url_chart(urls_heap);
+		urls_heap.clear();
+		urls_heap = null;
 	}
 
 	public void parse_domain_hits(Counter<String> domains) {
@@ -52,6 +56,8 @@ public class DataParser {
 		domains_heap.addAll(domains.getDictionary().entrySet());
 
 		chartCreator.domains_chart(domains_heap);
+		domains_heap.clear();
+		domains_heap = null;
 	}
 
 	/**
@@ -66,13 +72,10 @@ public class DataParser {
 		PriorityQueue<Entry<Integer, Integer>> response_times_heap = new PriorityQueue<Map.Entry<Integer, Integer>>(
 				20, comparator);
 		response_times_heap.addAll(response_times.getDictionary().entrySet());
-		// for (Map.Entry<Integer, Integer> entry :
-		// response_times.getDictionary()
-		// .entrySet()) {
-		// response_times_heap.add(entry);
-		// }
 
 		chartCreator.response_times_chart(response_times_heap, sample_size);
+		response_times_heap.clear();
+		response_times_heap = null;
 
 	}
 
@@ -95,6 +98,9 @@ public class DataParser {
 		}
 
 		chartCreator.response_codes_chart(codes_heap, code_counters_heaps);
+
+		codes_heap.clear();
+		codes_heap = null;
 
 	}
 }

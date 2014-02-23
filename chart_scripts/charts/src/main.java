@@ -31,6 +31,15 @@ public class main {
 	@Option(name = "-f", usage = "Filter.", aliases = "--filter")
 	private static String filter = null;
 
+	@Option(name = "-x", usage = "Index. Reads index from given file", aliases = "--index")
+	private static String index = null;
+
+	@Option(name = "-F", usage = "Process file from given timestamp in seconds.", aliases = "--from")
+	private static long from = 0;
+
+	@Option(name = "-T", usage = "Process file up to the given timestamp in seconds.", aliases = "--to")
+	private static long until = 0;
+
 	private static Pattern pattern = null;
 
 	public static Pattern getPattern() {
@@ -51,6 +60,18 @@ public class main {
 
 	public static String getFilter() {
 		return filter;
+	}
+
+	public static long getFrom() {
+		return from;
+	}
+
+	public static long getUntil() {
+		return until;
+	}
+
+	public static String getIndex() {
+		return index;
 	}
 
 	public static int getFilterMode() {
@@ -115,7 +136,12 @@ public class main {
 
 		FileParser fileParser = new FileParser(filename);
 		fileParser.createDirectories();
-		fileParser.parseFile();
+
+		if (index != null && (from != 0 || until != 0)) {
+			fileParser.parseFileStartingAtByte(from, until);
+		} else {
+			fileParser.parseFile();
+		}
 
 	}
 }

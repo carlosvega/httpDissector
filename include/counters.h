@@ -1,7 +1,16 @@
 #ifndef _counters
 #define _counters
 
-double response_lost_ratio();
+void increment_total_removed_requests(unsigned long add);
+
+unsigned long long get_total_removed_requests();
+
+void increment_total_responses();
+
+double get_requests_without_response_lost_ratio();
+double get_responses_without_request_ratio();
+
+unsigned long long get_total_responses();
 
 //total requests
 void increment_total_requests();
