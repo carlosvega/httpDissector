@@ -7,17 +7,23 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.concurrent.Semaphore;
 
 public class FileParser {
 
+	private final DateFormat df = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 	private Semaphore semaphore = new Semaphore(1);
 	private String filename = null;
 	private String path = null;
 	private String[] dirs = { "hits", "response_codes", "stats" };
 	private int dir_counter = -1;
+	private TreeMap<Long, Long> index;
 
 	// RESPONSE CODES
 	private Counter<Integer> codes = new Counter<Integer>();
@@ -103,30 +109,107 @@ public class FileParser {
 		return true;
 	}
 
-	public long parseFileStartingAtByte(long start) {
+	public void loadIndex() {
+		BufferedReader br = null;
+		FileReader f = null;
+		String line = null;
+		try {
+			f = new FileReader(main.getIndex());
+			br = new BufferedReader(f, 1024 * 1024);
+			index = new TreeMap<Long, Long>();
+			while ((line = br.readLine()) != null) {
+				String[] split_line = line.split(" ");
+				index.put(Long.parseLong(split_line[0]),
+						Long.parseLong(split_line[1]));
+			}
+		} catch (FileNotFoundException e) {
+			System.err.println("File Not Found\n");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public Long getClosestKeyFromIndex(long k, boolean from) {
+
+		boolean key;
+		Long firstKey = index.firstKey();
+		Long lastKey = index.lastKey();
+
+		if (k < firstKey || k > lastKey) {
+			return null;
+		}
+
+		key = index.containsKey(k);
+		if (key == false) {
+
+			if (from) {
+				return index.lowerKey(k);
+			} else {
+				return index.higherKey(k);
+			}
+
+		}
+
+		return k;
+
+	}
+
+	public long parseFileStartingAtByte(long start, long end) {
+		loadIndex();
+
+		Long startKey = getClosestKeyFromIndex(start, true);
+		Long endKey = getClosestKeyFromIndex(end, false);
+
+		if (startKey == null || endKey == null || startKey == endKey
+				|| start == end) {
+			System.err.println("Error in the provided timestamps.");
+			System.err.println("\nThe first entry in the index is:\n\t"
+					+ index.firstKey() + " => "
+					+ df.format(new Date(index.firstKey() * 1000)));
+			System.err.println("\nAnd the last one is:\n\t" + index.lastKey()
+					+ " => " + df.format(new Date(index.lastKey() * 1000)));
+			System.err
+					.println("\nPlease, provide a timestamp in a range between this two.");
+			return -1;
+		}
+
+		Long startByte = index.get(startKey);
+		Long endByte = index.get(endKey);
+
+		Date startDate = new Date(startKey * 1000);
+		Date endDate = new Date(endKey * 1000);
+
+		System.err.println("Processing file from " + df.format(startDate)
+				+ " to " + df.format(endDate));
+
 		byte[] buffer = new byte[512];
 		int nRead = 0;
 		long total = 0L;
 		StringBuffer sBuffer = new StringBuffer(2048);
 		String line = null;
 		RandomAccessFile rfile = null;
+		int lastTimestamp = 0;
 		try {
 			rfile = new RandomAccessFile(filename, "r");
-			rfile.seek(start);
-			System.out.println("Reading starting at byte: "
-					+ rfile.getFilePointer());
+			rfile.seek(startByte);
 
-			while ((nRead = rfile.read(buffer)) != -1) {
+			readingLoop: while ((nRead = rfile.read(buffer)) != -1) {
 				semaphore.acquire();
 				sBuffer.append(new String(buffer));
 				String[] lines = sBuffer.toString().split("\n");
 				for (int i = 0; i < lines.length - 1; i++) {
 					line = lines[i];
-					parseLine(line);
+					lastTimestamp = parseLine(line);
+					if (lastTimestamp >= endKey) {
+						break readingLoop;
+					}
 				}
 				sBuffer = new StringBuffer(lines[lines.length - 1]);
-				total += nRead;
 				buffer = new byte[512];
+				total += nRead;
+
 				semaphore.release();
 			}
 
@@ -144,18 +227,18 @@ public class FileParser {
 			e.printStackTrace();
 		}
 
-		System.err.println("Fichero Leido");
+		System.err.println("File has been read.");
 		parseQuota();
 
 		return total;
 	}
 
-	public void parseLine(String line) {
+	public int parseLine(String line) {
 		// SPLIT LINE
 		String[] splitted_line = line.split("\\|", 12);
 
 		if (splitted_line.length != 12) {
-			return;
+			return -1;
 		}
 
 		String url = splitted_line[10] + splitted_line[11];
@@ -163,30 +246,19 @@ public class FileParser {
 		if (main.getFilterMode() == 1) {
 			// IP
 			if (!main.getPattern().matcher(splitted_line[2]).find()) {
-				return;
+				return -2;
 			}
 		} else if (main.getFilterMode() == 2) {
 			// URL
 			if (!main.getPattern().matcher(url).find()) {
-				return;
+				return -3;
 			}
 		} else if (main.getFilterMode() == 3) {
 			// DOMAIN
 			if (!main.getPattern().matcher(splitted_line[10]).find()) {
-				return;
+				return -4;
 			}
 		}
-
-		// if (line_counter == main.getQuota()) {
-		// parseQuota();
-		// line_counter = 0;
-		// ips.clear();
-		// urls.clear();
-		// domains.clear();
-		// codes.clear();
-		// code_counters.clear();
-		// createDirectories();
-		// }
 
 		InetAddress ip;
 		try {
@@ -194,7 +266,7 @@ public class FileParser {
 		} catch (UnknownHostException e) {
 			System.err.println("Error en el formato de la ip: "
 					+ splitted_line[2]);
-			return;
+			return -5;
 		}
 
 		// RESPONSE CODES
@@ -218,6 +290,8 @@ public class FileParser {
 			max_response_time = r;
 		}
 		line_counter++;
+
+		return (int) Double.parseDouble(splitted_line[4]);
 
 	}
 
@@ -297,6 +371,7 @@ public class FileParser {
 		domains.clear();
 		codes.clear();
 		code_counters.clear();
+		parser = null;
 		System.gc();
 
 	}

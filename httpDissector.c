@@ -180,6 +180,7 @@ void *recolector_de_basura(){
             ERR_MSG("DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
         }
 	 	unsigned long removed = remove_old_active_nodes(last_packet);
+	 	increment_total_removed_requests(removed);
         if (options.verbose)
         {
             ERR_MSG("DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
@@ -779,17 +780,17 @@ void print_info(long elapsed){
 	
 	setvbuf(stderr, NULL, _IONBF, 0);
 	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\n", global_filename, packets, get_inserts());
-	fprintf(stderr, "Response lost ratio (Requests without response): %f%%\n", response_lost_ratio());
 	
 	if(elapsed != 0){
 		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		if(options.log){
 			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
 		}
-	}
+	}	
 
-	fprintf(stderr, "RESPONSES OUT OF ORDER: %lld\n", get_total_out_of_order());
-	fprintf(stderr, "RESPONSES WITHOUT REQUEST: %lld\n", get_lost());
+	fprintf(stderr, "\nResponses: %lld\n", get_total_responses());
+	fprintf(stderr, "Responses without request: %f%% (%lld)\n", get_responses_without_request_ratio(), get_lost());
+	fprintf(stderr, "Responses out of order: %lld\n", get_total_out_of_order());
 
 	fprintf(stderr, "\nREQUEST STATS\n");
 	fprintf(stderr, "GET: %lld\n", get_get_requests());
@@ -799,7 +800,9 @@ void print_info(long elapsed){
 	fprintf(stderr, "PUT: %lld\n", get_put_requests());
 	fprintf(stderr, "DELETE: %lld\n", get_delete_requests());
 	fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
-	fprintf(stderr, "TRACE: %lld\n", get_trace_requests());
+	fprintf(stderr, "TRACE: %lld\n\n", get_trace_requests());
+	fprintf(stderr, "TOTAL: %lld\n", get_total_requests());
+	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_removed_requests());
 
 	return;
 }

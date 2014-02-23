@@ -274,6 +274,7 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 
     conn->n_response--;
     removeRequestFromConnection(conn, req_node);
+    increment_total_responses();
 }
 
 void cleanUpConnection(connection *conn, FILE *gcoutput){
