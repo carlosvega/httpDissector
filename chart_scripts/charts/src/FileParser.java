@@ -109,6 +109,10 @@ public class FileParser {
 		return true;
 	}
 
+	public TreeMap<Long, Long> getIndex() {
+		return index;
+	}
+
 	public void loadIndex() {
 		BufferedReader br = null;
 		FileReader f = null;
@@ -158,11 +162,26 @@ public class FileParser {
 
 	public long parseFileStartingAtByte(long start, long end) {
 		loadIndex();
-
 		Long startKey = getClosestKeyFromIndex(start, true);
-		Long endKey = getClosestKeyFromIndex(end, false);
+		Long endKey = null;
+		if (end > 0) {
+			endKey = getClosestKeyFromIndex(end, false);
+		}
 
-		if (startKey == null || endKey == null || startKey == endKey
+		if (end == -1L) {
+			if (startKey == null) {
+				System.err.println("Error in the provided timestamps.");
+				System.err.println("\nThe first entry in the index is:\n\t"
+						+ index.firstKey() + " => "
+						+ df.format(new Date(index.firstKey() * 1000)));
+				System.err.println("\nAnd the last one is:\n\t"
+						+ index.lastKey() + " => "
+						+ df.format(new Date(index.lastKey() * 1000)));
+				System.err
+						.println("\nPlease, provide a timestamp in a range between this two.");
+				return -1;
+			}
+		} else if (startKey == null || endKey == null || startKey == endKey
 				|| start == end) {
 			System.err.println("Error in the provided timestamps.");
 			System.err.println("\nThe first entry in the index is:\n\t"
@@ -176,13 +195,14 @@ public class FileParser {
 		}
 
 		Long startByte = index.get(startKey);
-		Long endByte = index.get(endKey);
 
 		Date startDate = new Date(startKey * 1000);
-		Date endDate = new Date(endKey * 1000);
-
-		System.err.println("Processing file from " + df.format(startDate)
-				+ " to " + df.format(endDate));
+		Date endDate = null;
+		if (end != -1L) {
+			endDate = new Date(endKey * 1000);
+			System.err.println("Processing file from " + df.format(startDate)
+					+ " to " + df.format(endDate));
+		}
 
 		byte[] buffer = new byte[512];
 		int nRead = 0;
@@ -202,7 +222,7 @@ public class FileParser {
 				for (int i = 0; i < lines.length - 1; i++) {
 					line = lines[i];
 					lastTimestamp = parseLine(line);
-					if (lastTimestamp >= endKey) {
+					if (endKey != null && lastTimestamp >= endKey) {
 						break readingLoop;
 					}
 				}
@@ -301,6 +321,7 @@ public class FileParser {
 
 		Thread thread = null;
 		BufferedReader br = null;
+		String line = "";
 		try {
 			FileReader f = null;
 
@@ -311,7 +332,6 @@ public class FileParser {
 				f = new FileReader(this.filename);
 				br = new BufferedReader(f, 1024 * 1024);
 			}
-			String line = "";
 
 			if (main.getQuota() > 0) {
 				thread = new Thread(thread_task);

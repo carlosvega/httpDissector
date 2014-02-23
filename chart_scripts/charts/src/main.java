@@ -35,10 +35,10 @@ public class main {
 	private static String index = null;
 
 	@Option(name = "-F", usage = "Process file from given timestamp in seconds.", aliases = "--from")
-	private static long from = 0;
+	private static Long from = 0L;
 
 	@Option(name = "-T", usage = "Process file up to the given timestamp in seconds.", aliases = "--to")
-	private static long until = 0;
+	private static Long to = 0L;
 
 	private static Pattern pattern = null;
 
@@ -60,14 +60,6 @@ public class main {
 
 	public static String getFilter() {
 		return filter;
-	}
-
-	public static long getFrom() {
-		return from;
-	}
-
-	public static long getUntil() {
-		return until;
 	}
 
 	public static String getIndex() {
@@ -137,8 +129,20 @@ public class main {
 		FileParser fileParser = new FileParser(filename);
 		fileParser.createDirectories();
 
-		if (index != null && (from != 0 || until != 0)) {
-			fileParser.parseFileStartingAtByte(from, until);
+		if (index != null) {
+			if (from == 0 && to == 0) {
+				fileParser.parseFile();
+				return;
+			}
+
+			fileParser.loadIndex();
+			if (from == 0) {
+				from = fileParser.getIndex().firstKey();
+			}
+			if (to == 0) {
+				to = -1L;
+			}
+			fileParser.parseFileStartingAtByte(from, to);
 		} else {
 			fileParser.parseFile();
 		}
