@@ -21,7 +21,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n\n");
-  fprintf(stderr, "\t-x  --index=<file>\t\t\tCreate index file. Writes an index in the given file. An entry every 5 minutes of traffic.\n");
+  fprintf(stderr, "\t-x  --index=<file>\t\tCreate index file. Writes an index in the given file. An entry every 5 minutes of traffic.\n");
 
 
   fprintf(stderr, "\t\t\t\tOUTPUT FORMAT DETAILS\n");

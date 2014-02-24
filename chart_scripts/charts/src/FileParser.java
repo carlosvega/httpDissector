@@ -260,8 +260,19 @@ public class FileParser {
 		if (splitted_line.length != 12) {
 			return -1;
 		}
+		String url = null;
+		if (main.getNoHostNames()) {
+			url = splitted_line[2] + splitted_line[11];
+		} else {
+			url = splitted_line[10] + splitted_line[11];
+		}
 
-		String url = splitted_line[10] + splitted_line[11];
+		if (main.getChomp_URL()) {
+			int pos = url.indexOf('?');
+			if (pos != -1) {
+				url = url.substring(0, pos);
+			}
+		}
 
 		if (main.getFilterMode() == 1) {
 			// IP

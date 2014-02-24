@@ -40,10 +40,24 @@ public class main {
 	@Option(name = "-T", usage = "Process file up to the given timestamp in seconds.", aliases = "--to")
 	private static Long to = 0L;
 
+	@Option(name = "-U", usage = "Removes paramters in the URLs.", aliases = "--chomp-urls")
+	private static boolean chomp_url = false;
+
+	@Option(name = "-H", usage = "Replaces the hostnames in the URLs by its IPs.", aliases = "--no-hostnames")
+	private static boolean no_host_names = false;
+
 	private static Pattern pattern = null;
 
 	public static Pattern getPattern() {
 		return pattern;
+	}
+
+	public static boolean getChomp_URL() {
+		return chomp_url;
+	}
+
+	public static boolean getNoHostNames() {
+		return no_host_names;
 	}
 
 	public static int getQuota() {
