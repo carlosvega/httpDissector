@@ -42,7 +42,7 @@ public class ChartCreator {
 		System.err.println("Creating hits by IP chart...");
 		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-		for (int i = 0; i < main.getTop() || ips.isEmpty(); i++) {
+		for (int i = 0; i < main.getTop() && !ips.isEmpty(); i++) {
 			Entry<InetAddress, Integer> entry = ips.poll();
 			dataset.setValue((Number) entry.getValue(), 1, entry.getKey()
 					.getHostAddress());
@@ -59,7 +59,7 @@ public class ChartCreator {
 		System.err.println("Creating hits by URL chart...");
 		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 		String[] url_names = new String[main.getTop()];
-		for (Integer i = 0; i < main.getTop() || urls.isEmpty(); i++) {
+		for (Integer i = 0; i < main.getTop() && !urls.isEmpty(); i++) {
 			Entry<String, Integer> entry = urls.poll();
 			dataset.setValue((Number) entry.getValue(), 1, i.toString());
 			url_names[i] = entry.getKey();
@@ -75,7 +75,7 @@ public class ChartCreator {
 	public void domains_chart(PriorityQueue<Entry<String, Integer>> domains) {
 		System.err.println("Creating hits by Domain chart...");
 		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-		for (Integer i = 0; i < main.getTop() || domains.isEmpty(); i++) {
+		for (Integer i = 0; i < main.getTop() && !domains.isEmpty(); i++) {
 			Entry<String, Integer> entry = domains.poll();
 			dataset.setValue((Number) entry.getValue(), 1, entry.getKey());
 		}
