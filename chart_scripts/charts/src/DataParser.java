@@ -24,6 +24,18 @@ public class DataParser {
 		comparatorIP = new CounterComparator<InetAddress>();
 	}
 
+	public void parse_flowprocess_conections(Counter<Integer> conections_per_sec) {
+		// ORDER SECS
+		CounterComparatorByKey<Integer> comparator = new CounterComparatorByKey<Integer>();
+		PriorityQueue<Entry<Integer, Integer>> secs_heap = new PriorityQueue<Map.Entry<Integer, Integer>>(
+				conections_per_sec.size(), comparator);
+		secs_heap.addAll(conections_per_sec.getDictionary().entrySet());
+
+		chartCreator.flowprocess_chart(secs_heap);
+		secs_heap.clear();
+		secs_heap = null;
+	}
+
 	public void parse_ip_hits(Counter<InetAddress> ips) {
 
 		// ORDER IPS
