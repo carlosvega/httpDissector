@@ -6,6 +6,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
@@ -18,10 +22,13 @@ import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.category.StandardBarPainter;
+import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.title.LegendTitle;
 import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.HorizontalAlignment;
 import org.jfree.ui.RectangleEdge;
@@ -111,6 +118,33 @@ public class CustomChart {
 		renderer.setBaseItemLabelGenerator(new StandardCategoryItemLabelGenerator());
 		renderer.setBaseItemLabelsVisible(true);
 		this.chart.getCategoryPlot().setRenderer(renderer);
+
+	}
+
+	public void FlowprocessChart(XYDataset dataset, long from, long to,
+			double last_number) {
+
+		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss dd/MMM/yyyy",
+				Locale.ENGLISH);
+		sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+		String x_axis_label = "From: " + sdf.format(new Date(from))
+				+ "       To: " + sdf.format(new Date(to));
+
+		this.chart = ChartFactory.createTimeSeriesChart(this.title, // title
+				x_axis_label, // x-axis label
+				this.y_axis_label, // y-axis label
+				dataset, // data
+				false, // create legend?
+				false, // generate tooltips?
+				false // generate URLs?
+				);
+
+		XYPlot plot = (XYPlot) chart.getPlot();
+		XYItemRenderer r = plot.getRenderer();
+
+		// LogarithmicAxis hla = new LogarithmicAxis(this.y_axis_label);
+		// hla.setRange(1, Math.pow(10, Math.log10(last_number) + 1));
+		// this.chart.getXYPlot().setRangeAxis(hla);
 
 	}
 

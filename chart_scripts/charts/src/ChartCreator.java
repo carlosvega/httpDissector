@@ -1,10 +1,16 @@
 import java.net.InetAddress;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.TimeZone;
 
 import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.time.Second;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -15,6 +21,7 @@ public class ChartCreator {
 	private String DOMAIN_CHART_FILENAME = "hits/domains.png";
 	private String CCDF_CHART_FILENAME = "stats/ccdf.png";
 	private String RESPONSE_CODES_CHART_DIR = "response_codes/";
+	private String FLOWPROCESS_CHART_FILENAME = "flowprocess_chart.png";
 
 	public ChartCreator() {
 		if (main.getPath() != null) {
@@ -24,6 +31,8 @@ public class ChartCreator {
 			DOMAIN_CHART_FILENAME = path + "/" + DOMAIN_CHART_FILENAME;
 			CCDF_CHART_FILENAME = path + "/" + CCDF_CHART_FILENAME;
 			RESPONSE_CODES_CHART_DIR = path + "/" + RESPONSE_CODES_CHART_DIR;
+			FLOWPROCESS_CHART_FILENAME = path + "/"
+					+ FLOWPROCESS_CHART_FILENAME;
 		}
 	}
 
@@ -34,6 +43,8 @@ public class ChartCreator {
 			DOMAIN_CHART_FILENAME = path + "/" + DOMAIN_CHART_FILENAME;
 			CCDF_CHART_FILENAME = path + "/" + CCDF_CHART_FILENAME;
 			RESPONSE_CODES_CHART_DIR = path + "/" + RESPONSE_CODES_CHART_DIR;
+			FLOWPROCESS_CHART_FILENAME = path + "/"
+					+ FLOWPROCESS_CHART_FILENAME;
 		}
 	}
 
@@ -113,6 +124,37 @@ public class ChartCreator {
 		CustomChart chart = new CustomChart("CCDF", "Response Time (ms)", "",
 				CCDF_CHART_FILENAME, 2048, 1536, 800, 600);
 		chart.CCDFChart(dataset, number);
+		chart.saveChart(1000);
+
+	}
+
+	public void flowprocess_chart(
+			PriorityQueue<Entry<Integer, Integer>> secs_heap) {
+
+		System.err.println("Creating Flowprocess chart...");
+		TimeSeries s1 = new TimeSeries("Connections per Second");
+		TimeSeriesCollection dataset = new TimeSeriesCollection();
+
+		Long from = null;
+		long milisecs = 0;
+		Entry<Integer, Integer> entry = null;
+		while (!secs_heap.isEmpty()) {
+			entry = secs_heap.poll();
+			milisecs = ((long) entry.getKey()) * 1000;
+
+			s1.add(new Second(new Date(milisecs), TimeZone.getTimeZone("UTC"),
+					Locale.ENGLISH), (Number) entry.getValue());
+			if (from == null) {
+				from = milisecs;
+			}
+		}
+
+		CustomChart chart = new CustomChart("Connections per Second",
+				"Seconds", "Number of Connections", FLOWPROCESS_CHART_FILENAME,
+				2048, 1536);
+
+		dataset.addSeries(s1);
+		chart.FlowprocessChart(dataset, from, milisecs, entry.getValue());
 		chart.saveChart(1000);
 
 	}

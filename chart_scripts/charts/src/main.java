@@ -31,6 +31,9 @@ public class main {
 	@Option(name = "-f", usage = "Filter.", aliases = "--filter")
 	private static String filter = null;
 
+	@Option(name = "--flowprocess", usage = "The input is flowprocess output. The filters are useless with this option.")
+	private static boolean flowprocess = false;
+
 	@Option(name = "-x", usage = "Index. Reads index from given file", aliases = "--index")
 	private static String index = null;
 
@@ -47,6 +50,10 @@ public class main {
 	private static boolean no_host_names = false;
 
 	private static Pattern pattern = null;
+
+	public static boolean isFlowprocess() {
+		return flowprocess;
+	}
 
 	public static Pattern getPattern() {
 		return pattern;

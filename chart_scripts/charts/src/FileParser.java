@@ -26,21 +26,24 @@ public class FileParser {
 	private TreeMap<Long, Long> index;
 
 	// RESPONSE CODES
-	private Counter<Integer> codes = new Counter<Integer>();
-	private HashMap<Integer, Counter<InetAddress>> code_counters = new HashMap<Integer, Counter<InetAddress>>();
+	private Counter<Integer> codes = null;
+	private HashMap<Integer, Counter<InetAddress>> code_counters = null;
 
 	// HITS
-	private Counter<InetAddress> ips = new Counter<InetAddress>();
-	private Counter<String> domains = new Counter<String>();
-	private Counter<String> urls = new Counter<String>();
+	private Counter<InetAddress> ips = null;
+	private Counter<String> domains = null;
+	private Counter<String> urls = null;
 
 	// RESPONSE_TIMES
-	private Counter<Integer> response_times = new Counter<Integer>();
-	private ArrayList<Double> resp_times = new ArrayList<Double>();
+	private Counter<Integer> response_times = null;
+	private ArrayList<Double> resp_times = null;
 	private Double max_response_time = (double) 0;
 
 	private long line_counter = 0;
 	private boolean running = true;
+
+	// FLOWPROCESS
+	private Counter<Integer> conections_per_sec = null;
 
 	private Runnable thread_task = new Runnable() {
 
@@ -62,13 +65,37 @@ public class FileParser {
 	};
 
 	public FileParser(String filename) {
-
 		this.filename = filename;
+
+		if (main.isFlowprocess()) {
+			conections_per_sec = new Counter<Integer>();
+		} else {
+			ips = new Counter<InetAddress>();
+			domains = new Counter<String>();
+			urls = new Counter<String>();
+			response_times = new Counter<Integer>();
+			resp_times = new ArrayList<Double>();
+			codes = new Counter<Integer>();
+			code_counters = new HashMap<Integer, Counter<InetAddress>>();
+		}
+
 	}
 
 	public FileParser(String filename, String path) {
 		this.filename = filename;
 		this.path = path;
+
+		if (main.isFlowprocess()) {
+			conections_per_sec = new Counter<Integer>();
+		} else {
+			ips = new Counter<InetAddress>();
+			domains = new Counter<String>();
+			urls = new Counter<String>();
+			response_times = new Counter<Integer>();
+			resp_times = new ArrayList<Double>();
+			codes = new Counter<Integer>();
+			code_counters = new HashMap<Integer, Counter<InetAddress>>();
+		}
 	}
 
 	public boolean createDirectories() {
@@ -81,9 +108,8 @@ public class FileParser {
 			path = main.getPath();
 		}
 
-		for (String s : dirs) {
+		if (main.isFlowprocess()) {
 			if (main.getPath() != null) {
-				s = path + "/" + s;
 				File dir = new File(path);
 				if (!dir.exists()) {
 					System.err.println("Creating directory: " + path);
@@ -95,17 +121,34 @@ public class FileParser {
 					}
 				}
 			}
-			File dir = new File(s);
-			if (!dir.exists()) {
-				System.err.println("Creating directory: " + s);
-				boolean result = dir.mkdirs();
-				if (!result) {
-					System.err.println("Couldn't create the directory: " + s);
-					return false;
+		} else {
+			for (String s : dirs) {
+				if (main.getPath() != null) {
+					s = path + "/" + s;
+					File dir = new File(path);
+					if (!dir.exists()) {
+						System.err.println("Creating directory: " + path);
+						boolean result = dir.mkdirs();
+						if (!result) {
+							System.err
+									.println("Couldn't create the directory: "
+											+ path);
+							return false;
+						}
+					}
+				}
+				File dir = new File(s);
+				if (!dir.exists()) {
+					System.err.println("Creating directory: " + s);
+					boolean result = dir.mkdirs();
+					if (!result) {
+						System.err.println("Couldn't create the directory: "
+								+ s);
+						return false;
+					}
 				}
 			}
 		}
-
 		return true;
 	}
 
@@ -215,22 +258,42 @@ public class FileParser {
 			rfile = new RandomAccessFile(filename, "r");
 			rfile.seek(startByte);
 
-			readingLoop: while ((nRead = rfile.read(buffer)) != -1) {
-				semaphore.acquire();
-				sBuffer.append(new String(buffer));
-				String[] lines = sBuffer.toString().split("\n");
-				for (int i = 0; i < lines.length - 1; i++) {
-					line = lines[i];
-					lastTimestamp = parseLine(line);
-					if (endKey != null && lastTimestamp >= endKey) {
-						break readingLoop;
+			if (main.isFlowprocess()) {
+				readingLoop: while ((nRead = rfile.read(buffer)) != -1) {
+					semaphore.acquire();
+					sBuffer.append(new String(buffer));
+					String[] lines = sBuffer.toString().split("\n");
+					for (int i = 0; i < lines.length - 1; i++) {
+						line = lines[i];
+						lastTimestamp = parseLineFlowProcess(line);
+						if (endKey != null && lastTimestamp >= endKey) {
+							break readingLoop;
+						}
 					}
-				}
-				sBuffer = new StringBuffer(lines[lines.length - 1]);
-				buffer = new byte[512];
-				total += nRead;
+					sBuffer = new StringBuffer(lines[lines.length - 1]);
+					buffer = new byte[512];
+					total += nRead;
 
-				semaphore.release();
+					semaphore.release();
+				}
+			} else {
+				readingLoop: while ((nRead = rfile.read(buffer)) != -1) {
+					semaphore.acquire();
+					sBuffer.append(new String(buffer));
+					String[] lines = sBuffer.toString().split("\n");
+					for (int i = 0; i < lines.length - 1; i++) {
+						line = lines[i];
+						lastTimestamp = parseLine(line);
+						if (endKey != null && lastTimestamp >= endKey) {
+							break readingLoop;
+						}
+					}
+					sBuffer = new StringBuffer(lines[lines.length - 1]);
+					buffer = new byte[512];
+					total += nRead;
+
+					semaphore.release();
+				}
 			}
 
 			if (rfile != null)
@@ -251,6 +314,21 @@ public class FileParser {
 		parseQuota();
 
 		return total;
+	}
+
+	public int parseLineFlowProcess(String line) {
+		// SPLIT LINE
+		String[] split_line = line.split(" ");
+		if (split_line.length != 11) {
+			return -1;
+		}
+
+		int sec = (int) Double.parseDouble(split_line[10]);
+
+		conections_per_sec.update(sec);
+		line_counter++;
+
+		return sec;
 	}
 
 	public int parseLine(String line) {
@@ -349,10 +427,18 @@ public class FileParser {
 				thread.start();
 			}
 
-			while ((line = br.readLine()) != null) {
-				semaphore.acquire();
-				parseLine(line);
-				semaphore.release();
+			if (main.isFlowprocess()) {
+				while ((line = br.readLine()) != null) {
+					semaphore.acquire();
+					parseLineFlowProcess(line);
+					semaphore.release();
+				}
+			} else {
+				while ((line = br.readLine()) != null) {
+					semaphore.acquire();
+					parseLine(line);
+					semaphore.release();
+				}
 			}
 
 			if (main.getQuota() > 0) {
@@ -383,27 +469,38 @@ public class FileParser {
 	private void parseQuota() {
 
 		DataParser parser = null;
-		if (main.getQuota() > 0) {
-			parser = new DataParser(main.getPath() + dir_counter);
-		} else {
+
+		if (main.isFlowprocess()) {
 			parser = new DataParser(main.getPath());
+
+			parser.parse_flowprocess_conections(conections_per_sec);
+
+			conections_per_sec.clear();
+		} else {
+
+			if (main.getQuota() > 0) {
+				parser = new DataParser(main.getPath() + dir_counter);
+			} else {
+				parser = new DataParser(main.getPath());
+			}
+
+			parser.parse_ip_hits(ips);
+			parser.parse_url_hits(urls);
+			parser.parse_domain_hits(domains);
+
+			parser.parse_response_times(response_times, line_counter);
+			parser.parse_response_codes(codes, code_counters);
+
+			ips.clear();
+			urls.clear();
+			domains.clear();
+			codes.clear();
+			code_counters.clear();
 		}
 
-		parser.parse_ip_hits(ips);
-		parser.parse_url_hits(urls);
-		parser.parse_domain_hits(domains);
-
-		parser.parse_response_times(response_times, line_counter);
-		parser.parse_response_codes(codes, code_counters);
-
-		line_counter = 0;
-		ips.clear();
-		urls.clear();
-		domains.clear();
-		codes.clear();
-		code_counters.clear();
 		parser = null;
 		System.gc();
+		line_counter = 0;
 
 	}
 }
