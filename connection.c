@@ -258,13 +258,12 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 
     //IMPRIMIR INFORMACION
     struct timespec diff = tsSubtract(res_ts, req->ts);
-    
-    if(options.index != NULL){
-        fflush(output);
-        write_to_index(ftell(output));
-    }
 
     if(options.sorted == 0){
+        if(options.index != NULL){
+            fflush(output);
+            write_to_index(ftell(output));
+        }
         fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);
     }else{
         addPrintElement(conn->ip_client, conn->ip_server, 

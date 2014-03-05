@@ -1,6 +1,7 @@
 #include "sorted_print.h"
 
 extern FILE *output;
+extern struct args_parse options;
 
 unsigned long print_element_counter = 0; 
 
@@ -75,6 +76,11 @@ void clearElement(print_element *e){
 }
 
 void printElement(print_element *e){
+
+    if(options.index != NULL){
+        fflush(output);
+        write_to_index_with_ts(ftell(output), e->req_ts);
+    }
 
     fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
         e->ip_client, e->port_client, e->ip_server, 
