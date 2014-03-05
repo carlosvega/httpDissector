@@ -644,27 +644,6 @@ int main_process(char *format, char *filename){
 	pcap_t *handle = NULL;
 
 	if(options.interface == NULL){
-		// pcapfile = fopen(filename, "r");
-		// if(pcapfile == NULL){
-		// 	fprintf(stderr, "ERROR TRYING TO OPEN THE INPUT FILE |%s|\n", filename);
-		// 	if(options.log){
-		// 		closelog ();
-		// 	}
-		// 	return -2;
-		// }
-
-		// struct timeval t, t2;  
-		// gettimeofday(&t, NULL);
-		// fseek(pcapfile, 0L, SEEK_END);
-		// gettimeofday(&t2, NULL);
-		// pcap_size = ftell(pcapfile);
-		// rewind(pcapfile); 
-		// fclose(pcapfile);
-
-		// long microsegundos = ((t2.tv_usec - t.tv_usec)  + ((t2.tv_sec - t.tv_sec) * 1000000.0f));
-	 //  	fprintf(stderr, "SIZE: %ld, Time: (%ld)\n", pcap_size, microsegundos);
-
-
 		
 		ERR_MSG("DEBUG/ Before calling NDLTabrirTraza()\n");
 
@@ -674,17 +653,26 @@ int main_process(char *format, char *filename){
 			ndldata = NDLTabrirTraza(filename, format, filter, 0, errbuf);
 		}
 
-
-		ERR_MSG("DEBUG/ After calling NDLTabrirTraza()\n");
-		
 		if(ndldata == NULL){
 			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n", errbuf);
 			fprintf(stderr, "File: %s\tRAW flag = %s\n", options.input, options.raw == 0? "false" : "true");
 			return -1;
 		}
 
+		if(options.discards!=NULL){
+			if(!NDLTopenFileDiscards(ndldata, options.discards, errbuf)){
+				fprintf(stderr, "ERROR WHILE OPENING DISCARDS FILE (%s): %s\n", options.discards, errbuf);
+				return -1;
+			}
+		}
 
-	}else{
+
+		ERR_MSG("DEBUG/ After calling NDLTabrirTraza()\n");
+		
+		
+
+
+	}else{ //READ FROM INTERFACE
 
 		ERR_MSG("DEBUG/ calling pcap_open_live()\n");
 		

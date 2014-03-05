@@ -22,6 +22,7 @@ struct args_parse{
 	char *index;
 	char *gcoutput;
 	char *input;
+	char *discards;
 	char *filter;
 	char *interface;
 	char *url;
