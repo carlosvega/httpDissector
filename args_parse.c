@@ -6,6 +6,7 @@ void how_to_use(char *name){
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
   fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
+  fprintf(stderr, "\t-d  --discards=<file>\t\tPacket discards file. Indicates the path to a file with the packtet numbers to be discarded. File must be sorted.\n");
   fprintf(stderr, "\t-D  --debug=<debug_level>\tActivates debug lines.\n");
   fprintf(stderr, "\t-h  --help\t\t\tShows this message.\n");
   fprintf(stderr, "\t-H  --host=<host>\t\tFilter the request by host\n");
@@ -67,13 +68,14 @@ struct args_parse parse_args(int argc, char **argv){
   options.version     = 0;
   options.sorted      = 0;
   options.index       = NULL;
+  options.discards    = NULL;
 
   strcpy(options.errbuf, "Invalid arguments");
 
 	int next_op;
 
 	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "D:hrIvpf:i:o:u:H:c:x:" ;
+	const char* const short_op = "D:hrIvpf:i:d:o:u:H:c:x:" ;
 
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
@@ -89,6 +91,7 @@ struct args_parse parse_args(int argc, char **argv){
     { "log",            0,  NULL,   'L'},
 		{ "pcap",			      0, 	NULL, 	'p'},
 		{ "input",		      1, 	NULL, 	'i'},
+    { "discards",       1,  NULL,   'd'},
     { "capture",        1,  NULL,   'c'},
 		{ "filter", 		    1, 	NULL, 	'f'},
     { "url",            1,  NULL,   'u'},
@@ -124,6 +127,10 @@ struct args_parse parse_args(int argc, char **argv){
           
         case 'x' :
           options.index = optarg;
+          break;
+
+        case 'd' :
+          options.discards = optarg;
           break;
 
         case 'R' : /* -rrd */
