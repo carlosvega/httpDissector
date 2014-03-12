@@ -7,7 +7,21 @@ import org.kohsuke.args4j.Option;
 
 public class main {
 
-	String[] caca = new String[] { "ip", "url", "domain" };
+	@Option(name = "-f", usage = "Filter.", aliases = "--filter")
+	private static String filter = null;
+
+	@Option(name = "-fm", usage = "Filter Mode: {ip, url, domain}", aliases = "--filter-mode")
+	private static String filter_mode = null;
+	private static int filter_mode_int = 0;
+
+	@Option(name = "--flowprocess", usage = "The input is flowprocess output. The filters are useless with this option.")
+	private static boolean flowprocess = false;
+
+	@Option(name = "-d", usage = "Directory where output will be save", aliases = "--directory")
+	private static String path = null;
+
+	@Option(name = "-H", usage = "Replaces the hostnames in the URLs by its IPs.", aliases = "--no-hostnames")
+	private static boolean no_host_names = false;
 
 	@Option(name = "-i", usage = "Input File. Type '-i -' for reading from sdtin.", required = true, aliases = "--input")
 	private static String filename;
@@ -18,24 +32,17 @@ public class main {
 	@Option(name = "-r", usage = "DPI resolution. Default 1000.", aliases = "--dpi")
 	private static int dpi = 1000;
 
-	@Option(name = "-d", usage = "Directory where output will be save", aliases = "--directory")
-	private static String path = null;
-
 	@Option(name = "-t", usage = "Chart bars top.", aliases = "--top")
 	private static int top = 10;
 
-	@Option(name = "-fm", usage = "Filter Mode: {ip, url, domain}", aliases = "--filter-mode")
-	private static String filter_mode = null;
-	private static int filter_mode_int = 0;
-
-	@Option(name = "-f", usage = "Filter.", aliases = "--filter")
-	private static String filter = null;
-
-	@Option(name = "--flowprocess", usage = "The input is flowprocess output. The filters are useless with this option.")
-	private static boolean flowprocess = false;
+	@Option(name = "-U", usage = "Removes paramters in the URLs.", aliases = "--chomp-urls")
+	private static boolean chomp_url = false;
 
 	@Option(name = "-x", usage = "Index. Reads index from given file", aliases = "--index")
 	private static String index = null;
+
+	@Option(name = "--short-index", usage = "Short index version.")
+	private static boolean short_index = false;
 
 	@Option(name = "-F", usage = "Process file from given timestamp in seconds.", aliases = "--from")
 	private static Long from = 0L;
@@ -43,13 +50,11 @@ public class main {
 	@Option(name = "-T", usage = "Process file up to the given timestamp in seconds.", aliases = "--to")
 	private static Long to = 0L;
 
-	@Option(name = "-U", usage = "Removes paramters in the URLs.", aliases = "--chomp-urls")
-	private static boolean chomp_url = false;
-
-	@Option(name = "-H", usage = "Replaces the hostnames in the URLs by its IPs.", aliases = "--no-hostnames")
-	private static boolean no_host_names = false;
-
 	private static Pattern pattern = null;
+
+	public static boolean isShortIndex() {
+		return short_index;
+	}
 
 	public static boolean isFlowprocess() {
 		return flowprocess;
@@ -158,7 +163,7 @@ public class main {
 
 			fileParser.loadIndex();
 			if (from == 0) {
-				from = fileParser.getIndex().firstKey();
+				from = fileParser.getFirstKeyFromIndex();
 			}
 			if (to == 0) {
 				to = -1L;

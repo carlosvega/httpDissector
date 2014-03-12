@@ -12,6 +12,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.PriorityQueue;
+import java.util.SimpleTimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.Semaphore;
 
@@ -23,7 +26,8 @@ public class FileParser {
 	private String path = null;
 	private String[] dirs = { "hits", "response_codes", "stats" };
 	private int dir_counter = -1;
-	private TreeMap<Long, Long> index;
+	private TreeMap<Long, Long> short_index;
+	private TreeMap<Long, ArrayList<Tuple<Long, Long>>> long_index;
 
 	// RESPONSE CODES
 	private Counter<Integer> codes = null;
@@ -44,6 +48,7 @@ public class FileParser {
 
 	// FLOWPROCESS
 	private Counter<Integer> conections_per_sec = null;
+	//
 
 	private Runnable thread_task = new Runnable() {
 
@@ -64,6 +69,106 @@ public class FileParser {
 		}
 	};
 
+	// FUNCTIONS
+	public interface Function {
+		int parseLine(String line);
+	}
+
+	public Function flowProcess = new Function() {
+		public int parseLine(String line) {
+			// SPLIT LINE
+			String[] split_line = line.split(" ");
+			if (split_line.length != 11) {
+				return -1;
+			}
+
+			int sec = (int) Double.parseDouble(split_line[10]);
+
+			conections_per_sec.update(sec);
+			line_counter++;
+
+			return sec;
+		}
+	};
+
+	public Function httpDissector = new Function() {
+		public int parseLine(String line) {
+			// SPLIT LINE
+			String[] splitted_line = line.split("\\|", 12);
+
+			if (splitted_line.length != 12) {
+				return -1;
+			}
+			String url = null;
+			if (main.getNoHostNames()) {
+				url = splitted_line[2] + splitted_line[11];
+			} else {
+				url = splitted_line[10] + splitted_line[11];
+			}
+
+			if (main.getChomp_URL()) {
+				int pos = url.indexOf('?');
+				if (pos != -1) {
+					url = url.substring(0, pos);
+				}
+			}
+
+			if (main.getFilterMode() == 1) {
+				// IP
+				if (!main.getPattern().matcher(splitted_line[2]).find()) {
+					return -2;
+				}
+			} else if (main.getFilterMode() == 2) {
+				// URL
+				if (!main.getPattern().matcher(url).find()) {
+					return -3;
+				}
+			} else if (main.getFilterMode() == 3) {
+				// DOMAIN
+				if (!main.getPattern().matcher(splitted_line[10]).find()) {
+					return -4;
+				}
+			}
+
+			InetAddress ip;
+			try {
+				ip = InetAddress.getByName(splitted_line[2]);
+			} catch (UnknownHostException e) {
+				System.err.println("Error en el formato de la ip: "
+						+ splitted_line[2]);
+				return -5;
+			}
+
+			// RESPONSE CODES
+			Integer code = Integer.parseInt(splitted_line[8]);
+			codes.update(code);
+			if (!code_counters.containsKey(code)) {
+				code_counters.put(code, new Counter<InetAddress>());
+			}
+			code_counters.get(code).update(ip);
+
+			// HITS
+			ips.update(ip);
+			urls.update(url);
+			domains.update(splitted_line[10]);
+
+			// RESPONSE_TIMES
+			Double r = Double.parseDouble(splitted_line[6]);
+			resp_times.add(r);
+			response_times.update((int) (r * 1000));
+			if (r > max_response_time) {
+				max_response_time = r;
+			}
+			line_counter++;
+
+			return (int) Double.parseDouble(splitted_line[4]);
+
+		}
+
+	};
+
+	// ////////////////////
+
 	public FileParser(String filename) {
 		this.filename = filename;
 
@@ -78,6 +183,8 @@ public class FileParser {
 			codes = new Counter<Integer>();
 			code_counters = new HashMap<Integer, Counter<InetAddress>>();
 		}
+
+		df.setTimeZone(new SimpleTimeZone(SimpleTimeZone.UTC_TIME, "UTC"));
 
 	}
 
@@ -96,6 +203,8 @@ public class FileParser {
 			codes = new Counter<Integer>();
 			code_counters = new HashMap<Integer, Counter<InetAddress>>();
 		}
+
+		df.setTimeZone(new SimpleTimeZone(SimpleTimeZone.UTC_TIME, "UTC"));
 	}
 
 	public boolean createDirectories() {
@@ -152,21 +261,91 @@ public class FileParser {
 		return true;
 	}
 
-	public TreeMap<Long, Long> getIndex() {
-		return index;
+	public void loadIndex() {
+		if (main.isShortIndex()) {
+			loadShortIndex();
+		} else {
+			loadVerboseIndex();
+		}
 	}
 
-	public void loadIndex() {
+	private ArrayList<Tuple<Long, Long>> parseIntervalOfBytes(String line) {
+		line = line.replace("), (", " ").replaceAll("[\\[\\](),]", "");
+		String[] split_line = line.split(" ");
+		ArrayList<Tuple<Long, Long>> tuplas = new ArrayList<Tuple<Long, Long>>();
+		for (int i = 0; i < split_line.length; i += 2) {
+			tuplas.add(new Tuple<Long, Long>(Long.parseLong(split_line[i]),
+					Long.parseLong(split_line[i + 1])));
+
+		}
+
+		return tuplas;
+
+	}
+
+	private ArrayList<Tuple<Long, Long>> get_byte_interval(long from, long to) {
+
+		PriorityQueue<Tuple<Long, Long>> tuplas = new PriorityQueue<Tuple<Long, Long>>();
+		for (Entry<Long, ArrayList<Tuple<Long, Long>>> e : long_index.subMap(
+				from, to).entrySet()) {
+
+			tuplas.addAll(e.getValue());
+		}
+
+		ArrayList<Tuple<Long, Long>> byte_interval = new ArrayList<Tuple<Long, Long>>();
+
+		Tuple<Long, Long> last_tuple = tuplas.poll();
+
+		while (!tuplas.isEmpty()) {
+			Tuple<Long, Long> t = tuplas.poll();
+			if (last_tuple.getY().equals(t.getX())) {
+				last_tuple.setY(t.getY());
+			} else {
+				byte_interval.add(last_tuple);
+				last_tuple = t;
+			}
+		}
+
+		byte_interval.add(last_tuple);
+
+		return byte_interval;
+
+	}
+
+	private void loadVerboseIndex() {
+		this.long_index = new TreeMap<Long, ArrayList<Tuple<Long, Long>>>();
 		BufferedReader br = null;
 		FileReader f = null;
 		String line = null;
 		try {
 			f = new FileReader(main.getIndex());
 			br = new BufferedReader(f, 1024 * 1024);
-			index = new TreeMap<Long, Long>();
+
+			while ((line = br.readLine()) != null) {
+				String[] split_line = line.split(" ", 2);
+				long_index.put(Long.parseLong(split_line[0]),
+						parseIntervalOfBytes(split_line[1]));
+			}
+		} catch (FileNotFoundException e) {
+			System.err.println("File Not Found\n");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	private void loadShortIndex() {
+		BufferedReader br = null;
+		FileReader f = null;
+		String line = null;
+		try {
+			f = new FileReader(main.getIndex());
+			br = new BufferedReader(f, 1024 * 1024);
+			short_index = new TreeMap<Long, Long>();
 			while ((line = br.readLine()) != null) {
 				String[] split_line = line.split(" ");
-				index.put(Long.parseLong(split_line[0]),
+				short_index.put(Long.parseLong(split_line[0]),
 						Long.parseLong(split_line[1]));
 			}
 		} catch (FileNotFoundException e) {
@@ -178,7 +357,10 @@ public class FileParser {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	public Long getClosestKeyFromIndex(long k, boolean from) {
+
+		TreeMap<Long, Object> index = getIndex();
 
 		boolean key;
 		Long firstKey = index.firstKey();
@@ -203,98 +385,37 @@ public class FileParser {
 
 	}
 
-	public long parseFileStartingAtByte(long start, long end) {
-		loadIndex();
-		Long startKey = getClosestKeyFromIndex(start, true);
-		Long endKey = null;
-		if (end > 0) {
-			endKey = getClosestKeyFromIndex(end, false);
-		}
+	private long parseFileByteRange(long startByte, long endByte, Function f) {
 
-		if (end == -1L) {
-			if (startKey == null) {
-				System.err.println("Error in the provided timestamps.");
-				System.err.println("\nThe first entry in the index is:\n\t"
-						+ index.firstKey() + " => "
-						+ df.format(new Date(index.firstKey() * 1000)));
-				System.err.println("\nAnd the last one is:\n\t"
-						+ index.lastKey() + " => "
-						+ df.format(new Date(index.lastKey() * 1000)));
-				System.err
-						.println("\nPlease, provide a timestamp in a range between this two.");
-				return -1;
-			}
-		} else if (startKey == null || endKey == null || startKey == endKey
-				|| start == end) {
-			System.err.println("Error in the provided timestamps.");
-			System.err.println("\nThe first entry in the index is:\n\t"
-					+ index.firstKey() + " => "
-					+ df.format(new Date(index.firstKey() * 1000)));
-			System.err.println("\nAnd the last one is:\n\t" + index.lastKey()
-					+ " => " + df.format(new Date(index.lastKey() * 1000)));
-			System.err
-					.println("\nPlease, provide a timestamp in a range between this two.");
-			return -1;
-		}
-
-		Long startByte = index.get(startKey);
-
-		Date startDate = new Date(startKey * 1000);
-		Date endDate = null;
-		if (end != -1L) {
-			endDate = new Date(endKey * 1000);
-			System.err.println("Processing file from " + df.format(startDate)
-					+ " to " + df.format(endDate));
-		}
+		int bytesToRead = (int) (endByte - startByte);
 
 		byte[] buffer = new byte[512];
+		StringBuffer sBuffer = new StringBuffer(2048);
 		int nRead = 0;
 		long total = 0L;
-		StringBuffer sBuffer = new StringBuffer(2048);
-		String line = null;
 		RandomAccessFile rfile = null;
-		int lastTimestamp = 0;
 		try {
 			rfile = new RandomAccessFile(filename, "r");
 			rfile.seek(startByte);
+			readingLoop: while ((nRead = rfile.read(buffer)) != -1) {
+				semaphore.acquire();
 
-			if (main.isFlowprocess()) {
-				readingLoop: while ((nRead = rfile.read(buffer)) != -1) {
-					semaphore.acquire();
-					sBuffer.append(new String(buffer));
-					String[] lines = sBuffer.toString().split("\n");
-					for (int i = 0; i < lines.length - 1; i++) {
-						line = lines[i];
-						lastTimestamp = parseLineFlowProcess(line);
-						if (endKey != null && lastTimestamp >= endKey) {
-							break readingLoop;
-						}
-					}
-					sBuffer = new StringBuffer(lines[lines.length - 1]);
-					buffer = new byte[512];
-					total += nRead;
-
-					semaphore.release();
+				sBuffer.append(new String(buffer));
+				String[] lines = sBuffer.toString().split("\n");
+				for (int i = 0; i < lines.length - 1; i++) {
+					f.parseLine(lines[i]);
 				}
-			} else {
-				readingLoop: while ((nRead = rfile.read(buffer)) != -1) {
-					semaphore.acquire();
-					sBuffer.append(new String(buffer));
-					String[] lines = sBuffer.toString().split("\n");
-					for (int i = 0; i < lines.length - 1; i++) {
-						line = lines[i];
-						lastTimestamp = parseLine(line);
-						if (endKey != null && lastTimestamp >= endKey) {
-							break readingLoop;
-						}
-					}
-					sBuffer = new StringBuffer(lines[lines.length - 1]);
-					buffer = new byte[512];
-					total += nRead;
-
-					semaphore.release();
+				sBuffer = new StringBuffer(lines[lines.length - 1]);
+				buffer = new byte[512];
+				if (rfile.getFilePointer() >= endByte) {
+					break readingLoop;
 				}
+
+				semaphore.release();
+				total += nRead;
 			}
+
+			semaphore.release();
 
 			if (rfile != null)
 				rfile.close();
@@ -310,116 +431,127 @@ public class FileParser {
 			e.printStackTrace();
 		}
 
+		return total;
+	}
+
+	public long parseFileStartingAtByteWithLongIndex(long from, long to) {
+		ArrayList<Tuple<Long, Long>> byte_interval = get_byte_interval(from, to);
+
+		long totalBytes = 0;
+		Function f = null;
+		if (main.isFlowprocess()) {
+			f = flowProcess;
+		} else {
+			f = httpDissector;
+		}
+
+		for (Tuple<Long, Long> t : byte_interval) {
+			totalBytes += parseFileByteRange(t.getX(), t.getY(), f);
+		}
+
+		System.err.println("File has been read.");
+		parseQuota();
+
+		return totalBytes;
+
+	}
+
+	@SuppressWarnings("unchecked")
+	public Long getFirstKeyFromIndex() {
+		TreeMap<Long, Object> index = getIndex();
+		return index.firstKey();
+	}
+
+	@SuppressWarnings("rawtypes")
+	private TreeMap getIndex() {
+		if (main.isShortIndex()) {
+			return short_index;
+		} else {
+			return long_index;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private int check_range_to_parse(long from, long to) {
+
+		TreeMap<Long, Object> index = getIndex();
+		Long startKey = getClosestKeyFromIndex(from, true);
+		Long endKey = getClosestKeyFromIndex(to, false);
+
+		if (startKey == null || endKey == null || startKey == endKey
+				|| from == to || from > to) {
+			System.err.println("Error in the provided timestamps.");
+			System.err.println("\nThe first entry in the index is:\n\t"
+					+ index.firstKey() + " => "
+					+ df.format(new Date(index.firstKey() * 1000)));
+			System.err.println("\nAnd the last one is:\n\t" + index.lastKey()
+					+ " => " + df.format(new Date(index.lastKey() * 1000)));
+			System.err
+					.println("\nPlease, provide a timestamp in a range between this two.");
+			return -1;
+		}
+
+		return 0;
+
+	}
+
+	public long parseFileStartingAtByte(long from, long to) {
+
+		Function f = null;
+		if (main.isFlowprocess()) {
+			f = flowProcess;
+		} else {
+			f = httpDissector;
+		}
+
+		if (check_range_to_parse(from, to) == -1) {
+			return -1;
+		}
+
+		Long startKey = getClosestKeyFromIndex(from, true);
+		Long endKey = getClosestKeyFromIndex(to, false);
+		Date startDate = new Date(startKey * 1000);
+		Date endDate = new Date(endKey * 1000);
+
+		System.err.println("Processing file from " + df.format(startDate)
+				+ " to " + df.format(endDate) + " UTC");
+
+		if (!main.isShortIndex()) {
+			return parseFileStartingAtByteWithLongIndex(from, to);
+		}
+
+		long startByte = short_index.get(startKey);
+		long endByte = short_index.get(endKey);
+
+		long total = parseFileByteRange(startByte, endByte, f);
+
 		System.err.println("File has been read.");
 		parseQuota();
 
 		return total;
 	}
 
-	public int parseLineFlowProcess(String line) {
-		// SPLIT LINE
-		String[] split_line = line.split(" ");
-		if (split_line.length != 11) {
-			return -1;
-		}
-
-		int sec = (int) Double.parseDouble(split_line[10]);
-
-		conections_per_sec.update(sec);
-		line_counter++;
-
-		return sec;
-	}
-
-	public int parseLine(String line) {
-		// SPLIT LINE
-		String[] splitted_line = line.split("\\|", 12);
-
-		if (splitted_line.length != 12) {
-			return -1;
-		}
-		String url = null;
-		if (main.getNoHostNames()) {
-			url = splitted_line[2] + splitted_line[11];
-		} else {
-			url = splitted_line[10] + splitted_line[11];
-		}
-
-		if (main.getChomp_URL()) {
-			int pos = url.indexOf('?');
-			if (pos != -1) {
-				url = url.substring(0, pos);
-			}
-		}
-
-		if (main.getFilterMode() == 1) {
-			// IP
-			if (!main.getPattern().matcher(splitted_line[2]).find()) {
-				return -2;
-			}
-		} else if (main.getFilterMode() == 2) {
-			// URL
-			if (!main.getPattern().matcher(url).find()) {
-				return -3;
-			}
-		} else if (main.getFilterMode() == 3) {
-			// DOMAIN
-			if (!main.getPattern().matcher(splitted_line[10]).find()) {
-				return -4;
-			}
-		}
-
-		InetAddress ip;
-		try {
-			ip = InetAddress.getByName(splitted_line[2]);
-		} catch (UnknownHostException e) {
-			System.err.println("Error en el formato de la ip: "
-					+ splitted_line[2]);
-			return -5;
-		}
-
-		// RESPONSE CODES
-		Integer code = Integer.parseInt(splitted_line[8]);
-		codes.update(code);
-		if (!code_counters.containsKey(code)) {
-			code_counters.put(code, new Counter<InetAddress>());
-		}
-		code_counters.get(code).update(ip);
-
-		// HITS
-		ips.update(ip);
-		urls.update(url);
-		domains.update(splitted_line[10]);
-
-		// RESPONSE_TIMES
-		Double r = Double.parseDouble(splitted_line[6]);
-		resp_times.add(r);
-		response_times.update((int) (r * 1000));
-		if (r > max_response_time) {
-			max_response_time = r;
-		}
-		line_counter++;
-
-		return (int) Double.parseDouble(splitted_line[4]);
-
-	}
-
 	public void parseFile() {
 
-		// System.out.println(ips.getDictionary());
+		Function f = null;
+		if (main.isFlowprocess()) {
+			f = flowProcess;
+		} else {
+			f = httpDissector;
+		}
 
 		Thread thread = null;
 		BufferedReader br = null;
 		String line = "";
 		try {
-			FileReader f = null;
+			FileReader file = null;
 
 			if (this.filename.equals("-")) {
 				br = new BufferedReader(new InputStreamReader(System.in),
 						1024 * 1024);
 			} else {
-				f = new FileReader(this.filename);
-				br = new BufferedReader(f, 1024 * 1024);
+				file = new FileReader(this.filename);
+				br = new BufferedReader(file, 1024 * 1024);
 			}
 
 			if (main.getQuota() > 0) {
@@ -427,18 +559,10 @@ public class FileParser {
 				thread.start();
 			}
 
-			if (main.isFlowprocess()) {
-				while ((line = br.readLine()) != null) {
-					semaphore.acquire();
-					parseLineFlowProcess(line);
-					semaphore.release();
-				}
-			} else {
-				while ((line = br.readLine()) != null) {
-					semaphore.acquire();
-					parseLine(line);
-					semaphore.release();
-				}
+			while ((line = br.readLine()) != null) {
+				semaphore.acquire();
+				f.parseLine(line);
+				semaphore.release();
 			}
 
 			if (main.getQuota() > 0) {
