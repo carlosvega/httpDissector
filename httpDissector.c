@@ -19,7 +19,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.7";
+char version[32] = "Version 2.71a";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -466,7 +466,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 
 int main(int argc, char *argv[]){
 
-	fprintf(stderr, "httpDissector %s\n", version);
 	//GET 
 	//POST
 	//HEAD
