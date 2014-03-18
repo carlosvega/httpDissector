@@ -77,8 +77,9 @@ public class FileParser {
 	public Function flowProcess = new Function() {
 		public int parseLine(String line) {
 			// SPLIT LINE
-			String[] split_line = line.split(" ");
-			if (split_line.length != 11) {
+			String[] split_line = line.split(" ", 12);
+
+			if (split_line.length < 11) {
 				return -1;
 			}
 
@@ -86,7 +87,6 @@ public class FileParser {
 
 			conections_per_sec.update(sec);
 			line_counter++;
-
 			return sec;
 		}
 	};
