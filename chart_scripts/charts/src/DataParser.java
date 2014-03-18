@@ -28,7 +28,7 @@ public class DataParser {
 		// ORDER SECS
 		CounterComparatorByKey<Integer> comparator = new CounterComparatorByKey<Integer>();
 		PriorityQueue<Entry<Integer, Integer>> secs_heap = new PriorityQueue<Map.Entry<Integer, Integer>>(
-				conections_per_sec.size(), comparator);
+				conections_per_sec.size() + 1, comparator);
 		secs_heap.addAll(conections_per_sec.getDictionary().entrySet());
 
 		chartCreator.flowprocess_chart(secs_heap);
