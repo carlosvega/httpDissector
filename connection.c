@@ -395,8 +395,6 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
 int insertPacket (packet_info *aux_packet){
 
     //ACK & SEQ
-    // aux_packet->tcp->th_seq = ntohl(aux_packet->tcp->th_seq);
-    // aux_packet->tcp->th_ack = ntohl(aux_packet->tcp->th_ack);
     
     //Preparamos conn auxiliar y nodo auxiliar
     preFillConnection(aux_packet, &aux_conn);
