@@ -314,7 +314,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 
   	ERR_MSG("DEBUG/ calling http_parse_packet().\n");
 	
-  	if(http_parse_packet((char*) pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip_addr_src, pktinfo->ip_addr_dst) == -1){
+  	if(http_parse_packet(pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip_addr_src, pktinfo->ip_addr_dst) == -1){
  		http_clean_up(&http);
  		
 		ERR_MSG("DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");

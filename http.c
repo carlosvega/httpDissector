@@ -28,7 +28,7 @@ struct _internal_http_packet{
 };
 
 regex_t hostname_regex;
-char cadena[CADENA_SIZE];
+u_char u_cadena[CADENA_SIZE];
 char cadena_aux[CADENA_SIZE];
 
 http_header *http_get_headers(http_packet http){
@@ -159,7 +159,7 @@ char *http_get_response_msg(http_packet http){
 	return http->response_msg;
 }
 
-http_op http_which_method(char * tcp_payload){
+http_op http_which_method(u_char * tcp_payload){
 	
 	if(tcp_payload == NULL) return ERR;
 	
@@ -193,7 +193,7 @@ http_op http_which_method(char * tcp_payload){
 	return ERR;
 }
 
-int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *ip_addr_src, char *ip_addr_dst){
+int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char *ip_addr_src, char *ip_addr_dst){
 
 	if(length <= 0 || http_t == NULL || tcp_payload == NULL)
 		return -1;
@@ -213,10 +213,12 @@ int http_parse_packet(char *tcp_payload, int length, http_packet *http_t, char *
 		return -1;
 	}
 	
-	memset(cadena, 0, CADENA_SIZE);
+	memset(u_cadena, 0, CADENA_SIZE);
 
-	// strncpy(cadena, tcp_payload, length);
-	strncpy(cadena, tcp_payload, CADENA_SIZE);
+	memcpy(u_cadena, tcp_payload, length);
+	char *cadena = (char *) u_cadena;
+	//strncpy(cadena, tcp_payload, length);
+	//strncpy(cadena, tcp_payload, CADENA_SIZE);
 	http->has_host = 0;
 	if(http->op != RESPONSE){
 		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
