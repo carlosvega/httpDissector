@@ -13,11 +13,13 @@ struct args_parse{
 	short raw;
 	short err;
 	short collector;
+	short binary;
 	short rrd;
 	short verbose;
 	short twolines;
 	short files;
 	short log;
+	short charts;
 	char *output;
 	char *index;
 	char *gcoutput;

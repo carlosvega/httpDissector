@@ -478,6 +478,7 @@ int main(int argc, char *argv[]){
 	//TRACE
 	//OPTIONS
 	//HTTP
+
 	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 \
 		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 \
 		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48454144 \
@@ -539,7 +540,12 @@ int main(int argc, char *argv[]){
 	}
 
 	if(options.output != NULL){
-		output = fopen(options.output, "w");
+		if(options.binary){
+			output = fopen(options.output, "wb");
+		}else{
+			output = fopen(options.output, "w");	
+		}
+		
 		if(output == NULL){
 			fprintf(stderr, "ERROR TRYING TO OPEN THE OUTPUT FILE\n");
 			FREE(filter);
@@ -592,7 +598,6 @@ int main(int argc, char *argv[]){
 	
 	main_process(format, options.input);
 	
-
 	if(options.sorted){
 		freePrintElementList();
 	}
