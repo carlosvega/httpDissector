@@ -7,6 +7,7 @@
 #include "index.h"
 #include "tools.h"
 #include "http.h"
+#include <arpa/inet.h>
 
 #define PRINT_POOL_SIZE 1000000
 

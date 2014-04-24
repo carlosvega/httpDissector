@@ -70,4 +70,4 @@ prueba: NDleeTrazas.o args_parse.o
 	$(CC) -c prueba.c -o prueba.o
 	$(CC) prueba.o args_parse.o NDleeTrazas.o -o prueba $(PCAPLIB)
 clean:	
-	rm -f *.o tslist index counters alist tools tslist args_parse http httpDissector NDleeTrazas prueba_tabla list
+	rm -f *.o gnuplot_i tslist index counters alist tools tslist args_parse http httpDissector NDleeTrazas prueba_tabla list

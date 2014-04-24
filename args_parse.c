@@ -4,7 +4,8 @@ void how_to_use(char *name){
   
 	fprintf(stderr, "\n\t\t\t\tHTTP Packet Dissector\n\n");
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
-  fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface\n");
+  fprintf(stderr, "\t-b  --binary\t\t\tThe output is binary.\n");
+  fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface.\n");
   fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
   fprintf(stderr, "\t-d  --discards=<file>\t\tPacket discards file. Indicates the path to a file with the packtet numbers to be discarded. File must be sorted.\n");
   fprintf(stderr, "\t-D  --debug=<debug_level>\tActivates debug lines.\n");
@@ -50,6 +51,7 @@ struct args_parse parse_args(int argc, char **argv){
 
   struct args_parse options;
   options.input       = NULL;
+  options.binary      = 0;
   options.output      = NULL;
   options.gcoutput    = NULL;
   options.filter      = NULL;
@@ -75,7 +77,7 @@ struct args_parse parse_args(int argc, char **argv){
 	int next_op;
 
 	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "D:hrIvpf:i:d:o:u:H:c:x:" ;
+	const char* const short_op = "D:hrIvpbf:i:d:o:u:H:c:x:" ;
 
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
@@ -97,6 +99,7 @@ struct args_parse parse_args(int argc, char **argv){
     { "url",            1,  NULL,   'u'},
     { "host",           1,  NULL,   'H'},
     { "verbose",        0,  NULL,   'v'},
+    { "binary",         0,  NULL,   'b'},
     { "input-files",    0,  NULL,   'I'},
     { "two-lines",      0,  NULL,   'T'},
     { "version",        0,  NULL,   'V'},
@@ -124,13 +127,17 @@ struct args_parse parse_args(int argc, char **argv){
           options.input = optarg;
           options.err = 0;
           break;
-          
         case 'x' :
           options.index = optarg;
           break;
 
         case 'd' :
           options.discards = optarg;
+          break;
+
+        case 'b' :
+          options.binary = 1;
+          options.sorted = 1;
           break;
 
         case 'R' : /* -rrd */

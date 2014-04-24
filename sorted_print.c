@@ -75,18 +75,57 @@ void clearElement(print_element *e){
     return;
 }
 
+void binary_write(print_element *e){
+
+    in_addr_t ip_src = inet_addr(e->ip_client);
+    in_addr_t ip_dst = inet_addr(e->ip_server);
+
+    //IPsrc
+    fwrite(&ip_src, sizeof(in_addr_t), 1, output);
+    //PortSRC
+    fwrite(&e->port_client, sizeof(short), 1, output);
+    //IPdst
+    fwrite(&ip_dst, sizeof(in_addr_t), 1, output);
+    //PortDST
+    fwrite(&e->port_server, sizeof(short), 1, output);
+    //req_ts
+    fwrite(&e->req_ts, sizeof(struct timespec), 1, output);
+    //res_ts
+    fwrite(&e->res_ts, sizeof(struct timespec), 1, output);
+    //diff
+    fwrite(&e->diff, sizeof(struct timespec), 1, output);
+    //size of response msg and response msg
+    fwrite(e->response_msg, sizeof(char), RESP_MSG_SIZE, output);
+    //response code
+    fwrite(&e->responseCode, sizeof(short), 1, output);
+    //method
+    char *aux = http_op_to_char(e->op);
+    char method[8] = {0};
+    memcpy(method, aux, strlen(aux));
+    fwrite(method, sizeof(char), 8, output);
+    //size of the host and host
+    fwrite(e->host, sizeof(char), HOST_SIZE, output);
+    //size of the url and url
+    fwrite(e->url, sizeof(char), URL_SIZE, output);
+}
+
 void printElement(print_element *e){
 
-    if(options.index != NULL){
-        fflush(output);
-        write_to_index_with_ts(ftell(output), e->req_ts);
+    if(options.binary){
+        binary_write(e);
+    }else{
+        if(options.index != NULL){
+            fflush(output);
+            write_to_index_with_ts(ftell(output), e->req_ts);
+        }
+
+        fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
+            e->ip_client, e->port_client, e->ip_server, 
+            e->port_server, e->req_ts.tv_sec, e->req_ts.tv_nsec, e->res_ts.tv_sec, 
+            e->res_ts.tv_nsec, e->diff.tv_sec, e->diff.tv_nsec, RESP_MSG_SIZE, e->response_msg, 
+            e->responseCode, http_op_to_char(e->op), e->host, e->url);
     }
 
-    fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
-        e->ip_client, e->port_client, e->ip_server, 
-        e->port_server, e->req_ts.tv_sec, e->req_ts.tv_nsec, e->res_ts.tv_sec, 
-        e->res_ts.tv_nsec, e->diff.tv_sec, e->diff.tv_nsec, RESP_MSG_SIZE, e->response_msg, 
-        e->responseCode, http_op_to_char(e->op), e->host, e->url);    
     return;
 }
 
