@@ -4,7 +4,7 @@
 #include "err_mqueue.h"
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
-
+#define MIN(a,b) (((a)<(b))?(a):(b))
 typedef enum {HEAD = 0, GET, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH, RESPONSE, ERR} http_op;
 
 typedef struct _internal_http_packet * http_packet;
