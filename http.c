@@ -201,6 +201,8 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char
 	// if(http_alloc(http_t) == -1){
 	// 	return -1;
 	// }
+
+	
 	
 	int no_data = 0;
 	// char *aux_hdr = NULL;
@@ -215,14 +217,13 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char
 	
 	memset(u_cadena, 0, CADENA_SIZE);
 
-	memcpy(u_cadena, tcp_payload, length);
+	memcpy(u_cadena, tcp_payload, MIN(CADENA_SIZE, length));
+
 	char *cadena = (char *) u_cadena;
-	//strncpy(cadena, tcp_payload, length);
-	//strncpy(cadena, tcp_payload, CADENA_SIZE);
+
 	http->has_host = 0;
 	if(http->op != RESPONSE){
 		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
-		
 		char *host = get_host_from_headers(cadena);
 
 		if(host == NULL){
