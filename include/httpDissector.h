@@ -3,9 +3,7 @@
 
 #include <assert.h>
 #include "counters.h"
-#include "header_list_pool.h"
 #include "connection.h"
-#include "err_mqueue.h"
 #include "list.h"
 #include "request.h"
 #include "response.h"

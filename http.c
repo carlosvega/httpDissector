@@ -57,7 +57,6 @@ int http_is_request(http_op h){
 		case OPTIONS:
 			return 1;
 		case CONNECT:
-			fprintf(stderr, "CONNECT !\n");
 			return 1;
 		case PATCH:
 			return 1;

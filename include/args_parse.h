@@ -8,6 +8,8 @@
 
 #define ARGS_PARSE_ERRBUF 64
 
+typedef enum {OR=0, AND, OVERWRITE} filter_mode;
+
 struct args_parse{
 	char errbuf[ARGS_PARSE_ERRBUF];
 	short raw;
@@ -26,6 +28,7 @@ struct args_parse{
 	char *input;
 	char *discards;
 	char *filter;
+	short filter_mode;
 	char *interface;
 	char *url;
 	char *host;

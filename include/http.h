@@ -1,7 +1,17 @@
 #ifndef _http
 #define _http
 #include "alist.h"
-#include "err_mqueue.h"
+
+#include <unistd.h>
+#include <stdarg.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
 #define MIN(a,b) (((a)<(b))?(a):(b))

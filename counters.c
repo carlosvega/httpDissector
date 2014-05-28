@@ -8,6 +8,7 @@ static unsigned long long put_requests = 0;
 static unsigned long long trace_requests = 0;
 static unsigned long long delete_requests = 0;
 static unsigned long long options_requests = 0;
+static unsigned long long connect_requests = 0;
 static unsigned long long patch_requests = 0;
 
 static unsigned long long active_requests = 0;
@@ -171,6 +172,15 @@ void increment_options_requests(){
 
 unsigned long long get_options_requests(){
 	return options_requests;
+}
+
+//connect
+void increment_connect_requests(){
+	connect_requests++;
+}
+
+unsigned long long get_connect_requests(){
+	return connect_requests;
 }
 
 
