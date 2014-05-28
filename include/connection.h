@@ -5,9 +5,7 @@
 #include "counters.h"
 #include "index.h"
 #include "sorted_print.h"
-#include "header_list_pool.h"
 #include "http.h"
-#include "err_mqueue.h"
 #include "list.h"
 #include "request.h"
 #include "response.h"
@@ -30,6 +28,11 @@ extern struct args_parse options;
 //#define ERR_MSG(...) do{if(options.debug){syslog (LOG_DEBUG, __VA_ARGS__);}}while(0)
 #define MAX_FLOWS_TABLE_SIZE 16777216
 //16777216 2^24 33554432 2^25 67108864 2^26 134217728 2^27
+
+typedef struct {
+    int n;
+    node_l *list;
+} collision_list;
 
 typedef struct {
     node_l *list;

@@ -43,6 +43,9 @@ switch(h){
         case OPTIONS:
             increment_options_requests();
             return;
+        case CONNECT:
+            increment_connect_requests();
+            return;
         case PATCH:
             increment_patch_requests();
             return;

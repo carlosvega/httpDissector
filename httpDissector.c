@@ -270,10 +270,15 @@ void *barra_de_progreso(){
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
 	
 	ERR_MSG("DEBUG/ begining parse_packet().\n");
+	size_t size_ethernet = SIZE_ETHERNET;
 	
 	memset(pktinfo->url, 0, URL_SIZE);
 	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
-	pktinfo->ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
+	if (pktinfo->ethernet->ether_type == 0x81){
+		size_ethernet += 4;	
+	}
+	
+	pktinfo->ip = (struct sniff_ip*)(packet + size_ethernet);
 	pktinfo->size_ip = IP_HL(pktinfo->ip)*4;
 
 	if (pktinfo->size_ip < 20) {
@@ -283,14 +288,14 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		return 1;
 	}
 
-	if(pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)){
+	if(pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)){
 		
-		ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (SIZE_ETHERNET + pktinfo->size_ip + 20)\n");
+		ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)\n");
 		
 		return 1;
 	}
 
-	pktinfo->tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + pktinfo->size_ip);
+	pktinfo->tcp = (struct sniff_tcp*)(packet + size_ethernet + pktinfo->size_ip);
 	pktinfo->size_tcp = TH_OFF(pktinfo->tcp)*4;
 
 	pktinfo->port_src = ntohs(pktinfo->tcp->th_sport);       /* source port */
@@ -306,8 +311,8 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	    return 1;
     }
 
-    pktinfo->payload = (u_char *)(packet + SIZE_ETHERNET + pktinfo->size_ip + pktinfo->size_tcp);
-    pktinfo->size_payload = pkthdr->len - SIZE_ETHERNET - pktinfo->size_ip - pktinfo->size_tcp;
+    pktinfo->payload = (u_char *)(packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
+    pktinfo->size_payload = pkthdr->len - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
     pktinfo->ts = pkthdr->ts;
 	inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
     inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
@@ -479,7 +484,7 @@ int main(int argc, char *argv[]){
 	//OPTIONS
 	//HTTP
 
-	filter = strdup("tcp and (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 \
+	filter = strdup("tcp and ((tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420 \
 		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x504F5354 \
 		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48454144 \
 		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x50555420 \
@@ -487,7 +492,8 @@ int main(int argc, char *argv[]){
 		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x50415443 && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:2] = 0x4820) \
 		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x54524143 && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:2] = 0x4520) \
 		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x4f505449 && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:4] = 0x4f4e5320) \
-		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450)");
+		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x434f4e4e && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:4] = 0x45435420) \
+		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450))");
 
 	options = parse_args(argc, argv);
 	if(options.err == -3){
@@ -516,9 +522,22 @@ int main(int argc, char *argv[]){
 	}
 
 	if(options.filter != NULL){
-		filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 6)*sizeof(char));
-		strcat(filter, " and ");
-		strcat(filter, options.filter);
+		switch (options.filter_mode){
+			case OR:
+				filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 6)*sizeof(char));
+				strcat(filter, " or ");
+				strcat(filter, options.filter);
+				break;
+			case AND:
+				filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 6)*sizeof(char));
+				strcat(filter, " and ");
+				strcat(filter, options.filter);
+				break;
+			case OVERWRITE:
+				free(filter);
+				filter = strdup(options.filter);
+				break;
+		}
 	}
 
 	if(options.debug != 0){
@@ -795,6 +814,7 @@ void print_info(long elapsed){
 	fprintf(stderr, "PUT: %lld\n", get_put_requests());
 	fprintf(stderr, "DELETE: %lld\n", get_delete_requests());
 	fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
+	fprintf(stderr, "CONNECT: %lld\n", get_connect_requests());
 	fprintf(stderr, "TRACE: %lld\n\n", get_trace_requests());
 	fprintf(stderr, "TOTAL: %lld\n", get_total_requests());
 	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_removed_requests());

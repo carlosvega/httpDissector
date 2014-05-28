@@ -6,7 +6,9 @@ void how_to_use(char *name){
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
   fprintf(stderr, "\t-b  --binary\t\t\tThe output is binary.\n");
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface.\n");
-  fprintf(stderr, "\t-f  --filter=<filter>\t\tJoins the default filter with the introduced one.\n");
+  fprintf(stderr, "\t    --filter_or=<filter>\t\tJoins the default filter with the introduced one with an 'OR'.\n");
+  fprintf(stderr, "\t    --filter_and=<filter>\t\tJoins the default filter with the introduced one with an 'AND'.\n");
+  fprintf(stderr, "\t    --filter_ovr=<filter>\t\tOverwrites the default filter with the introduced one.\n");
   fprintf(stderr, "\t-d  --discards=<file>\t\tPacket discards file. Indicates the path to a file with the packtet numbers to be discarded. File must be sorted.\n");
   fprintf(stderr, "\t-D  --debug=<debug_level>\tActivates debug lines.\n");
   fprintf(stderr, "\t-h  --help\t\t\tShows this message.\n");
@@ -55,6 +57,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.output      = NULL;
   options.gcoutput    = NULL;
   options.filter      = NULL;
+  options.filter_mode = OR;
   options.url         = NULL;
   options.host        = NULL;
   options.raw         = -1;
@@ -77,7 +80,7 @@ struct args_parse parse_args(int argc, char **argv){
 	int next_op;
 
 	/* Una cadena que lista las opciones cortas válidas */
-	const char* const short_op = "D:hrIvpbf:i:d:o:u:H:c:x:" ;
+	const char* const short_op = "D:hrIvpbi:d:o:u:H:c:x:" ;
 
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
@@ -95,7 +98,9 @@ struct args_parse parse_args(int argc, char **argv){
 		{ "input",		      1, 	NULL, 	'i'},
     { "discards",       1,  NULL,   'd'},
     { "capture",        1,  NULL,   'c'},
-		{ "filter", 		    1, 	NULL, 	'f'},
+		{ "filter_or", 		  1, 	NULL, 	'f'},
+    { "filter_and",     1,  NULL,   'F'},
+    { "filter_ovr",     1,  NULL,   'W'},
     { "url",            1,  NULL,   'u'},
     { "host",           1,  NULL,   'H'},
     { "verbose",        0,  NULL,   'v'},
@@ -184,9 +189,20 @@ struct args_parse parse_args(int argc, char **argv){
           options.raw = 0;
           break;
 
-        case 'f' : /*filter*/
+        case 'f' : /*filter OR*/
         	options.filter = optarg;
+          options.filter_mode = OR;
         	break;
+
+        case 'F' : /*filter AND*/
+          options.filter = optarg;
+          options.filter_mode = AND;
+          break;
+
+        case 'W' : /*filter overwrite*/
+          options.filter = optarg;
+          options.filter_mode = OVERWRITE;
+          break;
 
         case 'v' :
           options.verbose = 1;

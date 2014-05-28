@@ -72,6 +72,11 @@ void increment_options_requests();
 
 unsigned long long get_options_requests();
 
+//connect
+void increment_connect_requests();
+
+unsigned long long get_connect_requests();
+
 
 //delete
 void increment_delete_requests();
