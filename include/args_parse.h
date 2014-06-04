@@ -33,6 +33,7 @@ struct args_parse{
 	char *url;
 	char *host;
 	short version;
+	short noRtx;
 	short debug;
 	short sorted;
 };

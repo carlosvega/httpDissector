@@ -269,9 +269,9 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
         }
         fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);
     }else{
-        addPrintElement(conn->ip_client, conn->ip_server, 
+        addPrintElement(conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->ip_server, 
             conn->port_client, conn->port_server, req->ts, 
-            res_ts, diff, responseCode, response_msg, req->host, req->url, req->op);
+            res_ts, diff, responseCode, response_msg, req->host, req->url, req->op, req->seq);
     }
 
     conn->n_response--;

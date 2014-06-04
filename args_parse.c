@@ -16,6 +16,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-i  --input=<file>\t\tInput file. This parameter is mandatory.\n");
   fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
   fprintf(stderr, "\t    --log\t\t\tWrites more debug stuff in the log (httpDissector)\n");
+  fprintf(stderr, "\t    --noRtx\t\t\tRemoves Retransmissions. The size of the window is 1 million transactions. Enables --sorted option.\n");
   fprintf(stderr, "\t-o  --output=<file>\t\tOutput file instead of stdout.\n");
   fprintf(stderr, "\t    --gc-output=<file>\t\tOutput file for the garbage collector. Writes the requests without responses in the given file.\n");
   fprintf(stderr, "\t-p  --pcap\t\t\tSets the input file format as pcap. (Set by Default)\n");
@@ -72,6 +73,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.verbose     = 0;
   options.version     = 0;
   options.sorted      = 0;
+  options.noRtx       = 0;
   options.index       = NULL;
   options.discards    = NULL;
 
@@ -94,6 +96,7 @@ struct args_parse parse_args(int argc, char **argv){
     { "no-collector",   0,  NULL,   'C'},
     { "sorted",         0,  NULL,   'S'},
     { "log",            0,  NULL,   'L'},
+    { "noRtx",          0,  NULL,   'X'},
 		{ "pcap",			      0, 	NULL, 	'p'},
 		{ "input",		      1, 	NULL, 	'i'},
     { "discards",       1,  NULL,   'd'},
@@ -240,6 +243,11 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'L' :
           options.log = 1;
+          break;
+
+        case 'X' :
+          options.noRtx  = 1;
+          options.sorted = 1;
           break;
 
         case 'V' :

@@ -12,15 +12,18 @@ void initPrintElementList(){
 }
 
 void freePrintElementList(){
+    if(options.noRtx){
+        tagRetransmissions();
+    }
     sortPrintElements();
     printElements();
     FREE(print_element_list);
 }
 
-void addPrintElement(char *ip_client, char *ip_server,
+void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int, char *ip_client, char *ip_server,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
- short responseCode, char *response_msg, char *host, char *url, http_op op){
+ short responseCode, char *response_msg, char *host, char *url, http_op op, tcp_seq seq){
 
     //COPY ELEMENT
     strncpy(print_element_list[print_element_counter].ip_client, ip_client, ADDR_CONST);
@@ -35,10 +38,15 @@ void addPrintElement(char *ip_client, char *ip_server,
     strncpy(print_element_list[print_element_counter].url, url, URL_SIZE);
     strncpy(print_element_list[print_element_counter].host, host, HOST_SIZE);
     print_element_list[print_element_counter].op = op;
+    print_element_list[print_element_counter].seq = seq;
+    print_element_list[print_element_counter].isRtx = false;
 
     print_element_counter++;
 
     if(print_element_counter == PRINT_POOL_SIZE){
+        if(options.noRtx){
+            tagRetransmissions();
+        }
         sortPrintElements();
         printElements();
     }
@@ -61,6 +69,40 @@ void printElements(){
     print_element_counter = 0;
 
     return;
+}
+
+int isRtx(print_element *a, print_element *b){
+    return (a->ip_client_int == b->ip_client_int &&
+            a->ip_server_int == b->ip_server_int &&
+            a->port_client   == b->port_client   &&
+            a->port_server   == b->port_server   &&
+            a->seq           == b->seq) 
+    ? 1 : 0;
+
+    //!memcmp(a, b, sizeof(in_addr_t)*2 + sizeof(unsigned short)*2 + sizeof(tcp_seq)) ? 1 : 0;
+}
+
+void tagRetransmissions(){
+    qsort(print_element_list, print_element_counter, sizeof(print_element), sortedRemoveRetransmissionsCompareFunction);
+    int i;
+    for(i=0; i<print_element_counter-1; i++){
+        if(isRtx(&print_element_list[i], &print_element_list[i+1])){
+            print_element_list[i+1].isRtx = true;
+            increment_rtx_counter(1);
+        }
+    }
+}
+
+int sortedRemoveRetransmissionsCompareFunction(const void *a, const void *b){
+
+    print_element *c = (print_element *)a;
+    print_element *d = (print_element *)b;
+
+    if(c->seq == d->seq){
+        return tsCompare (c->req_ts, d->req_ts);    
+    }
+
+    return c->seq - d->seq;
 }
 
 int sortedPrintCompareFunction(const void *a, const void *b){
@@ -110,6 +152,10 @@ void binary_write(print_element *e){
 }
 
 void printElement(print_element *e){
+
+    if(e->isRtx == true){
+        return;
+    }
 
     if(options.binary){
         binary_write(e);

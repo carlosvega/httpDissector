@@ -616,10 +616,6 @@ int main(int argc, char *argv[]){
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 	
 	main_process(format, options.input);
-	
-	if(options.sorted){
-		freePrintElementList();
-	}
 
 	if(options.output != NULL){
 		fclose(output);
@@ -784,6 +780,10 @@ int main_process(char *format, char *filename){
   		NDLTclose(ndldata);
   	}
 
+  	if(options.sorted){
+		freePrintElementList();
+	}
+
 	long elapsed = end.tv_sec - start.tv_sec;
 	print_info(elapsed);
 
@@ -816,7 +816,11 @@ void print_info(long elapsed){
 	fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
 	fprintf(stderr, "CONNECT: %lld\n", get_connect_requests());
 	fprintf(stderr, "TRACE: %lld\n\n", get_trace_requests());
-	fprintf(stderr, "TOTAL: %lld\n", get_total_requests());
+	if(options.noRtx){
+		fprintf(stderr, "TOTAL: %lld with a %f%% of Rtx (%lld)) \n", get_total_requests(), get_rtx_ratio(), get_total_rtx());
+	}else{
+		fprintf(stderr, "TOTAL: %lld\n", get_total_requests());
+	}
 	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_removed_requests());
 
 	return;

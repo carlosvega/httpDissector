@@ -1,5 +1,7 @@
 #include "counters.h"
 
+static unsigned long long rtx_counter = 0;
+
 //REQUEST STATS
 static unsigned long long get_requests = 0;
 static unsigned long long post_requests = 0;
@@ -25,6 +27,26 @@ static unsigned long long no_cases = 0;
 static unsigned long long lost = 0;
 static unsigned long transactions = 0;
 static unsigned long long inserts = 0;
+
+
+void increment_rtx_counter(unsigned long add){
+	rtx_counter+=add;
+}
+
+unsigned long long get_total_rtx(){
+	return rtx_counter;
+}
+
+double get_rtx_ratio(){
+	if(rtx_counter == 0 || total_requests == 0){
+		return 0;
+	}
+
+	long double a = rtx_counter;
+	long double b = total_requests;
+
+	return ((double) (a/b)*100);
+}
 
 double get_responses_without_request_ratio(){
 	if(lost == 0 || total_responses == 0){
