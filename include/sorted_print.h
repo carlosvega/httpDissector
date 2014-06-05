@@ -5,6 +5,7 @@
 #include "list.h"
 #include "args_parse.h"
 #include "counters.h"
+#include "connection.h"
 #include "index.h"
 #include "tools.h"
 #include "http.h"
