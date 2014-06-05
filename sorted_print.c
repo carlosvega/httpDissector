@@ -72,14 +72,14 @@ void printElements(){
 }
 
 int isRtx(print_element *a, print_element *b){
-    return (a->ip_client_int == b->ip_client_int &&
-            a->ip_server_int == b->ip_server_int &&
-            a->port_client   == b->port_client   &&
-            a->port_server   == b->port_server   &&
-            a->seq           == b->seq) 
-    ? 1 : 0;
+    // return (a->ip_client_int == b->ip_client_int &&
+    //         a->ip_server_int == b->ip_server_int &&
+    //         a->port_client   == b->port_client   &&
+    //         a->port_server   == b->port_server   &&
+    //         a->seq           == b->seq) 
+    // ? 1 : 0;
 
-    //!memcmp(a, b, sizeof(in_addr_t)*2 + sizeof(unsigned short)*2 + sizeof(tcp_seq)) ? 1 : 0;
+    return !memcmp(a, b, sizeof(in_addr_t)*2 + sizeof(unsigned short)*2 + sizeof(tcp_seq));
 }
 
 void tagRetransmissions(){
@@ -93,16 +93,36 @@ void tagRetransmissions(){
     }
 }
 
+uint32_t getIndexFromPrintlement(print_element *e){
+    return (e->ip_client_int + e->ip_server_int + e->port_client + e->port_server)%MAX_FLOWS_TABLE_SIZE;
+}
+
 int sortedRemoveRetransmissionsCompareFunction(const void *a, const void *b){
 
     print_element *c = (print_element *)a;
     print_element *d = (print_element *)b;
 
-    if(c->seq == d->seq){
-        return tsCompare (c->req_ts, d->req_ts);    
+    if (c->ip_client_int != d->ip_client_int){
+        return c->ip_client_int - d->ip_client_int;
     }
 
-    return c->seq - d->seq;
+    if (c->port_client != d->port_client){
+        return c->port_client - d->port_client;
+    }
+
+    if (c->ip_server_int != d->ip_server_int){
+        return c->ip_server_int - d->ip_server_int;
+    }   
+
+    if (c->port_server != d->port_server){
+        return c->port_server - d->port_server;
+    }
+
+    if(c->seq != d->seq){
+        return c->seq - d->seq;
+    }
+
+    return tsCompare (c->req_ts, d->req_ts);
 }
 
 int sortedPrintCompareFunction(const void *a, const void *b){
