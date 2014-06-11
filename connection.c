@@ -1,7 +1,7 @@
 #include "connection.h"
 
 extern struct msgbuf sbuf;
-extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24
+extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24 or 2^25
 extern node_l *active_session_list;
 extern uint32_t active_session_list_size;
 extern struct timespec last_packet;

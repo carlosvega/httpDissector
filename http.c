@@ -352,7 +352,7 @@ int http_parse_headers(http_packet *http_t, char *cadena, int length){
 
 char *get_host_from_headers(char *cadena){
 
-	int reti;
+	// int reti;
 
 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
 	char *host_1 = strstr(cadena, "Host");
@@ -360,13 +360,13 @@ char *get_host_from_headers(char *cadena){
 		sscanf (host_1, "Host: %s\r\n", cadena_aux);
 
 		/* Execute regular expression */
-		reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
-	    if( !reti ){
-	        return cadena_aux;
-	    }
-	    else{
-	        return NULL;
-	    }
+		// reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
+	 //    if( !reti ){
+	 //        return cadena_aux;
+	 //    }
+	 //    else{
+	 //        return NULL;
+	 //    }
 	}else{
 		return NULL;
 	}
