@@ -276,7 +276,8 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
 
     conn->n_response--;
     removeRequestFromConnection(conn, req_node);
-    increment_total_responses();
+    
+    increment_transactions();
 }
 
 void cleanUpConnection(connection *conn, FILE *gcoutput){
@@ -361,6 +362,7 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     node_l *naux = NULL;
 
     if(aux_packet->op == RESPONSE){         //Response sin request
+        increment_total_responses();
         increment_lost();
         return -1;
     }
@@ -380,6 +382,11 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     list_append_node(&session_table[index].list, naux); //Meter en lista de colisiones        
     
     session_table[index].n++;
+    
+    //HASH TABLE INFO
+    // if(session_table[index].n > session_table[index].max_n){
+    //     session_table[index].max_n = session_table[index].n;
+    // }
 
     increment_total_connexions();
 
@@ -427,7 +434,7 @@ int insertPacket (packet_info *aux_packet){
             updateActiveConnexion(conn);
         //RESPUESTA
         }else if(aux_packet->op == RESPONSE){
-
+            increment_total_responses();
             switch (addResponseToConnexion(conn, aux_packet)){
                 case 0: //NORMAL CASE
                     updateActiveConnexion(conn);
@@ -457,9 +464,24 @@ int insertPacket (packet_info *aux_packet){
 *
 ********************************************************/
 uint32_t getIndex(packet_info * packet){
-    return (inet_addr(packet->ip_addr_src) + inet_addr(packet->ip_addr_dst) + packet->port_src + packet->port_dst)%MAX_FLOWS_TABLE_SIZE;
+    if(packet->op == RESPONSE){
+        return getIndex_global(inet_addr(packet->ip_addr_dst), inet_addr(packet->ip_addr_src), packet->port_dst, packet->port_src);
+    }else{
+        return getIndex_global(inet_addr(packet->ip_addr_src), inet_addr(packet->ip_addr_dst), packet->port_src, packet->port_dst); //OLD
+    }
 }
 
 uint32_t getIndexFromConnection(connection *conn){
-    return (conn->ip_client_int + conn->ip_server_int + conn->port_client + conn->port_server)%MAX_FLOWS_TABLE_SIZE;
+    return getIndex_global(conn->ip_client_int, conn->ip_server_int, conn->port_client, conn->port_server);
+}
+
+uint32_t getIndex_global(in_addr_t ip_a, in_addr_t ip_b, unsigned short port_a, unsigned short port_b){
+    long double p_a = ((long double) port_a) * 1.55f;
+    long double p_b = ((long double) port_b) * 1.65f;
+    long double ip_a_ = ((long double) ip_a) * 1.75f;
+    long double ip_b_ = ((long double) ip_b) * 1.85f;
+    
+    return ((uint32_t) (ip_a_ + ip_b_ + p_a + p_b))%MAX_FLOWS_TABLE_SIZE;   
+    
+    // return (ip_a + ip_b + port_a + port_b)%MAX_FLOWS_TABLE_SIZE;
 }

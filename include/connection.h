@@ -31,6 +31,7 @@ extern struct args_parse options;
 
 typedef struct {
     int n;
+    // int max_n; //HASH TABLE INFO
     node_l *list;
 } collision_list;
 
@@ -53,6 +54,7 @@ typedef struct {
     node_l *active_node;
 } connection;
 
+uint32_t getIndex_global(in_addr_t ip_a, in_addr_t ip_b, unsigned short port_a, unsigned short port_b);
 uint32_t getIndex(packet_info* packet);
 uint32_t getIndexFromConnection(connection *conn);
 void allocConnectionPool(void);

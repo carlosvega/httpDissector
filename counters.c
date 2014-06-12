@@ -53,10 +53,10 @@ double get_responses_without_request_ratio(){
 		return 0;
 	}
 
-	long double a = lost;
+	long double a = total_responses - transactions;
 	long double b = total_responses;
 
-	return ((double) (a/(a+b))*100);
+	return ((double) (a/b)*100);
 }
 
 double get_requests_without_response_lost_ratio(){
@@ -64,10 +64,10 @@ double get_requests_without_response_lost_ratio(){
 		return 0;
 	}
 
-	long double a = total_removed_requests;
+	long double a = total_requests - transactions;
 	long double b = total_requests;
 
-	return ((double) (a/(a+b))*100);
+	return ((double) (a/b)*100);
 }
 
 void increment_total_removed_requests(unsigned long add){
