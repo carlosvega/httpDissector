@@ -94,7 +94,7 @@ void tagRetransmissions(){
 }
 
 uint32_t getIndexFromPrintlement(print_element *e){
-    return (e->ip_client_int + e->ip_server_int + e->port_client + e->port_server)%MAX_FLOWS_TABLE_SIZE;
+    return getIndex_global(e->ip_client_int, e->ip_server_int, e->port_client, e->port_server);
 }
 
 int sortedRemoveRetransmissionsCompareFunction(const void *a, const void *b){

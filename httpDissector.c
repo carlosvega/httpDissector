@@ -9,7 +9,6 @@ pthread_t progress;
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
 
-
 node_l static_node;
 node_l *nodel_aux;
 
@@ -638,6 +637,12 @@ int main(int argc, char *argv[]){
 	freeConnectionPool();
 	freeRequestPool();
 
+	//HASH TABLE DATA
+	// int i=0;
+	// for(i=0; i<MAX_FLOWS_TABLE_SIZE; i++){
+	// 	fprintf(stdout, "%d\n", session_table[i].max_n);
+	// }
+
 	return 0;
 }
 
@@ -803,7 +808,7 @@ void print_info(long elapsed){
 	}	
 
 	fprintf(stderr, "\nResponses: %lld\n", get_total_responses());
-	fprintf(stderr, "Responses without request: %f%% (%lld)\n", get_responses_without_request_ratio(), get_lost());
+	fprintf(stderr, "Responses without request: %f%% (%lld)\n", get_responses_without_request_ratio(), get_total_responses()-get_transactions());
 	fprintf(stderr, "Responses out of order: %lld\n", get_total_out_of_order());
 
 	fprintf(stderr, "\nREQUEST STATS\n");
@@ -817,11 +822,13 @@ void print_info(long elapsed){
 	fprintf(stderr, "CONNECT: %lld\n", get_connect_requests());
 	fprintf(stderr, "TRACE: %lld\n\n", get_trace_requests());
 	if(options.noRtx){
-		fprintf(stderr, "TOTAL: %lld with a %f%% of Rtx (%lld)) \n", get_total_requests(), get_rtx_ratio(), get_total_rtx());
+		fprintf(stderr, "Total Requests: %lld with a %f%% of Rtx (%lld)) \n", get_total_requests(), get_rtx_ratio(), get_total_rtx());
 	}else{
-		fprintf(stderr, "TOTAL: %lld\n", get_total_requests());
+		fprintf(stderr, "Total Requests: %lld\n", get_total_requests());
 	}
-	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_removed_requests());
+	fprintf(stderr, "\nTotal Transcations: %lld\n", get_transactions());
+	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_requests()-get_transactions());
+	
 
 	return;
 }
