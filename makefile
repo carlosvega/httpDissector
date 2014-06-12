@@ -1,5 +1,5 @@
 CC = gcc -Wall -Iinclude/ $(DEBUG)
-LDFLAGS = -lm -lpthread
+LDFLAGS = -lm -lpthread -lpcre
 #CFLAGS		= -g -O2 -D_BSD_SOURCE 
 COLOURFLAGS = -D _colours
 
