@@ -1,5 +1,5 @@
 CC = gcc -Wall -Iinclude/ $(DEBUG)
-LDFLAGS = -lm -lpthread -lpcre
+LDFLAGS = -lm -lpthread
 #CFLAGS		= -g -O2 -D_BSD_SOURCE 
 COLOURFLAGS = -D _colours
 
@@ -59,9 +59,9 @@ http.o: http.c
 	$(CC) -c http.c -o http.o
 tools.o: tools.c
 	$(CC) -c tools.c -o tools.o
-httpDissector: httpDissector.c counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
+httpDissector: httpDissector.c counters.o  index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
-	$(CC)  httpDissector.o counters.o index.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
+	$(CC)  httpDissector.o counters.o  index.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
@@ -70,4 +70,4 @@ prueba: NDleeTrazas.o args_parse.o
 	$(CC) -c prueba.c -o prueba.o
 	$(CC) prueba.o args_parse.o NDleeTrazas.o -o prueba $(PCAPLIB)
 clean:	
-	rm -f *.o gnuplot_i tslist index counters alist tools tslist args_parse http httpDissector NDleeTrazas prueba_tabla list
+	rm -f *.o index counters alist tools tslist args_parse http httpDissector NDleeTrazas list

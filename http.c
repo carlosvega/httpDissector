@@ -1,7 +1,7 @@
 #include "http.h"
 #include <stdio.h>
-// #include <regex.h>
-#include <pcre.h> 
+#include <regex.h>
+// #include <pcre.h> 
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -28,10 +28,10 @@ struct _internal_http_packet{
 	short has_host;
 };
 
-pcre_extra *pcreExtra;
-pcre *hostname_regex;
-// regex_t hostname_regex;
-u_char u_cadena[CADENA_SIZE];
+// pcre_extra *pcreExtra;
+// pcre *hostname_regex;
+regex_t hostname_regex;
+// u_char u_cadena[CADENA_SIZE];
 char cadena_aux[CADENA_SIZE];
 
 http_header *http_get_headers(http_packet http){
@@ -197,16 +197,15 @@ http_op http_which_method(u_char * tcp_payload){
 
 int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char *ip_addr_src, char *ip_addr_dst){
 
-	if(length <= 0 || http_t == NULL || tcp_payload == NULL)
+	if(length <= 0 || http_t == NULL || tcp_payload == NULL){
 		return -1;
+	}
 	
 	// if(http_alloc(http_t) == -1){
 	// 	return -1;
 	// }
 
-	
-	
-	int no_data = 0;
+	// int no_data = 0;
 	// char *aux_hdr = NULL;
 	struct _internal_http_packet *http = *http_t;
 	http->headers = NULL;
@@ -217,14 +216,17 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char
 		return -1;
 	}
 	
-	memset(u_cadena, 0, CADENA_SIZE);
+	// memset(u_cadena, 0, CADENA_SIZE);
 
-	memcpy(u_cadena, tcp_payload, MIN(CADENA_SIZE, length));
+	// memcpy(u_cadena, tcp_payload, MIN(CADENA_SIZE, length));
 
-	char *cadena = (char *) u_cadena;
+	// char *cadena = (char *) u_cadena;
+
+	char *cadena = (char *) tcp_payload;
+	cadena[MIN(CADENA_SIZE, length)] = 0;
 
 	http->has_host = 0;
-	if(http->op != RESPONSE){
+	if(http->op != RESPONSE){ //REQUEST
 		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
 		char *host = get_host_from_headers(cadena);
 
@@ -236,27 +238,29 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char
 			http->has_host = 1;
 		}
 		
-	}else{
+	}else{ //RESPONSE
 		char *i = strstr(cadena, "\r\n");
 		if(i==NULL){
 			sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
 		}else{
-			memset(cadena_aux, 0, CADENA_SIZE);
-			memcpy(cadena_aux, cadena, i-cadena);
-			sscanf(cadena_aux, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
+
+			// memset(cadena_aux, 0, CADENA_SIZE);
+			// memcpy(cadena_aux, cadena, i-cadena);
+			cadena[i-cadena] = 0;
+			sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);			
 		}
 
-		char *hdr = strstr(cadena, "\r\n");
-		if(hdr == NULL){ 
-			// FREE(cadena);
-			return -1;
-		}
+		// char *hdr = strstr(cadena, "\r\n");
+		// if(hdr == NULL){ 
+		// 	// FREE(cadena);
+		// 	return -1;
+		// }
 		
-		char *data = strstr(cadena, "\r\n\r\n");
-		if(data == NULL){
-			no_data = 1;
-			data = cadena+length+1;
-		}
+		// char *data = strstr(cadena, "\r\n\r\n");
+		// if(data == NULL){
+		// 	no_data = 1;
+		// 	data = cadena+length+1;
+		// }
 
 		//Copy HTTP headers
 		// if(no_data == 0){
@@ -294,13 +298,13 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char
 		
 		// FREE(aux_hdr);
 
-		if(no_data == 0){
+		// if(no_data == 0){
 			//Copy HTTP data
 			// http->data = strdup(data);
 			// if(http->data == NULL){
 			// 	return -1;
 			// }
-		}
+		// }
 	}
 
 	// FREE(cadena);
@@ -362,29 +366,53 @@ char *get_host_from_headers(char *cadena){
 	if(host_1 != NULL){		
 		sscanf (host_1, "Host: %s\r\n", cadena_aux);
 
-		reti = pcre_exec(hostname_regex, pcreExtra, cadena_aux, strlen(cadena_aux), 0, 0, NULL, 0);
-		if(reti < 0){
-			switch(reti) {
-		      case PCRE_ERROR_NOMATCH      : //printf("String did not match the pattern (%s)\n", cadena_aux);        
-		      break;
-		      case PCRE_ERROR_NULL         : printf("Something was null\n");                      break;
-		      case PCRE_ERROR_BADOPTION    : printf("A bad option was passed\n");                 break;
-		      case PCRE_ERROR_BADMAGIC     : printf("Magic number bad (compiled re corrupt?)\n"); break;
-		      case PCRE_ERROR_UNKNOWN_NODE : printf("Something kooky in the compiled re\n");      break;
-		      case PCRE_ERROR_NOMEMORY     : printf("Ran out of memory\n");                       break;
-		      default                      : printf("Unknown error\n");                           break;
-			}
-			return NULL;
-		}else{
-			return cadena_aux;
-		}
-
+		/* Execute regular expression */
+		reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
+	    if( !reti ){
+	        return cadena_aux;
+	    }
+	    else{
+	        return NULL;
+	    }
 	}else{
 		return NULL;
 	}
 
 	return cadena_aux;
 }
+
+// char *get_host_from_headers(char *cadena){
+
+// 	int reti;
+
+// 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
+// 	char *host_1 = strstr(cadena, "Host");
+// 	if(host_1 != NULL){		
+// 		sscanf (host_1, "Host: %s\r\n", cadena_aux);
+
+// 		reti = pcre_exec(hostname_regex, pcreExtra, cadena_aux, strlen(cadena_aux), 0, 0, NULL, 0);
+// 		if(reti < 0){
+// 			switch(reti) {
+// 		      case PCRE_ERROR_NOMATCH      : //printf("String did not match the pattern (%s)\n", cadena_aux);        
+// 		      break;
+// 		      case PCRE_ERROR_NULL         : printf("Something was null\n");                      break;
+// 		      case PCRE_ERROR_BADOPTION    : printf("A bad option was passed\n");                 break;
+// 		      case PCRE_ERROR_BADMAGIC     : printf("Magic number bad (compiled re corrupt?)\n"); break;
+// 		      case PCRE_ERROR_UNKNOWN_NODE : printf("Something kooky in the compiled re\n");      break;
+// 		      case PCRE_ERROR_NOMEMORY     : printf("Ran out of memory\n");                       break;
+// 		      default                      : printf("Unknown error\n");                           break;
+// 			}
+// 			return NULL;
+// 		}else{
+// 			return cadena_aux;
+// 		}
+
+// 	}else{
+// 		return NULL;
+// 	}
+
+// 	return cadena_aux;
+// }
 
 void http_print_headers(http_packet *http_t){
 
@@ -439,18 +467,22 @@ int http_clean_up(http_packet *http_t){
 int http_alloc(http_packet *http_t){
 	
 	/* Compile regular expression */
-	const char *pcreErrorStr;
-	int pcreErrorOffset;
-	hostname_regex = pcre_compile("([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", 0, &pcreErrorStr, &pcreErrorOffset, NULL);
-	if(hostname_regex == NULL) {
-    	printf("ERROR: Could not compile '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
-    	exit(1);
-  	}
-  	pcreExtra = pcre_study(hostname_regex, 0, &pcreErrorStr);
-  	if(pcreErrorStr != NULL) {
-    	printf("ERROR: Could not study '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
-    	exit(1);
-  	}
+	// const char *pcreErrorStr;
+	// int pcreErrorOffset;
+	// hostname_regex = pcre_compile("([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", 0, &pcreErrorStr, &pcreErrorOffset, NULL);
+	// if(hostname_regex == NULL) {
+ //    	printf("ERROR: Could not compile '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
+ //    	exit(1);
+ //  	}
+ //  	pcreExtra = pcre_study(hostname_regex, 0, &pcreErrorStr);
+ //  	if(pcreErrorStr != NULL) {
+ //    	printf("ERROR: Could not study '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
+ //    	exit(1);
+ //  	}
+
+	/* Compile regular expression */
+	int reti = regcomp(&hostname_regex, "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", REG_EXTENDED);
+    if( reti ){ fprintf(stderr, "Could not compile regex\n"); exit(1); }
 
 
 	struct _internal_http_packet *http;
@@ -471,9 +503,12 @@ int http_alloc(http_packet *http_t){
 void http_free_packet(http_packet *http_t){
 	
 	/* Free compiled regular expression if you want to use the regex_t again */
-	pcre_free(hostname_regex);
-    if(pcreExtra != NULL)
-    	pcre_free(pcreExtra);
+	// pcre_free(hostname_regex);
+ //    if(pcreExtra != NULL)
+ //    	pcre_free(pcreExtra);
+
+	/* Free compiled regular expression if you want to use the regex_t again */
+    regfree(&hostname_regex);
 
 	if(http_t == NULL || *http_t == NULL) return;
 

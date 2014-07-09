@@ -38,18 +38,18 @@ unsigned long long get_total_rtx(){
 }
 
 double get_rtx_ratio(){
-	if(rtx_counter == 0 || total_requests == 0){
+	if(transactions == 0){
 		return 0;
 	}
 
 	long double a = rtx_counter;
-	long double b = total_requests;
+	long double b = transactions;
 
 	return ((double) (a/b)*100);
 }
 
 double get_responses_without_request_ratio(){
-	if(lost == 0 || total_responses == 0){
+	if(total_responses == 0){
 		return 0;
 	}
 
@@ -60,7 +60,7 @@ double get_responses_without_request_ratio(){
 }
 
 double get_requests_without_response_lost_ratio(){
-	if(total_removed_requests == 0 || total_requests == 0){
+	if(total_requests == 0){
 		return 0;
 	}
 
@@ -258,4 +258,72 @@ void increment_post_requests(){
 
 unsigned long long get_post_requests(){
 	return post_requests;
+}
+
+void decrement_request_counter(http_op h){
+	switch(h){
+        case HEAD:
+            head_requests--;
+            return;
+        case GET:
+            get_requests--;
+            return;
+        case POST:
+            post_requests--;
+            return;
+        case PUT:
+            put_requests--;
+            return;
+        case DELETE:
+            delete_requests--;
+            return;
+        case TRACE:
+            trace_requests--;
+            return;
+        case OPTIONS:
+            options_requests--;
+            return;
+        case CONNECT:
+            connect_requests--;
+            return;
+        case PATCH:
+            patch_requests--;
+            return;
+        default:
+            return;
+    }
+}
+
+void increment_request_counter(http_op h){
+    switch(h){
+        case HEAD:
+            increment_head_requests();
+            return;
+        case GET:
+            increment_get_requests();
+            return;
+        case POST:
+            increment_post_requests();
+            return;
+        case PUT:
+            increment_put_requests();
+            return;
+        case DELETE:
+            increment_delete_requests();
+            return;
+        case TRACE:
+            increment_trace_requests();
+            return;
+        case OPTIONS:
+            increment_options_requests();
+            return;
+        case CONNECT:
+            increment_connect_requests();
+            return;
+        case PATCH:
+            increment_patch_requests();
+            return;
+        default:
+            return;
+    }
 }

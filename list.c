@@ -35,6 +35,9 @@ extern node_l *nodel_aux;
 node_l *nodel_pool_free=NULL;
 node_l *nodel_pool_used=NULL;
 
+float pool_nodes_used_ratio(){
+    return list_size(&nodel_pool_used) / ((float) MAX_POOL_NODE);
+}
 
 node_l *list_get_first_node(node_l **list)
 {

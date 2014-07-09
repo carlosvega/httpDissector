@@ -43,6 +43,8 @@ struct node_l {
 	void *data;
 };
 
+float pool_nodes_used_ratio();
+
 void list_foreach(node_l **list, void func(void *));
 int list_size(node_l **list);
 void list_alloc_node_no_malloc(void *data);

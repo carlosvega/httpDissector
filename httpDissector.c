@@ -8,6 +8,7 @@ pthread_t progress;
 
 node_l *active_session_list = NULL;
 uint32_t active_session_list_size = 0;
+uint32_t max_active_session_list_size = 0;
 
 node_l static_node;
 node_l *nodel_aux;
@@ -18,7 +19,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.8";
+char version[32] = "Version 2.81";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -49,6 +50,8 @@ FILE *index_file = NULL;
 //HTTP
 http_packet http = NULL;
 
+unsigned long total_packets_in_file = 0;
+
 void print_info(long elapsed);
 int main_process(char *format, char *filename);
 unsigned long remove_old_active_nodes(struct timespec last_packet);
@@ -67,6 +70,10 @@ void sigintHandler(int sig){
 		pthread_join(progress, NULL);
 	}
 	
+	if(options.sorted){
+		freePrintElementList();
+	}
+
 	long elapsed = end.tv_sec - start.tv_sec;
 
 	print_info(elapsed);
@@ -137,7 +144,7 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 				// fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
 			}else if((conexion_node = list_search(list, n, compareConnection))==NULL){				
-				fprintf(stderr, "conexion_node == NULL %"PRIu32" %s\n", index, session_table[index].list == NULL? "NULL": "!NULL");
+				// fprintf(stderr, "conexion_node == NULL %"PRIu32" %s\n", index, session_table[index].list == NULL? "NULL": "!NULL");
 				if(session_table[index].list != NULL && session_table[index].list->data != NULL){
 					conn->active_node = n;
 					conexion_node = session_table[index].list;
@@ -171,6 +178,7 @@ void *recolector_de_basura(){
 		pthread_mutex_lock(&mutex);
 		l=0;
 	 	if(options.log){
+	 		syslog (LOG_NOTICE, " \n");
 			syslog (LOG_NOTICE, "Elements in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
 		}
         if (options.verbose)
@@ -193,6 +201,38 @@ void *recolector_de_basura(){
 	}
 
 	return NULL;
+}
+
+double hash_table_usage(){
+	return ((double) active_session_list_size) / ((long double) MAX_FLOWS_TABLE_SIZE);
+}
+
+unsigned long hash_table_collisions(){
+	uint32_t processed = active_session_list_size;
+	unsigned long counter = 0;
+	node_l *last = list_get_last_node(&active_session_list);
+	
+	while (processed>0){
+		if(last == NULL){
+			return counter;
+		}
+
+		node_l *n = last;
+		last = last->prev;
+		connection *conn = (connection*) n->data;
+		uint32_t index = getIndexFromConnection(conn);
+		if(session_table[index].n > 1){
+			counter += session_table[index].n - 1;
+		}
+
+		processed--;
+	}
+
+	return counter;
+}
+
+double hash_table_collisions_ratio(unsigned long collisions){
+	return ((long double) collisions) / ((long double) active_session_list_size + collisions);
 }
 
 void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, int w)
@@ -231,16 +271,23 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
 		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\t", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
 	}
 	if(options.log){
+		pthread_mutex_lock(&mutex);
 		syslog (LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ((int)(ratio*100)));
-		syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), get_total_requests(), get_active_requests(), active_session_list_size, get_total_connexions(), getGottenResponses());
+		unsigned long collisions = hash_table_collisions();
+		syslog (LOG_NOTICE, "HASH_USAGE: %u %f%% COLLISIONS: %ld COLLISIONS_RATIO: %f%%", active_session_list_size, hash_table_usage()*100, collisions, hash_table_collisions_ratio(collisions)*100);
+		syslog (LOG_NOTICE, "POOL USAGE: node_pool: %f%% connections_pool: %f%% requests_pool: %f%%", pool_nodes_used_ratio()*100, pool_connections_used_ratio()*100, pool_requests_used_ratio()*100);
+		
+
+		// syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), get_total_requests(), get_active_requests(), active_session_list_size, get_total_connexions(), getGottenResponses());
     	getrusage(RUSAGE_SELF, memory);
 		if(errno == EFAULT){
 		    syslog (LOG_NOTICE, "MEM Error: EFAULT\n");
 		}else if(errno == EINVAL){
 		    syslog (LOG_NOTICE, "MEM Error: EINVAL\n");
 		}else{
-			syslog (LOG_NOTICE, "MEM %ld\t%ld", elapsed.tv_sec, memory->ru_maxrss);
+			syslog (LOG_NOTICE, "MEM %ld %ld", elapsed.tv_sec, memory->ru_maxrss);
 		}
+		pthread_mutex_unlock(&mutex);
 	}
 
     // ANSI Control codes to go back to the
@@ -267,8 +314,8 @@ void *barra_de_progreso(){
 }
 
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
-	
-	ERR_MSG("DEBUG/ begining parse_packet().\n");
+
+	// ERR_MSG("DEBUG/ begining parse_packet().\n");
 	size_t size_ethernet = SIZE_ETHERNET;
 	
 	memset(pktinfo->url, 0, URL_SIZE);
@@ -282,14 +329,14 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 
 	if (pktinfo->size_ip < 20) {
 		
-		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_ip < 20\n");
+		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_ip < 20\n");
 		
 		return 1;
 	}
 
 	if(pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)){
 		
-		ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)\n");
+		// ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)\n");
 		
 		return 1;
 	}
@@ -305,7 +352,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
       
     if (pktinfo->size_tcp < 20) {
     	
-		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
+		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
 		
 	    return 1;
     }
@@ -316,12 +363,12 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
     inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
 
-  	ERR_MSG("DEBUG/ calling http_parse_packet().\n");
+  	// ERR_MSG("DEBUG/ calling http_parse_packet().\n");
 	
   	if(http_parse_packet(pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip_addr_src, pktinfo->ip_addr_dst) == -1){
  		http_clean_up(&http);
  		
-		ERR_MSG("DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");
+		// ERR_MSG("DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");
 		
  		return 1;
  	}
@@ -330,7 +377,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     	pktinfo->request = -1;
     	http_clean_up(&http);
     	
-		ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_payload <= 0\n");
+		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_payload <= 0\n");
 		
     	return 1;
     }
@@ -353,7 +400,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 			if(boyermoore_search(pktinfo->url, options.url) == NULL){
 				http_clean_up(&http);
 				
-				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search url returned NULL\n");
+				// ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search url returned NULL\n");
 				
 				return 1;
 			}
@@ -363,7 +410,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 			if(boyermoore_search(pktinfo->host, options.host) == NULL){
 				http_clean_up(&http);
 				
-				ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search host returned NULL\n");
+				// ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search host returned NULL\n");
 				
 				return 1;
 			}
@@ -375,11 +422,11 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	}
 
 	
-	ERR_MSG("DEBUG/ calling http_clean_up().\n");
+	// ERR_MSG("DEBUG/ calling http_clean_up().\n");
 
 	http_clean_up(&http);
 
-	ERR_MSG("DEBUG/ finish parse_packet().\n");
+	// ERR_MSG("DEBUG/ finish parse_packet().\n");
 
 	return 0;
 }
@@ -637,11 +684,20 @@ int main(int argc, char *argv[]){
 	freeConnectionPool();
 	freeRequestPool();
 
-	//HASH TABLE DATA
-	// int i=0;
-	// for(i=0; i<MAX_FLOWS_TABLE_SIZE; i++){
-	// 	fprintf(stdout, "%d\n", session_table[i].max_n);
-	// }
+	// HASH TABLE DATA
+	unsigned long i=0;
+	unsigned long total = 0;
+	unsigned long total2 = 0;
+	for(i=0; i<MAX_FLOWS_TABLE_SIZE; i++){
+		total += session_table[i].max_n;
+		if(session_table[i].max_n > 1){
+			total2 += session_table[i].max_n - 1;
+		}
+		// fprintf(stdout, "%d\n", session_table[i].max_n);
+	}
+
+	fprintf(stderr, "TOTAL DIFFERENT CONNECTIONS: %ld\n", total);
+	fprintf(stderr, "TEORIC MAX OF COLLISIONS (tables with lists > 1): %ld\n", total2);
 
 	return 0;
 }
@@ -662,7 +718,7 @@ int main_process(char *format, char *filename){
 	    	syslog (LOG_NOTICE, "Log started by process: %d", getpid());
 	    	syslog (LOG_NOTICE, "Reading file: %s", filename);
 	    	syslog (LOG_NOTICE, "SPEED secs\tspeed");
-	    	syslog (LOG_NOTICE, "MEM secs\tmemory");
+	    	syslog (LOG_NOTICE, "MEM secs memory");
 	    	memory = malloc(sizeof(struct rusage));
     	}
 	}
@@ -779,6 +835,8 @@ int main_process(char *format, char *filename){
 
 	ERR_MSG("DEBUG/ closing progress_bar\n");
 
+	total_packets_in_file = NDLTpktNumber(ndldata);
+
   	if(options.interface == NULL && progress_bar){
   		pthread_join(progress, NULL);
   		loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, 40);
@@ -797,21 +855,24 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
+	setlocale(LC_ALL, "en_US"); 
+
 	setvbuf(stderr, NULL, _IONBF, 0);
-	fprintf(stderr, "\n\nFile: %s \nTotal packets: %ld\nTotal inserts: %lld\n", global_filename, packets, get_inserts());
+	fprintf(stderr, "\n\nFile: %s \nTotal packets in file: %'ld (Processed packets: %'ld)\n", global_filename == NULL? options.interface : global_filename, total_packets_in_file, packets);
 	
 	if(elapsed != 0){
-		fprintf(stderr, "Speed: %Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
+		// fprintf(stderr, "Speed: %.3Lf Packets/sec (%.3Lf)\n", packets == 0 ? 0 : ((long double)packets)/elapsed, total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file)/elapsed);
+		fprintf(stderr, "Speed: %'.3Lf Packets/sec (%'.3Lf Processed Packets/sec)\n", total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file)/elapsed, packets == 0 ? 0 : ((long double)packets)/elapsed);
 		if(options.log){
-			syslog (LOG_NOTICE, "%Lf Packets/sec\n", packets == 0? 0 : ((long double)packets)/elapsed);
+			syslog (LOG_NOTICE, "Speed: %'.3Lf Packets/sec (%'.3Lf Processed Packets/sec)\n", total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file)/elapsed, packets == 0 ? 0 : ((long double)packets)/elapsed);
 		}
 	}	
 
-	fprintf(stderr, "\nResponses: %lld\n", get_total_responses());
+	fprintf(stderr, "\nTotal Responses: %lld\n", get_total_responses());
 	fprintf(stderr, "Responses without request: %f%% (%lld)\n", get_responses_without_request_ratio(), get_total_responses()-get_transactions());
 	fprintf(stderr, "Responses out of order: %lld\n", get_total_out_of_order());
 
-	fprintf(stderr, "\nREQUEST STATS\n");
+	fprintf(stderr, "\nREQUEST STATS %s\n", options.noRtx ? "(RTx removed)" : "");
 	fprintf(stderr, "GET: %lld\n", get_get_requests());
 	fprintf(stderr, "POST: %lld\n", get_post_requests());
 	fprintf(stderr, "HEAD: %lld\n", get_head_requests());
@@ -821,14 +882,17 @@ void print_info(long elapsed){
 	fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
 	fprintf(stderr, "CONNECT: %lld\n", get_connect_requests());
 	fprintf(stderr, "TRACE: %lld\n\n", get_trace_requests());
+
+	fprintf(stderr, "Total Requests: %lld\n", get_total_requests());
 	if(options.noRtx){
-		fprintf(stderr, "Total Requests: %lld with a %f%% of Rtx (%lld)) \n", get_total_requests(), get_rtx_ratio(), get_total_rtx());
+		fprintf(stderr, "\nTotal Transactions: %lld with a %f%% of Rtx (%lld)\n", get_transactions(), get_rtx_ratio(), get_total_rtx());
 	}else{
-		fprintf(stderr, "Total Requests: %lld\n", get_total_requests());
+		fprintf(stderr, "\nTotal Transactions: %lld\n", get_transactions());
 	}
-	fprintf(stderr, "\nTotal Transcations: %lld\n", get_transactions());
+	
 	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_requests()-get_transactions());
 	
+	fprintf(stderr, "Max. hash table usage: %"PRIu32"\n", max_active_session_list_size);
 
 	return;
 }

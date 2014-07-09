@@ -9,6 +9,10 @@ node_l *request_pool_used=NULL;
 unsigned long long gottenRequests = 0;
 request *requests;
 
+float pool_requests_used_ratio(){
+    return list_size(&request_pool_used) / ((float) REQUEST_POOL);
+}
+
 unsigned long long getGottenRequests(){
 	return gottenRequests;
 }

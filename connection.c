@@ -4,9 +4,8 @@ extern struct msgbuf sbuf;
 extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24 or 2^25
 extern node_l *active_session_list;
 extern uint32_t active_session_list_size;
+extern uint32_t max_active_session_list_size;
 extern struct timespec last_packet;
-
-extern uint64_t last_packet_timestamp;
 
 extern FILE *output;
 
@@ -20,38 +19,8 @@ node_l *nodel_aux;
 connection *conns;
 connection aux_conn;
 
-void increment_request_counter(http_op h){
-switch(h){
-        case HEAD:
-            increment_head_requests();
-            return;
-        case GET:
-            increment_get_requests();
-            return;
-        case POST:
-            increment_post_requests();
-            return;
-        case PUT:
-            increment_put_requests();
-            return;
-        case DELETE:
-            increment_delete_requests();
-            return;
-        case TRACE:
-            increment_trace_requests();
-            return;
-        case OPTIONS:
-            increment_options_requests();
-            return;
-        case CONNECT:
-            increment_connect_requests();
-            return;
-        case PATCH:
-            increment_patch_requests();
-            return;
-        default:
-            return;
-    }
+float pool_connections_used_ratio(){
+    return list_size(&conn_pool_used) / ((float) MAX_POOL_FLOW);
 }
 
 void removeRequestFromConnection(connection *conn, node_l *req_node){
@@ -194,6 +163,8 @@ int addActiveConnexion(connection *conn){
     list_prepend_node(&active_session_list, naux); //Anadir al principio de la lista de activos
     conn->active_node=naux;
     active_session_list_size++;
+    if(active_session_list_size > max_active_session_list_size)
+        max_active_session_list_size = active_session_list_size;
 
     return 0;
 }
@@ -383,10 +354,10 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     
     session_table[index].n++;
     
-    //HASH TABLE INFO
-    // if(session_table[index].n > session_table[index].max_n){
-    //     session_table[index].max_n = session_table[index].n;
-    // }
+    // HASH TABLE INFO
+    if(session_table[index].n > session_table[index].max_n){
+        session_table[index].max_n = session_table[index].n;
+    }
 
     increment_total_connexions();
 
@@ -475,13 +446,15 @@ uint32_t getIndexFromConnection(connection *conn){
     return getIndex_global(conn->ip_client_int, conn->ip_server_int, conn->port_client, conn->port_server);
 }
 
+
+
 uint32_t getIndex_global(in_addr_t ip_a, in_addr_t ip_b, unsigned short port_a, unsigned short port_b){
-    long double p_a = ((long double) port_a) * 1.55f;
-    long double p_b = ((long double) port_b) * 1.65f;
-    long double ip_a_ = ((long double) ip_a) * 1.75f;
-    long double ip_b_ = ((long double) ip_b) * 1.85f;
+    // long double p_a = ((long double) port_a) * 1.55f;
+    // long double p_b = ((long double) port_b) * 1.65f;
+    // long double ip_a_ = ((long double) ip_a) * 1.75f;
+    // long double ip_b_ = ((long double) ip_b) * 1.85f;
     
-    return ((uint32_t) (ip_a_ + ip_b_ + p_a + p_b))%MAX_FLOWS_TABLE_SIZE;   
+    // return ((uint32_t) (ip_a_ + ip_b_ + p_a + p_b))%MAX_FLOWS_TABLE_SIZE;   
     
-    // return (ip_a + ip_b + port_a + port_b)%MAX_FLOWS_TABLE_SIZE;
+    return (ip_a + ip_b + port_a + port_b)%MAX_FLOWS_TABLE_SIZE;
 }

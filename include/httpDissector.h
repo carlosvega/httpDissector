@@ -1,10 +1,11 @@
 #ifndef _httpDissector
 #define _httpDissector
 
+#include <locale.h>
 #include <assert.h>
+#include "list.h"
 #include "counters.h"
 #include "connection.h"
-#include "list.h"
 #include "request.h"
 #include "response.h"
 #include "packet_info.h"
