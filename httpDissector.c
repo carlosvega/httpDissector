@@ -19,7 +19,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.81";
+char version[32] = "Version 2.81_d";
 struct args_parse options;
 
 struct timespec last_packet;
