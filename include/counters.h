@@ -1,6 +1,8 @@
 #ifndef _counters
 #define _counters
 
+#include "http.h"
+
 void increment_rtx_counter(unsigned long add);
 unsigned long long get_total_rtx();
 double get_rtx_ratio();
@@ -111,5 +113,8 @@ unsigned long long get_get_requests();
 void increment_post_requests();
 
 unsigned long long get_post_requests();
+
+void decrement_request_counter(http_op h);
+void increment_request_counter(http_op h);
 
 #endif

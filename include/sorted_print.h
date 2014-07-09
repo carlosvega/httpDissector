@@ -4,7 +4,7 @@
 #include <string.h>
 #include "list.h"
 #include "args_parse.h"
-#include "counters.h"
+
 #include "connection.h"
 #include "index.h"
 #include "tools.h"
@@ -23,8 +23,8 @@ typedef struct {
   unsigned short port_server;
   tcp_seq seq;
 
-  char ip_client[ADDR_CONST];
-  char ip_server[ADDR_CONST];
+  // char ip_client[ADDR_CONST];
+  // char ip_server[ADDR_CONST];
   
   //Timestamps
   struct timespec req_ts;

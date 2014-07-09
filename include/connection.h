@@ -13,6 +13,7 @@
 #include "packet_info.h"
 #include "args_parse.h"
 
+
 //---
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +32,7 @@ extern struct args_parse options;
 
 typedef struct {
     int n;
-    // int max_n; //HASH TABLE INFO
+    int max_n; //HASH TABLE INFO
     node_l *list;
 } collision_list;
 
@@ -53,6 +54,8 @@ typedef struct {
     struct timespec last_ts;
     node_l *active_node;
 } connection;
+
+float pool_connections_used_ratio();
 
 uint32_t getIndex_global(in_addr_t ip_a, in_addr_t ip_b, unsigned short port_a, unsigned short port_b);
 uint32_t getIndex(packet_info* packet);

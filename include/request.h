@@ -5,6 +5,7 @@
 #include "list.h"
 #include "packet_info.h"
 
+float pool_requests_used_ratio();
 unsigned long long getGottenRequests();
 void allocRequestPool(void);
 request * getRequest(void);

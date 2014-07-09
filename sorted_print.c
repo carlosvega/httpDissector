@@ -1,4 +1,5 @@
 #include "sorted_print.h"
+#include "counters.h"
 
 extern FILE *output;
 extern struct args_parse options;
@@ -9,6 +10,7 @@ print_element *print_element_list = NULL;
 
 void initPrintElementList(){
     print_element_list = calloc(PRINT_POOL_SIZE, sizeof(print_element));
+    setvbuf (output, NULL, _IONBF, BUFSIZ);
 }
 
 void freePrintElementList(){
@@ -26,8 +28,8 @@ void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int, char *ip_
  short responseCode, char *response_msg, char *host, char *url, http_op op, tcp_seq seq){
 
     //COPY ELEMENT
-    strncpy(print_element_list[print_element_counter].ip_client, ip_client, ADDR_CONST);
-    strncpy(print_element_list[print_element_counter].ip_server, ip_server, ADDR_CONST);
+    // strncpy(print_element_list[print_element_counter].ip_client, ip_client, ADDR_CONST);
+    // strncpy(print_element_list[print_element_counter].ip_server, ip_server, ADDR_CONST);
     print_element_list[print_element_counter].port_client = port_client;
     print_element_list[print_element_counter].port_server = port_server;
     print_element_list[print_element_counter].req_ts = req_ts;
@@ -40,6 +42,8 @@ void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int, char *ip_
     print_element_list[print_element_counter].op = op;
     print_element_list[print_element_counter].seq = seq;
     print_element_list[print_element_counter].isRtx = false;
+    print_element_list[print_element_counter].ip_client_int = ip_client_int;
+    print_element_list[print_element_counter].ip_server_int = ip_server_int;
 
     print_element_counter++;
 
@@ -89,12 +93,9 @@ void tagRetransmissions(){
         if(isRtx(&print_element_list[i], &print_element_list[i+1])){
             print_element_list[i+1].isRtx = true;
             increment_rtx_counter(1);
+            decrement_request_counter(print_element_list[i].op);
         }
     }
-}
-
-uint32_t getIndexFromPrintlement(print_element *e){
-    return getIndex_global(e->ip_client_int, e->ip_server_int, e->port_client, e->port_server);
 }
 
 int sortedRemoveRetransmissionsCompareFunction(const void *a, const void *b){
@@ -139,36 +140,36 @@ void clearElement(print_element *e){
 
 void binary_write(print_element *e){
 
-    in_addr_t ip_src = inet_addr(e->ip_client);
-    in_addr_t ip_dst = inet_addr(e->ip_server);
+    // in_addr_t ip_src = inet_addr(e->ip_client);
+    // in_addr_t ip_dst = inet_addr(e->ip_server);
 
-    //IPsrc
-    fwrite(&ip_src, sizeof(in_addr_t), 1, output);
-    //PortSRC
-    fwrite(&e->port_client, sizeof(short), 1, output);
-    //IPdst
-    fwrite(&ip_dst, sizeof(in_addr_t), 1, output);
-    //PortDST
-    fwrite(&e->port_server, sizeof(short), 1, output);
-    //req_ts
-    fwrite(&e->req_ts, sizeof(struct timespec), 1, output);
-    //res_ts
-    fwrite(&e->res_ts, sizeof(struct timespec), 1, output);
-    //diff
-    fwrite(&e->diff, sizeof(struct timespec), 1, output);
-    //size of response msg and response msg
-    fwrite(e->response_msg, sizeof(char), RESP_MSG_SIZE, output);
-    //response code
-    fwrite(&e->responseCode, sizeof(short), 1, output);
-    //method
-    char *aux = http_op_to_char(e->op);
-    char method[8] = {0};
-    memcpy(method, aux, strlen(aux));
-    fwrite(method, sizeof(char), 8, output);
-    //size of the host and host
-    fwrite(e->host, sizeof(char), HOST_SIZE, output);
-    //size of the url and url
-    fwrite(e->url, sizeof(char), URL_SIZE, output);
+    // //IPsrc
+    // fwrite(&ip_src, sizeof(in_addr_t), 1, output);
+    // //PortSRC
+    // fwrite(&e->port_client, sizeof(short), 1, output);
+    // //IPdst
+    // fwrite(&ip_dst, sizeof(in_addr_t), 1, output);
+    // //PortDST
+    // fwrite(&e->port_server, sizeof(short), 1, output);
+    // //req_ts
+    // fwrite(&e->req_ts, sizeof(struct timespec), 1, output);
+    // //res_ts
+    // fwrite(&e->res_ts, sizeof(struct timespec), 1, output);
+    // //diff
+    // fwrite(&e->diff, sizeof(struct timespec), 1, output);
+    // //size of response msg and response msg
+    // fwrite(e->response_msg, sizeof(char), RESP_MSG_SIZE, output);
+    // //response code
+    // fwrite(&e->responseCode, sizeof(short), 1, output);
+    // //method
+    // char *aux = http_op_to_char(e->op);
+    // char method[8] = {0};
+    // memcpy(method, aux, strlen(aux));
+    // fwrite(method, sizeof(char), 8, output);
+    // //size of the host and host
+    // fwrite(e->host, sizeof(char), HOST_SIZE, output);
+    // //size of the url and url
+    // fwrite(e->url, sizeof(char), URL_SIZE, output);
 }
 
 void printElement(print_element *e){
@@ -185,13 +186,28 @@ void printElement(print_element *e){
             write_to_index_with_ts(ftell(output), e->req_ts);
         }
 
+        static char ip_client[ADDR_CONST] = {0};
+        static char ip_server[ADDR_CONST] = {0};
+        static struct in_addr ip_addr;
+        ip_addr.s_addr = e->ip_client_int;
+        strcpy(ip_client, inet_ntoa(ip_addr));
+        ip_addr.s_addr = e->ip_server_int;
+        strcpy(ip_server, inet_ntoa(ip_addr));
+
         fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
-            e->ip_client, e->port_client, e->ip_server, 
+            ip_client, e->port_client, ip_server, 
             e->port_server, e->req_ts.tv_sec, e->req_ts.tv_nsec, e->res_ts.tv_sec, 
             e->res_ts.tv_nsec, e->diff.tv_sec, e->diff.tv_nsec, RESP_MSG_SIZE, e->response_msg, 
             e->responseCode, http_op_to_char(e->op), e->host, e->url);
+
+        fflush(output);
+        // free(ip_client);
+        // free(ip_server);
     }
 
     return;
 }
 
+uint32_t getIndexFromPrintlement(print_element *e){
+    return getIndex_global(e->ip_client_int, e->ip_server_int, e->port_client, e->port_server);
+}
