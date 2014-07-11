@@ -100,6 +100,8 @@ void freeResponsePool(void)
 		FREE(n);
 	}
 
+	gottenResponses = 0;
+
 	FREE(responses);
 }
 

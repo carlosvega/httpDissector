@@ -28,6 +28,37 @@ static unsigned long long lost = 0;
 static unsigned long transactions = 0;
 static unsigned long long inserts = 0;
 
+void reset_counters(){
+
+	rtx_counter = 0;
+
+	//REQUEST STATS
+	get_requests = 0;
+	post_requests = 0;
+	head_requests = 0;
+	put_requests = 0;
+	trace_requests = 0;
+	delete_requests = 0;
+	options_requests = 0;
+	connect_requests = 0;
+	patch_requests = 0;
+
+	active_requests = 0;
+	total_connexions = 0;
+	total_req_node = 0;
+	total_out_of_order = 0;
+
+	total_removed_requests = 0;
+	total_requests = 0;
+	total_responses = 0;
+
+	no_cases = 0;
+
+	lost = 0;
+	transactions = 0;
+	inserts = 0;
+
+}
 
 void increment_rtx_counter(unsigned long add){
 	rtx_counter+=add;

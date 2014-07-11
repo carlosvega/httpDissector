@@ -1,6 +1,7 @@
 #ifndef _httpDissector
 #define _httpDissector
 
+#include <inttypes.h>
 #include <locale.h>
 #include <assert.h>
 #include "list.h"
@@ -29,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <math.h>
 
 #define SNAPLEN 65535
 #define PROMISC 1

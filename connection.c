@@ -1,7 +1,9 @@
 #include "connection.h"
 
 extern struct msgbuf sbuf;
-extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24 or 2^25
+//extern collision_list session_table[MAX_FLOWS_TABLE_SIZE]; //2^24 or 2^25
+extern collision_list *session_table;
+extern int resized_session_table;
 extern node_l *active_session_list;
 extern uint32_t active_session_list_size;
 extern uint32_t max_active_session_list_size;
@@ -377,12 +379,16 @@ int insertPacket (packet_info *aux_packet){
 
     //ACK & SEQ
     
+    ERR_MSG("insertPacket\n");
+
     //Preparamos conn auxiliar y nodo auxiliar
     preFillConnection(aux_packet, &aux_conn);
     list_alloc_node_no_malloc(&aux_conn);
 
     uint32_t index = getIndex (aux_packet); //Obtener hashkey
+    ERR_MSG("insertPacket 1 %"PRIu32"\n", index);
     node_l *list = session_table[index].list;      //Obtener lista de colisiones
+    ERR_MSG("insertPacket 2\n");
 
     //Buscar conexion en colisiones
     node_l *conexion_node = list_search(list, &static_node, compareConnection);
@@ -456,5 +462,6 @@ uint32_t getIndex_global(in_addr_t ip_a, in_addr_t ip_b, unsigned short port_a, 
     
     // return ((uint32_t) (ip_a_ + ip_b_ + p_a + p_b))%MAX_FLOWS_TABLE_SIZE;   
     
-    return (ip_a + ip_b + port_a + port_b)%MAX_FLOWS_TABLE_SIZE;
+    //return (ip_a + ip_b + port_a + port_b)%MAX_FLOWS_TABLE_SIZE;
+    return resized_session_table ? (ip_a ^ ip_b ^ port_a ^ port_b)%BIG_MAX_FLOWS_TABLE_SIZE : (ip_a ^ ip_b ^ port_a ^ port_b)%MAX_FLOWS_TABLE_SIZE;
 }

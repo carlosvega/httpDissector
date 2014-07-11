@@ -108,6 +108,7 @@ void freeRequestPool(void)
 		FREE(n);
 	}
 
+	gottenRequests = 0;
 	FREE(requests);
 }
 
