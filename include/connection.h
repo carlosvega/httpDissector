@@ -28,6 +28,8 @@ extern struct args_parse options;
 #define ERR_MSG(...) do{if(options.debug){fprintf(stderr, __VA_ARGS__);}}while(0)
 //#define ERR_MSG(...) do{if(options.debug){syslog (LOG_DEBUG, __VA_ARGS__);}}while(0)
 #define MAX_FLOWS_TABLE_SIZE 16777216
+#define BIG_MAX_FLOWS_TABLE_SIZE 1073741824
+//4294967294
 //16777216 2^24 33554432 2^25 67108864 2^26 134217728 2^27
 
 typedef struct {

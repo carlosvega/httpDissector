@@ -3,6 +3,7 @@
 
 #include "http.h"
 
+void reset_counters();
 void increment_rtx_counter(unsigned long add);
 unsigned long long get_total_rtx();
 double get_rtx_ratio();
