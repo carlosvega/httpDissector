@@ -27,38 +27,38 @@ extern struct args_parse options;
 
 #define ERR_MSG(...) do{if(options.debug){fprintf(stderr, __VA_ARGS__);}}while(0)
 //#define ERR_MSG(...) do{if(options.debug){syslog (LOG_DEBUG, __VA_ARGS__);}}while(0)
-#define MAX_FLOWS_TABLE_SIZE 16777216
-#define BIG_MAX_FLOWS_TABLE_SIZE 1073741824
+#define MAX_FLOWS_TABLE_SIZE 1073741824 //2^30
+// #define BIG_MAX_FLOWS_TABLE_SIZE 1073741824
 //4294967294
 //16777216 2^24 33554432 2^25 67108864 2^26 134217728 2^27
 
-typedef struct {
-    int n;
-    int max_n; //HASH TABLE INFO
+typedef struct __attribute__((packed)) {
     node_l *list;
+    unsigned short n;
+    // int max_n; //HASH TABLE INFO
 } collision_list;
 
-typedef struct {
-    node_l *list;
-    int n_request;
-    int n_response;
-    int deleted_nodes;
+typedef struct __attribute__((packed)) {
     char ip_client[ADDR_CONST];
 	char ip_server[ADDR_CONST];
     in_addr_t ip_client_int;
     in_addr_t ip_server_int;
-    unsigned short port_client;
-    unsigned short port_server;
     tcp_seq last_client_seq;
     tcp_seq last_client_ack;
     tcp_seq last_server_seq;
     tcp_seq last_server_ack;
     struct timespec last_ts;
     node_l *active_node;
+    node_l *list;
+    unsigned short port_client;
+    unsigned short port_server;
+    unsigned short n_request;
+    unsigned short n_response;
+    unsigned short deleted_nodes;
 } connection;
 
 float pool_connections_used_ratio();
-
+void printRRD(struct timespec req_ts, struct timespec diff);
 uint32_t getIndex_global(in_addr_t ip_a, in_addr_t ip_b, unsigned short port_a, unsigned short port_b);
 uint32_t getIndex(packet_info* packet);
 uint32_t getIndexFromConnection(connection *conn);

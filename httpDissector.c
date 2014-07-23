@@ -21,7 +21,7 @@ packet_info *pktinfo = NULL;
 
 #define GC_SLEEP_SECS 25
 
-char version[32] = "Version 2.81_d";
+char version[32] = "Version 2.83";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -108,6 +108,7 @@ void sigintHandler(int sig){
 	}
 	
 	// err_mqueue_close();
+	FREE(session_table);
 	
 	exit(0);
 }
@@ -207,7 +208,8 @@ void *recolector_de_basura(){
 }
 
 double hash_table_usage(){
-	return resized_session_table ? ((double) active_session_list_size) / ((long double) BIG_MAX_FLOWS_TABLE_SIZE) : ((double) active_session_list_size) / ((long double) MAX_FLOWS_TABLE_SIZE);
+	// return resized_session_table ? ((double) active_session_list_size) / ((long double) BIG_MAX_FLOWS_TABLE_SIZE) : ((double) active_session_list_size) / ((long double) MAX_FLOWS_TABLE_SIZE);
+	return ((double) active_session_list_size) / ((long double) MAX_FLOWS_TABLE_SIZE);
 }
 
 unsigned long hash_table_collisions(){
@@ -526,103 +528,101 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 uint32_t *variance_data = NULL;
 int variance_packets = 0;
 
-void inspect_PCAP_File_Callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet){
+// void inspect_PCAP_File_Callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet){
 
-	if(variance_packets < 800000){
-		memset(pktinfo, 0, sizeof(packet_info));
-		parse_packet(packet, pkthdr, pktinfo);
+// 	if(variance_packets < 800000){
+// 		memset(pktinfo, 0, sizeof(packet_info));
+// 		parse_packet(packet, pkthdr, pktinfo);
 		
-		if(pktinfo->request == 1){ //GET o POST
+// 		if(pktinfo->request == 1){ //GET o POST
 	
-			if(insertPacket(pktinfo) != 0){
-				decrement_inserts();
-			}else{
-				increment_inserts();
-				variance_packets++;
-				variance_data[variance_packets] = getIndex(pktinfo);
-			}
-		}
+// 			if(insertPacket(pktinfo) != 0){
+// 				decrement_inserts();
+// 			}else{
+// 				increment_inserts();
+// 				variance_packets++;
+// 				variance_data[variance_packets] = getIndex(pktinfo);
+// 			}
+// 		}
 
-	}else{
-		NDLTbreakloop(ndldata);
-		NDLTclose(ndldata);
-		ndldata = NULL;
-	}
-}
+// 	}else{
+// 		NDLTbreakloop(ndldata);
+// 		NDLTclose(ndldata);
+// 		ndldata = NULL;
+// 	}
+// }
 
 int indexCompareFunction(const void *a, const void *b){
 	return ( *(uint32_t*)a - *(uint32_t*)b);
 }
 
-int inspect_PCAP_File(){
+// int inspect_PCAP_File(){
 
-	//IF FILE BIG ENOUGH
-	FILE *f = fopen(options.input, "rb");
-	fseek(f, 0L, SEEK_END);
-	long sz = ftell(f);
-	rewind(f);
+// 	//IF FILE BIG ENOUGH
+// 	// FILE *f = fopen(options.input, "rb");
+// 	// fseek(f, 0L, SEEK_END);
+// 	// long sz = ftell(f);
+// 	// rewind(f);
+// 	// fclose(f);
 
-	if(sz < 4294967296){ //file size < 4GB
-		return 0;
-	}
+// 	// if(sz < 4294967296){ //file size < 4GB
+// 	// 	return 0;
+// 	// }
 
-	variance_data = (uint32_t*) calloc(800000, sizeof(uint32_t));
+// 	variance_data = (uint32_t*) calloc(800000, sizeof(uint32_t));
 
-	char errbuf[PCAP_ERRBUF_SIZE] = {0};
+// 	char errbuf[PCAP_ERRBUF_SIZE] = {0};
 
-	ndldata = NDLTabrirTraza(options.input, format, filter, 0, errbuf);
+// 	ndldata = NDLTabrirTraza(options.input, format, filter, 0, errbuf);
 
-	if(NDLTloop(ndldata, inspect_PCAP_File_Callback, NULL) != 1){
-		fprintf(stderr, "Error reading the file. Check parameters.\n");
-		exit(1);
-	}
+// 	if(NDLTloop(ndldata, inspect_PCAP_File_Callback, NULL) != 1){
+// 		fprintf(stderr, "Error reading the file. Check parameters.\n");
+// 		exit(1);
+// 	}
 	
-	int i = 0;
+// 	int i = 0;
 		
-	qsort(variance_data, variance_packets, sizeof(uint32_t), indexCompareFunction);
-	int64_t last_index = -1;
-	uint32_t index = 0;
+// 	qsort(variance_data, variance_packets, sizeof(uint32_t), indexCompareFunction);
+// 	int64_t last_index = -1;
+// 	uint32_t index = 0;
 
-	double mean = 0;
-	double variance = 0;
-	int total = 0;
-	int sum = 0;
-	int n_col = 0;
+// 	double mean = 0;
+// 	double variance = 0;
+// 	int total = 0;
+// 	int sum = 0;
+// 	int n_col = 0;
 
 
-	for(i=0; i<800000; i++){
-		index = variance_data[i];
-		if(index > last_index){
-			int n = session_table[index].n;
-			total += n;
-			if(n>1){
-				n_col++;
-				variance += n * n;
-				sum += n;
-			}
-			last_index = index;
-		}
-	}
+// 	for(i=0; i<800000; i++){
+// 		index = variance_data[i];
+// 		if(index > last_index){
+// 			int n = session_table[index].n;
+// 			total += n;
+// 			if(n>1){
+// 				n_col++;
+// 				variance += n * n;
+// 				sum += n;
+// 			}
+// 			last_index = index;
+// 		}
+// 	}
 
-	mean = sum / ((double) n_col);
-	variance = (variance + (sum * sum)/n_col) / ((double) (n_col-1));
+// 	mean = sum / ((double) n_col);
+// 	variance = (variance + (sum * sum)/n_col) / ((double) (n_col-1));
 
-	fprintf(stderr, "Mean: %f\tVariance:%f\tSt.Dv:%f\n", mean, variance, sqrt(variance));
+// 	fprintf(stderr, "Mean: %f\tVariance:%f\tSt.Dv:%f\n", mean, variance, sqrt(variance));
 
-	if(sqrt(variance) > 3){
-		resized_session_table = 1;
+// 	if(sqrt(variance) > 3){
+// 		resized_session_table = 1;
+// 		fprintf(stderr, "HASH TABLE RESIZED FROM 2^24 to 2^30 !\n");
+// 	}
 
-		reset();
+// 	reset();
 
-		fprintf(stderr, "HASH TABLE RESIZED FROM 2^24 to 2^30 !\n");
-	}else{
-		memset(session_table, 0, MAX_FLOWS_TABLE_SIZE * sizeof(collision_list));
-	}
-
-	FREE(variance_data);
-	ndldata = NULL;
-	return 0;
-}
+// 	FREE(variance_data);
+// 	ndldata = NULL;
+// 	return 0;
+// }
 
 void reset(){
 	freeNodelPool();
@@ -647,17 +647,21 @@ void reset(){
 	allocNodelPool();
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 
-	if(resized_session_table){
-		session_table = (collision_list*) calloc(BIG_MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
-	}else{
-		session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
-	}
+	// if(resized_session_table){
+	// 	session_table = (collision_list*) calloc(BIG_MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
+	// }else{
+	session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
+	// }
 }
 
 
 ///////END ADDED
 
 int main(int argc, char *argv[]){
+
+	fprintf(stderr, "httpDissector: %s\n", version);
+	// fprintf(stderr, "sizeof table element: %lu, sizeof connection: %lu, sizeof request: %lu, sizeof print_element: %lu, sizeof node_l: %lu\n", sizeof(collision_list), sizeof(connection), sizeof(request), sizeof(print_element), sizeof(node_l));
+	// fprintf(stderr, "sizeof void*: %lu, sizeof int: %lu, sizeof u_short: %lu, sizeof char: %lu\n", sizeof(void*), sizeof(int), sizeof(unsigned short), sizeof(char));
 
 	//GET 
 	//POST
@@ -788,14 +792,15 @@ int main(int argc, char *argv[]){
 	//INICIALIZO COSAS
 
 	//SI ES UNA LISTA DE FICHEROS
-	if(options.files){
-		session_table = (collision_list*) calloc(BIG_MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
-	}else{
-		session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));
-	}
+	// if(options.files){
+		session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
+	// }else{
+	//	session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));
+	// }
+	
 	// int err = 0;
-	// if((err = posix_memalign((void **) &session_table, MIN(MAX_FLOWS_TABLE_SIZE * sizeof(collision_list), 2147483648), MAX_FLOWS_TABLE_SIZE * sizeof(collision_list)))){
-	// 	fprintf(stderr, "posix_memalign error: %s\n", strerror(err));
+	// if((err = posix_memalign((void **) &session_table, MIN(MAX_FLOWS_TABLE_SIZE * sizeof(collision_list), 1073741824), MAX_FLOWS_TABLE_SIZE * sizeof(collision_list)))){
+	// 	fprintf(stderr, "Posix_memalign error while allocating session_table: %s\n", strerror(err));
 	// 	exit(-1);
 	// }
 
@@ -814,11 +819,10 @@ int main(int argc, char *argv[]){
 	//PACKET_INFO
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 
-	// fprintf(stderr, "TAM HASH: %"PRIu32", MAX_u32: %"PRIu32"\n", MAX_FLOWS_TABLE_SIZE, UINT32_MAX);
 	//SI NO ES UNA LISTA DE FICHEROS
-	if(!options.files){
-		// inspect_PCAP_File();
-	}
+	// if(!options.files){
+	// 	inspect_PCAP_File();
+	// }
 
 	
 	//SORTED PRINT LIST
@@ -850,21 +854,21 @@ int main(int argc, char *argv[]){
 	freeRequestPool();
 
 	// HASH TABLE DATA
-	unsigned long i=0;
-	unsigned long total = 0;
-	unsigned long total2 = 0;
-	for(i=0; i< (resized_session_table ? BIG_MAX_FLOWS_TABLE_SIZE : MAX_FLOWS_TABLE_SIZE); i++){
-		total += session_table[i].max_n;
-		if(session_table[i].max_n > 1){
-			total2 += session_table[i].max_n - 1;
-		}
-		// fprintf(stdout, "%d\n", session_table[i].max_n);
-	}
+	// unsigned long i=0;
+	// unsigned long total = 0;
+	// unsigned long total2 = 0;
+	// for(i=0; i< (resized_session_table ? BIG_MAX_FLOWS_TABLE_SIZE : MAX_FLOWS_TABLE_SIZE); i++){
+	// 	total += session_table[i].max_n;
+	// 	if(session_table[i].max_n > 1){
+	// 		total2 += session_table[i].max_n - 1;
+	// 	}
+	// 	// fprintf(stdout, "%d\n", session_table[i].max_n);
+	// }
 
-	fprintf(stderr, "TOTAL DIFFERENT CONNECTIONS: %ld\n", total);
-	fprintf(stderr, "TEORIC MAX OF COLLISIONS (tables with lists > 1): %ld\n", total2);
+	// fprintf(stderr, "TOTAL DIFFERENT CONNECTIONS: %ld\n", total);
+	// fprintf(stderr, "TEORIC MAX OF COLLISIONS (tables with lists > 1): %ld\n", total2);
 
-	free(session_table);
+	FREE(session_table);
 
 	return 0;
 }
@@ -885,7 +889,7 @@ int main_process(char *format, char *filename){
 	    	syslog (LOG_NOTICE, "Log started by process: %d", getpid());
 	    	syslog (LOG_NOTICE, "Reading file: %s", filename);
 	    	syslog (LOG_NOTICE, "SPEED secs\tspeed");
-	    	syslog (LOG_NOTICE, "MEM secs memory");
+	    	syslog (LOG_NOTICE, "MEM secs memory (kb)");
 	    	memory = malloc(sizeof(struct rusage));
     	}
 	}

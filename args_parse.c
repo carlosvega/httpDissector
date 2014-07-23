@@ -4,15 +4,15 @@ void how_to_use(char *name){
   
 	fprintf(stderr, "\n\t\t\t\tHTTP Packet Dissector\n\n");
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
-  fprintf(stderr, "\t-b  --binary\t\t\tThe output is binary.\n");
+  // fprintf(stderr, "\t-b  --binary\t\t\tThe output is binary.\n");
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface.\n");
-  fprintf(stderr, "\t    --filter_or=<filter>\t\tJoins the default filter with the introduced one with an 'OR'.\n");
-  fprintf(stderr, "\t    --filter_and=<filter>\t\tJoins the default filter with the introduced one with an 'AND'.\n");
-  fprintf(stderr, "\t    --filter_ovr=<filter>\t\tOverwrites the default filter with the introduced one.\n");
+  fprintf(stderr, "\t    --filter_or=<filter>\tJoins the default filter with the introduced one with an 'OR'.\n");
+  fprintf(stderr, "\t    --filter_and=<filter>\tJoins the default filter with the introduced one with an 'AND'.\n");
+  fprintf(stderr, "\t    --filter_ovr=<filter>\tOverwrites the default filter with the introduced one.\n");
   fprintf(stderr, "\t-d  --discards=<file>\t\tPacket discards file. Indicates the path to a file with the packtet numbers to be discarded. File must be sorted.\n");
   fprintf(stderr, "\t-D  --debug=<debug_level>\tActivates debug lines.\n");
   fprintf(stderr, "\t-h  --help\t\t\tShows this message.\n");
-  fprintf(stderr, "\t-H  --host=<host>\t\tFilter the request by host\n");
+  fprintf(stderr, "\t-H  --host=<host>\t\tFilter the request by URL host\n");
   fprintf(stderr, "\t-i  --input=<file>\t\tInput file. This parameter is mandatory.\n");
   fprintf(stderr, "\t-I  --input-files\t\tIndicates that the input file is a list of files, the flag -i is still necesary.\n");
   fprintf(stderr, "\t    --log\t\t\tWrites more debug stuff in the log (httpDissector)\n");
@@ -38,7 +38,7 @@ void how_to_use(char *name){
 
   fprintf(stderr, "RRD output\n");
   fprintf(stderr, "\tSEC AVG_DIFF\n");
-  fprintf(stderr, "\t*If both options (--rrd and --two-lines) are enabled the RRD output has the priority\n\n");
+  // fprintf(stderr, "\t*If both options (--rrd and --two-lines) are enabled the RRD output has the priority\n\n");
 
   fprintf(stderr, "\t\t\t\tFILE OF FILES FORMAT\n");
   fprintf(stderr, "One file path per line.\n");
@@ -107,7 +107,7 @@ struct args_parse parse_args(int argc, char **argv){
     { "url",            1,  NULL,   'u'},
     { "host",           1,  NULL,   'H'},
     { "verbose",        0,  NULL,   'v'},
-    { "binary",         0,  NULL,   'b'},
+    // { "binary",         0,  NULL,   'b'},
     { "input-files",    0,  NULL,   'I'},
     { "two-lines",      0,  NULL,   'T'},
     { "version",        0,  NULL,   'V'},

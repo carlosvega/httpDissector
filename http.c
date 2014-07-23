@@ -240,14 +240,15 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char
 		
 	}else{ //RESPONSE
 		char *i = strstr(cadena, "\r\n");
-		if(i==NULL){
-			sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
-		}else{
-
-			// memset(cadena_aux, 0, CADENA_SIZE);
-			// memcpy(cadena_aux, cadena, i-cadena);
+		short ret = 0;
+		if(i!=NULL){
 			cadena[i-cadena] = 0;
-			sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);			
+		}
+		
+		ret = sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
+
+		if(ret < 2){
+			http->response_code = -1;
 		}
 
 		// char *hdr = strstr(cadena, "\r\n");

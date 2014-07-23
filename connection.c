@@ -220,6 +220,34 @@ void addRequestToConnexion(connection *conn, packet_info *aux_packet){
 
 }
 
+void printRRD(struct timespec req_ts, struct timespec diff){
+    static unsigned long second = 0;
+    static unsigned long ctr = 0;
+    static double df = 0;
+    static int lines = 0;
+
+    if(req_ts.tv_sec < second){
+        return;
+    }
+
+    if(lines == 0){
+        second = req_ts.tv_sec;
+    }else if(req_ts.tv_sec > second){
+        df = df / ((double) ctr);
+        fprintf(output, "%ld %lf\n", second, df);
+        second = req_ts.tv_sec;
+        ctr = 0;
+        df = 0;
+    }
+
+    df += diff.tv_sec;
+    df += diff.tv_nsec * 0.000000001f;
+
+    ctr++;
+    lines++;
+
+}
+
 void printTransaction(connection *conn, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node){
 
     assert(conn!=NULL);
@@ -235,16 +263,18 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     //IMPRIMIR INFORMACION
     struct timespec diff = tsSubtract(res_ts, req->ts);
 
-    if(options.sorted == 0){
+    if(options.sorted){
+        addPrintElement(conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->ip_server, 
+            conn->port_client, conn->port_server, req->ts, 
+            res_ts, diff, responseCode, response_msg, req->host, req->url, req->op, req->seq);
+    }else if(options.rrd){
+        printRRD(req->ts, diff);
+    }else if(!options.sorted){
         if(options.index != NULL){
             fflush(output);
             write_to_index(ftell(output));
         }
-        fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);
-    }else{
-        addPrintElement(conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->ip_server, 
-            conn->port_client, conn->port_server, req->ts, 
-            res_ts, diff, responseCode, response_msg, req->host, req->url, req->op, req->seq);
+        fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);        
     }
 
     conn->n_response--;
@@ -357,9 +387,9 @@ int insertNewConnexion(packet_info *aux_packet, uint32_t index){
     session_table[index].n++;
     
     // HASH TABLE INFO
-    if(session_table[index].n > session_table[index].max_n){
-        session_table[index].max_n = session_table[index].n;
-    }
+    // if(session_table[index].n > session_table[index].max_n){
+    //     session_table[index].max_n = session_table[index].n;
+    // }
 
     increment_total_connexions();
 
@@ -379,16 +409,16 @@ int insertPacket (packet_info *aux_packet){
 
     //ACK & SEQ
     
-    ERR_MSG("insertPacket\n");
+    // ERR_MSG("insertPacket\n");
 
     //Preparamos conn auxiliar y nodo auxiliar
     preFillConnection(aux_packet, &aux_conn);
     list_alloc_node_no_malloc(&aux_conn);
 
     uint32_t index = getIndex (aux_packet); //Obtener hashkey
-    ERR_MSG("insertPacket 1 %"PRIu32"\n", index);
+    // ERR_MSG("insertPacket 1 %"PRIu32"\n", index);
     node_l *list = session_table[index].list;      //Obtener lista de colisiones
-    ERR_MSG("insertPacket 2\n");
+    // ERR_MSG("insertPacket 2\n");
 
     //Buscar conexion en colisiones
     node_l *conexion_node = list_search(list, &static_node, compareConnection);
@@ -463,5 +493,8 @@ uint32_t getIndex_global(in_addr_t ip_a, in_addr_t ip_b, unsigned short port_a, 
     // return ((uint32_t) (ip_a_ + ip_b_ + p_a + p_b))%MAX_FLOWS_TABLE_SIZE;   
     
     //return (ip_a + ip_b + port_a + port_b)%MAX_FLOWS_TABLE_SIZE;
-    return resized_session_table ? (ip_a ^ ip_b ^ port_a ^ port_b)%BIG_MAX_FLOWS_TABLE_SIZE : (ip_a ^ ip_b ^ port_a ^ port_b)%MAX_FLOWS_TABLE_SIZE;
+    return (ip_a ^ ip_b ^ port_a ^ port_b) % MAX_FLOWS_TABLE_SIZE;
+
+
+    // return resized_session_table ? (ip_a ^ ip_b ^ port_a ^ port_b)%BIG_MAX_FLOWS_TABLE_SIZE : (ip_a ^ ip_b ^ port_a ^ port_b)%MAX_FLOWS_TABLE_SIZE;
 }
