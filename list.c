@@ -205,6 +205,7 @@ node_l * list_search(node_l *first, node_l *node_to_find, int cmp(void *, void *
     n = first;
 
     while(n!=NULL && n != prev) {
+        __builtin_prefetch (n->next);
         if(cmp(n->data, node_to_find->data)==0)
             return n;
         

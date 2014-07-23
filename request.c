@@ -66,6 +66,7 @@ node_l *request_search(node_l *first, tcp_seq seq, int *number){
 	n = first;
 
 	while(n!= NULL && n!=prev) {
+		__builtin_prefetch (n->next);
 		request *req = (request *) n->data;
 		
 		if(req->ack == seq){

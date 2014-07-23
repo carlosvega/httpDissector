@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define REQUEST_POOL 1000000
+#define REQUEST_POOL 1000000//1000000
 #define RESPONSE_POOL 10
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
@@ -22,42 +22,42 @@ typedef struct {
 	struct sniff_ethernet *ethernet;// The ethernet header
 	struct sniff_ip *ip;            // The IP header
 	struct sniff_tcp *tcp;          // The TCP header
-	u_char *payload;                // Packet payload
-	u_int size_ip;
-	u_int size_tcp;
-	u_int size_payload;
 	char ip_addr_src[ADDR_CONST];
 	char ip_addr_dst[ADDR_CONST];
-	unsigned short port_src;
-	unsigned short port_dst;
-	short request;
 	struct timespec ts;
 	char url[URL_SIZE];
   char host[HOST_SIZE];
-	short responseCode;
+	u_int size_ip;
+  u_int size_tcp;
+  u_int size_payload;
+  u_char *payload;                // Packet payload
 	char response_msg[RESP_MSG_SIZE];
-	http_op op;
+  short responseCode;
+  unsigned short port_src;
+  unsigned short port_dst;
+  short request;
+  http_op op;
 } packet_info;
 
 typedef u_int32_t tcp_seq;
 
 typedef struct {
-	short responseCode;
   char response_msg[RESP_MSG_SIZE];
-	http_op op;
 	// tcp_seq seq;					// Sequence number
 	// tcp_seq ack;					// Acknowledgement number
 	struct timespec ts;
+  short responseCode;
+  http_op op;
 } response;
 
-typedef struct {
+typedef struct  {
 	char url[URL_SIZE];
   char host[HOST_SIZE];
-	http_op op;
 	tcp_seq seq;					// Sequence number
 	tcp_seq ack;					// Acknowledgement number
 	struct timespec ts;
 	response *aux_res;
+  http_op op;
 } request;
 
 /* Ethernet addresses are 6 bytes */

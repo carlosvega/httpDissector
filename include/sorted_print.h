@@ -16,13 +16,6 @@
 typedef enum { false, true } bool;
 
 typedef struct {
-  //IPs, ports & seq
-  in_addr_t ip_client_int;
-  in_addr_t ip_server_int;
-  unsigned short port_client;
-  unsigned short port_server;
-  tcp_seq seq;
-
   // char ip_client[ADDR_CONST];
   // char ip_server[ADDR_CONST];
   
@@ -31,10 +24,17 @@ typedef struct {
   struct timespec res_ts;
   struct timespec diff;
   //
-  short responseCode;
   char  response_msg[RESP_MSG_SIZE];
   char  url[URL_SIZE];
   char  host[HOST_SIZE];
+  //IPs, ports & seq
+  in_addr_t ip_client_int;
+  in_addr_t ip_server_int;
+  tcp_seq seq;
+  //
+  short responseCode;
+  unsigned short port_client;
+  unsigned short port_server;
   bool isRtx;
   http_op op;
 } print_element;

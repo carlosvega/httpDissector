@@ -180,6 +180,8 @@ void printElement(print_element *e){
 
     if(options.binary){
         binary_write(e);
+    }else if(options.rrd){
+        printRRD(e->req_ts, e->diff);
     }else{
         if(options.index != NULL){
             fflush(output);
