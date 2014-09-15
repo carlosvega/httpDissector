@@ -12,6 +12,7 @@ typedef enum {OR=0, AND, OVERWRITE} filter_mode;
 
 struct args_parse{
 	char errbuf[ARGS_PARSE_ERRBUF];
+	short skip;
 	short raw;
 	short err;
 	short collector;

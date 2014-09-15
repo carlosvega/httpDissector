@@ -3,7 +3,6 @@
 //  
 //
 //
-//
 
 #include "NDleeTrazas.h"
 #include <stdio.h>
@@ -16,17 +15,29 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <pcap.h>
+#include <dirent.h>
+
 
 
 #define NDLTFORMAT_PCAP    1
 #define NDLTFORMAT_DRIV    2
 
-#define MAX_PACKET_LEN 	2048
+
+// #define TAM_LINE 	1000
+//#define MAX_PACKET_LEN 	2048
+// #define MAX_PACKET_LEN 	65535
 #define CAPLEN 		65535
 
 #define BLOQUE_INDICES	1000     // Cantidad de indices a reservar cada vez
 
-#define NUM_FICH_INTERFACE 3000   //Cantidad de ficheros que puede haber por interfaz
+//#define NUM_FICH_INTERFACE 3000   //Cantidad de ficheros que puede haber por interfaz
+
+// union descriptores 
+// {
+// 	FILE 		*fh;    //file handle  (usado para abrir el fichero raw para leer o escribir la traza)
+// 	pcap_t 		*ph;    //pcap handle  (usado para abrir el pcap para leer la traza)
+// 	pcap_dumper_t 	*pdh;   //pcap dump handler (usado para abrir el pcap en escritura)
+// };
 
 // Elemento de indice
 struct NDLTindexElement {
@@ -43,7 +54,8 @@ union contenidoPaquete{
 
 //Esta estructura guarda información sobre una interfaz.
 struct interfaces_t{
-	char ficheros[NUM_FICH_INTERFACE][TAM_LINE];	// array con el nombre de los ficheros de trazas de la interfaz
+	//char ficheros[NUM_FICH_INTERFACE][TAM_LINE];	// array con el nombre de los ficheros de trazas de la interfaz
+	char **ficheros;				// array con el nombre de los ficheros de trazas de la interfaz
 	int numFicheros;				// contador de ficheros
 	union descriptores 	trazaAbierta;		// va a contener el descriptor de fichero que está abierto en ese momento
 	int numficheroParaAbrir;  			// numero de indice que indica el fichero que toca abrir en ese momento 
@@ -54,6 +66,60 @@ struct interfaces_t{
 	unsigned long long posALeerDeFichero;		// posicion en la que se queda el fichero después de leer un paquete
 };
 
+// struct NDLTdata{
+// 	char                path[TAM_LINE];  		// nombre del fichero de trazas, o del fichero de paths de trazas
+// 	FILE                *fileOfPaths;		// fichero de paths
+// 	int                 fileFormato;  		// NDLTFORMAT_PCAP si la traza es pcap, NDLTFORMAT_DRIV si la traza es raw
+// 	int                 multiFile; 			// 1 si se trata de múltiples ficheros, 0 en caso contrario
+// 	char                *pcapFilterString;		// cadena con filtro pcap a aplicar
+// 	struct bpf_program  filtroPcapCompilado; 	// filtro compilado
+// 	union descriptores  traceFile;              	// fichero de traza abierto
+// 	int                 contFiles;  		// contador que indica el número de fichero en el que se está, empezando en 1. (En el caso de que se pase el fichero de trazas este contador será 1 en cuanto se empiece a leer).
+// 	unsigned long long  bytesTotalesLeidos;     	// Numero total de bytes leidos entre todos los ficheros de la traza
+// 	unsigned long long  bytesTotalesFicheros;	// numero total de bytes de los ficheros
+	
+// 	unsigned long long  posThisPacket;          	// posición en bytes en el fichero actual del comienzo del paquete que se acaba de leer. Es diferente de la posición de lectura en el fichero, que sería la del siguiente paquete
+// 	FILE                *fileIndex;             	// Fichero con indices
+// 	int                 maxIndicesCreados;      	// Número máximo de indices para los que hay reservada memoria en indices
+// 	int                 numIndicesLeidos;       	// Cantidad de elementos que hay usados en indices
+// 	struct NDLTindexElement *indices;           	// Array de elementos de indice
+// 	int                 shouldBreakLoopFlag;    	// Lo pone a 1 NDLTbreakloop() para avisar a NDLTloop() que debe terminar
+// 	 unsigned long long  numPktsLeidos;          	// Numero de paquetes leidos hasta el momento en toda la traza
+	
+// 	int		    jumpPacketActivated;  	// Si está a 1 indica que se ha pedido saltar a un paquete en concreto. 
+// 	unsigned long long  numPacketsDiscarded;	// número de paquetes descartados hasta el momento (tanto por paquetes descartados como por paquetes que no pasen el filtro)
+// 	unsigned long long  nextPacketToDiscard; 	//numero del siguiente paquete a descartar (se van leyendo del fichero de paquetes a descartar)
+// 	FILE 		*filePacketsToDiscard;		// handle del fichero con los paquetes a descartar (paquetes duplicados)
+// 	//int		errorToStdErr;			// Flag que si es 1 los errores de NDLTloop se vuelvan por stderr, y si es 0 no se vuelvan. 
+// 	FILE		*fileForError;			// Apuntador de fichero donde irán los errores. Por defecto está a stderr
+	
+// 	struct interfaces_t 	*interfaces; 		// array de estructuras 'struct interfaces_t' (una estructura para cada interfaz que haya en el fichero de entrada. Las interfaces vienen separadas por una línea en blanco)
+// 	int 			numInterfaces;		// contador de interfaces
+	
+// 	int			nextPacketActive;  //Si se ha llamado a la función NDLTnext().
+// 	struct NDLTpkthdr 	pkthdr_next;		//header a devolver si se llama a NDLTnext()
+// 	u_char			packet_next[MAX_PACKET_LEN];		//paquete a devolver si se llama a NDLTnext()
+// 	//unsigned int 		tamPacket;
+	
+// };
+
+struct NDLTdataEscritura{
+	char    		path[TAM_LINE];
+	union descriptores  	traceFile;		// fichero de traza abierto			
+	int     		fileFormato;  		// NDLTFORMAT_PCAP si el fichero de salida es pcap, NDLTFORMAT_DRIV si es raw	
+	int 			displayOutput;		// 1 si se muestran los paquetes por pantalla. 0 si se guardan a archivo 
+	unsigned int		snaplen;		// bytes que se quieren sacar del paquete.
+};
+
+//estructura para leer la cabecera de un paquete raw del fichero
+typedef struct{
+	u_int32_t	secs;
+	u_int32_t	nsecs;
+	u_int16_t	caplen;
+	u_int16_t	len;
+} header_RAW_t;
+
+
 /*
  * Función que compila un filtro BPF. Es un wrapper para pcap_compile_nopcap. Tiene unos requerimientos especiales (el resto de parámetros, igual que en pcap_compile). Se usa para poder filtrar por 'n' filtros, ya que NDLTloop solo permite filtrar por uno solo:
  * 
@@ -63,7 +129,7 @@ struct interfaces_t{
  *  Devuelve 0 si no hay error.
  */
  int NDLTcompile(int snaplen_arg, int linktype_arg, struct bpf_program *program, const char *buf, int optimize, bpf_u_int32 mask) {
-	return pcap_compile_nopcap(snaplen_arg, linktype_arg, program, buf, optimize, mask);
+	return pcap_compile_nopcap(snaplen_arg, linktype_arg, program, (char*)buf, optimize, mask);
 }
 
 // Dado un paquete, se aplica el filtro BPF. Devuelve 0 si el paquete no pasa el filtro y distinto de 0 en caso contrario.
@@ -71,7 +137,7 @@ int NDLTfilter(struct bpf_program *fp, const struct NDLTpkthdr *h, const u_char 
 	struct bpf_insn *fcode = fp->bf_insns;
 
 	if (fcode != NULL) 
-		return (bpf_filter(fcode, pkt, h->len, h->caplen));
+		return (bpf_filter(fcode, (u_char*)pkt, h->len, h->caplen));
 	else
 		return (0);
 }
@@ -93,13 +159,25 @@ static void NDLTclose_last(NDLTdata_t *data) {
 				//fclose(data->traceFile.fh);
 				if(data->interfaces[i].trazaAbierta.fh) fclose(data->interfaces[i].trazaAbierta.fh);
 			}
+			//liberar memoria del array de ficheros
+			for(int j=0;j<data->interfaces[i].numFicheros;j++){
+				free(data->interfaces[i].ficheros[j]);
+			}
+			free(data->interfaces[i].ficheros);
 		}
-	}else if(data->fileFormato == NDLTFORMAT_PCAP){
-		pcap_close(data->traceFile.ph);
+	}else{
+		if (data->fileFormato==NDLTFORMAT_PCAP){ //si la traza es pcap
+			if( data->traceFile.ph!=NULL){
+				pcap_close((data->traceFile.ph));
+			}	
+		} 
+		else{
+			if( data->traceFile.ph!=NULL){
+				fclose(data->traceFile.fh);
+			}	
+		}
 	}
-
 	if (data->pcapFilterString) NDLTfreecode(&data->filtroPcapCompilado);
-
 }
 
 /*
@@ -152,21 +230,23 @@ Valor devuelto:
 */
 static int checkPacketInFile(NDLTdata_t *trazas){
 	char aux[TAM_LINE];
-    static long long    numLinea=1;
+	static long long    numLinea=1;
+	
+	if (!trazas->filePacketsToDiscard) return 0; // Si no hay fichero de descartes devolvemos siempre como si el paquete no hubiera que descartarlo
 	if(trazas->nextPacketToDiscard==trazas->numPktsLeidos){
 		//se descarta el paquete y se lee el siguiente paquete a descartar
 		if(!feof(trazas->filePacketsToDiscard)){
 			if (fgets(aux, TAM_LINE, trazas->filePacketsToDiscard)==NULL) {
-                fprintf(trazas->fileForError, "Terminado el fichero de paquetes a descartar: %llu lineas\n", numLinea);
-                return 1;
-            }
+				fprintf(trazas->fileForError, "Terminado el fichero de paquetes a descartar: %llu lineas\n", numLinea);
+				return 1;
+			}
 			if(trazas->nextPacketToDiscard>=atoll(aux)){
 				fprintf(trazas->fileForError, "Error: el fichero con los paquetes a descartar no está ordenado, linea %llu\n", numLinea);
 				return -1;
 			}
 			trazas->nextPacketToDiscard=atoll(aux);
 		}
-        numLinea++;
+		numLinea++;
 		return 1;
 	}
 	return 0;
@@ -175,57 +255,45 @@ static int checkPacketInFile(NDLTdata_t *trazas){
 /*
 Lee un paquete de un archivo (formato raw) del interfaz que indique el el parámetro 'indice'
 Codigos de resultado:
+	- Si es -1 hay un error: el fichero con los paquetes a descartar está desordenado.
 	- Si es 0 hay algún error (o bien el caplen es demasiado grande o se ha producido un error al leer el paquete) y se saldrá del programa
 	- Si es 1 significa que hemos llegado al pseudo paquete del final del fichero (segundos y nanosegundos son 0) y se tiene que cerrar el fichero
 	- Si es 2 hay éxito o se ha terminado el fichero
 */
 static int leerPaqueteFile(NDLTdata_t *trazas,int indice){
-	u_int32_t secs,nsecs;
-	u_int16_t len,caplen;
-	
-	if( fread(&secs,1,sizeof(u_int32_t),trazas->interfaces[indice].trazaAbierta.fh)!=sizeof(u_int32_t)){ 
-		//final de fichero
+	header_RAW_t headRaw;
+	if(fread(&headRaw,1,sizeof(header_RAW_t),trazas->interfaces[indice].trazaAbierta.fh)!=sizeof(header_RAW_t) ){
 		if(feof(trazas->interfaces[indice].trazaAbierta.fh)) return 2;
-		fprintf(trazas->fileForError, "Error al leer los segundos del fichero %s del interfaz %d - Posicion: %llu\n", trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1], (indice-1),(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
+		
+		fprintf(trazas->fileForError, "Error al leer la cabecera del paquete del fichero %s del interfaz %d - Posicion: %llu\n", trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1], (indice-1),(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
 		return 0;
 	}
-	if( fread(&nsecs,1,sizeof(u_int32_t),trazas->interfaces[indice].trazaAbierta.fh)!=sizeof(u_int32_t)){
-		fprintf(trazas->fileForError, "Error al leer los nanosegundos del fichero %s del interfaz %d - Posicion: %llu", trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1], (indice-1),(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
-		 return 0;
-	}
-	
-	if( (secs==0) && (nsecs==0)){ 
+	if( (headRaw.secs==0) && (headRaw.nsecs==0)){ 
 		// pseudo paquete del final. Saltarlo y cerrar el fichero
 		return 1;
 	}
-	if( fread(&caplen,1,sizeof(u_int16_t),trazas->interfaces[indice].trazaAbierta.fh)!=sizeof(u_int16_t)){ 
-		fprintf(trazas->fileForError, "Error al leer el caplen del fichero %s del interfaz %d - Posicion: %llu", trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1], (indice-1),(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
-		return 0;
-	}
-	if( fread(&len,1,sizeof(u_int16_t),trazas->interfaces[indice].trazaAbierta.fh)!=sizeof(u_int16_t)){ 
-		fprintf(trazas->fileForError, "Error al leer el len del fichero %s del interfaz %d - Posicion: %llu", trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1], (indice-1),(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
+	
+	//if( headRaw.caplen > MAX_PACKET_LEN ){
+	if( headRaw.caplen > headRaw.len ){
+		//fprintf(trazas->fileForError, "La longitud del paquete (%d) supera los limites (%d). En el fichero %s - Posicion: %llu \n", headRaw.caplen, MAX_PACKET_LEN,trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1],(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
+		fprintf(trazas->fileForError, "El caplen del paquete (%d) supera la longitud, len,  del paquete (%d). En el fichero %s - Posicion: %llu \n", headRaw.caplen, headRaw.len,trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1],(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
 		return 0;
 	}
 	
-	if( caplen > MAX_PACKET_LEN ){
-		fprintf(trazas->fileForError, "La longitud del paquete (%d) supera los limites (%d). En el fichero %s - Posicion: %llu \n", caplen, MAX_PACKET_LEN,trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1],(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
-		return 0;
-	}
-	
-	if( caplen > 0 ){
+	if( headRaw.caplen > 0 ){
 		//rellenar el NDLTpkthdr
-		trazas->interfaces[indice].pkthdr.caplen=caplen;
-		trazas->interfaces[indice].pkthdr.len=len;
-		trazas->interfaces[indice].pkthdr.ts.tv_sec=secs;
-		trazas->interfaces[indice].pkthdr.ts.tv_nsec=nsecs;
+		trazas->interfaces[indice].pkthdr.caplen=headRaw.caplen;
+		trazas->interfaces[indice].pkthdr.len=headRaw.len;
+		trazas->interfaces[indice].pkthdr.ts.tv_sec=headRaw.secs;
+		trazas->interfaces[indice].pkthdr.ts.tv_nsec=headRaw.nsecs;
 		
 		// leer el paquete
-		if (fread(trazas->interfaces[indice].packet.buffer, 1, caplen, trazas->interfaces[indice].trazaAbierta.fh) != caplen) {
-			fprintf(trazas->fileForError, "Error leyendo %u bytes\n", caplen);
+		if (fread(trazas->interfaces[indice].packet.buffer, 1, headRaw.caplen, trazas->interfaces[indice].trazaAbierta.fh) != headRaw.caplen) {
+			fprintf(trazas->fileForError, "Error leyendo %u bytes. En el fichero %s - Posicion: %llu\n", headRaw.caplen,trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1],(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
                         return 0;
 		}
 	} else{ 
-		fprintf(trazas->fileForError, "Warning: caplen=0 !!\n");
+		fprintf(trazas->fileForError, "Warning: caplen=0 !! En el fichero %s - Posicion: %llu\n",trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1],(unsigned long long)ftello(trazas->interfaces[indice].trazaAbierta.fh));
 		trazas->numPacketsDiscarded++;    
 		
 		if(trazas->filePacketsToDiscard!=NULL && checkPacketInFile(trazas)==-1) return(-1);
@@ -234,12 +302,16 @@ static int leerPaqueteFile(NDLTdata_t *trazas,int indice){
 	return 2;
 }
 
-//lee un paquete pcap del interfaz que indique el el parámetro 'indice'. Devuelve 1 si hay exito o 0 su se ha producido algún error al leer el siguiente paquete pcap, por ejemplo que se haya acabado el fichero.
+//lee un paquete pcap del interfaz que indique el parámetro 'indice'. Devuelve 1 si hay exito o 0 su se ha producido algún error al leer el siguiente paquete pcap, por ejemplo que se haya acabado el fichero.
 static int leerPaquetePcap(NDLTdata_t *trazas,int indice){
 	struct pcap_pkthdr *hdr;
 	if(pcap_next_ex(trazas->interfaces[indice].trazaAbierta.ph, &hdr, &trazas->interfaces[indice].packet.pkt)!=-2){
 		//adaptar el struct pcap_pkthdr a un NDLTpkthdr
 		trazas->interfaces[indice].pkthdr.caplen=hdr->caplen;
+		if(hdr->caplen>MAX_PACKET_LEN ){
+			fprintf(trazas->fileForError, "La longitud del paquete (%d) supera los limites (%d). En el fichero %s - Posicion: %llu \n", hdr->caplen, MAX_PACKET_LEN,trazas->interfaces[indice].ficheros[trazas->interfaces[indice].numficheroParaAbrir-1],NDLTposThisPacket(trazas));
+			return 0;
+		}
 		trazas->interfaces[indice].pkthdr.len=hdr->len;
 		trazas->interfaces[indice].pkthdr.ts.tv_sec=hdr->ts.tv_sec;
 		trazas->interfaces[indice].pkthdr.ts.tv_nsec=hdr->ts.tv_usec*1000;
@@ -249,43 +321,44 @@ static int leerPaquetePcap(NDLTdata_t *trazas,int indice){
 
 /*
 Función que abre el primer fichero de todas las interfaces o el fichero si se trata de una traza directamente.
-Devuelve 1 en caso de éxito y 0 en caso de error (que no se pueda abrir algún fichero)
+Devuelve 1 en caso de éxito y 0 en caso de error (que no se pueda abrir algún fichero o haya fichero de descartes que no sea estrictamente creciente)
 */
 static int NDLTopen_next_multiple(NDLTdata_t *data, char *errbuf) {
+	if (data == NULL) return 0;
 	char errbufPcap[PCAP_ERRBUF_SIZE];
 	if (data->multiFile) {
 		//abrimos el primer fichero de cada interfaz
 		for(int i=0;i<data->numInterfaces;i++){
 			if (data->fileFormato == NDLTFORMAT_PCAP) {
-				pcap_t *pcap = pcap_open_offline(data->interfaces[i].ficheros[data->interfaces[i].numficheroParaAbrir], errbufPcap);
-				if(!pcap){
+				data->interfaces[i].trazaAbierta.ph = pcap_open_offline(data->interfaces[i].ficheros[data->interfaces[i].numficheroParaAbrir], errbufPcap);
+				if(!data->interfaces[i].trazaAbierta.ph){
 					if (errbuf) sprintf(errbuf, "Error al abrir el fichero %s - %s\n", data->interfaces[i].ficheros[data->interfaces[i].numficheroParaAbrir],errbufPcap);
 					return 0;
 				}
-				data->interfaces[i].trazaAbierta.ph = pcap;
 				//leer primer paquete de cada fichero y guardalo
 				leerPaquetePcap(data,i);
 			}
 			else if (data->fileFormato == NDLTFORMAT_DRIV){
+				if (data->interfaces == NULL) return 0;
 				data->interfaces[i].trazaAbierta.fh=fopen(data->interfaces[i].ficheros[data->interfaces[i].numficheroParaAbrir],"r");
 				if(!data->interfaces[i].trazaAbierta.fh && errbuf){ 
 					sprintf(errbuf, "Error: no se pudo abrir el fichero %s", data->interfaces[i].ficheros[data->interfaces[i].numficheroParaAbrir]);
 					return 0;
 				}
 				
-				if(leerPaqueteFile(data,i)==0) return 0;
+				int retLeerPaquete = leerPaqueteFile(data, i);
+				if(retLeerPaquete==0 || retLeerPaquete==-1) return 0;
 			}
 			data->interfaces[i].numficheroParaAbrir++;
 		}
 	}else{
 		//abro el fichero con la traza
 		if (data->fileFormato == NDLTFORMAT_PCAP) {
-			pcap_t *pcap = pcap_open_offline(data->path, errbufPcap);
-			if (!pcap) {
+			data->traceFile.ph = pcap_open_offline(data->path, errbufPcap);
+			if (!data->traceFile.ph) {
 				if (errbuf) sprintf(errbuf, "Error al abrir el fichero %s - %s\n", data->path,errbufPcap);
 				return 0;
 			}
-			data->traceFile.ph = pcap;
 		}
 		else if (data->fileFormato == NDLTFORMAT_DRIV){
 			data->traceFile.fh = fopen(data->path, "r");
@@ -363,6 +436,8 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 	nuevo->bytesTotalesFicheros=0;
 	nuevo->interfaces=NULL;
 	
+	nuevo->nextPacketActive=0;
+	
 	struct stat buf;
 	//Si el fichero es un file of files se van a guardar los paths de los ficheros en un arrays de estructuras. Una estructura por interfaz que se vea (interfaces separadas por una línea en blanco)
 	if(nuevo->multiFile){
@@ -371,12 +446,19 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 		while(!feof(fileOfPaths)){
 	 		if(fgets(aux,TAM_LINE,fileOfPaths)!=NULL){ 
 	 			if(lineaVacia && strlen(aux)>1){
-	 				//Se ha visto una línea en blanco (en la línea anterior) y la línea actúal tiene contenido (por si hay más de una línea en blanco de separación)
+	 				//Se ha visto una línea en blanco (en la línea anterior) y la línea actual tiene contenido (por si hay más de una línea en blanco de separación)
 	 				//creo una nueva esctructura y la inicializo
 	 				lineaVacia=0;
 	 				nuevo->numInterfaces++;
 	 				nuevo->interfaces=realloc(nuevo->interfaces,nuevo->numInterfaces*sizeof(struct interfaces_t));
 	 				nuevo->interfaces[nuevo->numInterfaces-1].numFicheros=1;
+	 				
+	 				nuevo->interfaces[nuevo->numInterfaces-1].ficheros=NULL;
+	 				//reservar memoria para un nuevo string
+	 				nuevo->interfaces[nuevo->numInterfaces-1].ficheros=(char **)realloc(nuevo->interfaces[nuevo->numInterfaces-1].ficheros,nuevo->interfaces[nuevo->numInterfaces-1].numFicheros*sizeof(char*));
+	 				//reservar memoria para el string en si
+	 				nuevo->interfaces[nuevo->numInterfaces-1].ficheros[nuevo->interfaces[nuevo->numInterfaces-1].numFicheros-1]=(char*)malloc(TAM_LINE*sizeof(char));
+	 				
 	 				sscanf(aux, "%s", nuevo->interfaces[nuevo->numInterfaces-1].ficheros[nuevo->interfaces[nuevo->numInterfaces-1].numFicheros-1]);
 	 				nuevo->interfaces[nuevo->numInterfaces-1].leidosTodos=0;
 	 				//nuevo->interfaces[nuevo->numInterfaces-1].packet=NULL;
@@ -387,13 +469,20 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 	 				nuevo->interfaces[nuevo->numInterfaces-1].posALeerDeFichero=0;
 	 			}else{
 	 		 		if(strlen(aux)==1) lineaVacia=1; //si es una línea en blanco activo el flag lineaVacia 
-	 			 	else{  //sino es una línea en blanco y en la línea anterior no hay blancos significa que el interfaz tiene más ficheros. Se añade el fichero a la estructura ya creada para ese interfaz
+	 			 	else{  //si no es una línea en blanco y en la línea anterior no hay blancos significa que el interfaz tiene más ficheros. Se añade el fichero a la estructura ya creada para ese interfaz
 	 					lineaVacia=0;
-	 					if(nuevo->interfaces[nuevo->numInterfaces-1].numFicheros>=NUM_FICH_INTERFACE){
-	 						if (errbuf) sprintf(errbuf, "Error: Demasiados ficheros en la interfaz. Aumente manualmente la constante NUM_FICH_INTERFACE de la librería NDLT");
+	 					
+                        if (nuevo->interfaces == NULL) {
+							free(nuevo);
 							return NULL;
-	 					}
+						}
 	 					nuevo->interfaces[nuevo->numInterfaces-1].numFicheros++;
+	 					
+	 					//reservar memoria para un nuevo string
+	 					nuevo->interfaces[nuevo->numInterfaces-1].ficheros=(char **)realloc(nuevo->interfaces[nuevo->numInterfaces-1].ficheros,nuevo->interfaces[nuevo->numInterfaces-1].numFicheros*sizeof(char*));
+	 					//reservar memoria para el string en si
+	 					nuevo->interfaces[nuevo->numInterfaces-1].ficheros[nuevo->interfaces[nuevo->numInterfaces-1].numFicheros-1]=(char*)malloc(TAM_LINE*sizeof(char));
+	 					
 	 					sscanf(aux, "%s", nuevo->interfaces[nuevo->numInterfaces-1].ficheros[nuevo->interfaces[nuevo->numInterfaces-1].numFicheros-1]);
 	 					stat(nuevo->interfaces[nuevo->numInterfaces-1].ficheros[nuevo->interfaces[nuevo->numInterfaces-1].numFicheros-1], &buf);
 	 					nuevo->bytesTotalesFicheros+=(unsigned long long)buf.st_size;
@@ -408,16 +497,11 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 	
 	//abro el primer fichero de cada interfaz y leo y guardo su primer paquete si es un archivo de archivos o abro el fichero si es una traza.
 	 if (NDLTopen_next_multiple(nuevo, errbuf)!= 1) {
-	 	free(nuevo);
+	 	//free(nuevo);
+	 	NDLTclose(nuevo);
 		return NULL;
 	 }
 	
-	 /*
-	// Abro el primer fichero
-	if (NDLTopen_next(nuevo, errbuf) != 1) { // Error, deshago lo hecho
-		free(nuevo);
-		return NULL;
-	}*/
 	return nuevo;
 }
 
@@ -430,6 +514,34 @@ NDLTdataEscritura_t *NDLTabrirTrazaEscritura(char *pathOutput,char *formatOutput
 	if(!displayOutput && !pathOutput){
 		sprintf(errbuf, "Error: especifique la ruta del fichero de salida");
 		return NULL;
+	}
+	
+	int i,encontrado=0;
+	char *nuevoFichero;
+	if(!displayOutput){
+		//Comprobar la ruta del fichero de salida y si hay fichero de salida
+		for(i=(int)strlen(pathOutput)-1;i>=0;i--){
+			if(pathOutput[i]=='/'){
+				encontrado=1;
+				break;
+			}
+		}
+		if(encontrado){
+			if(i==strlen(pathOutput)-1){
+				sprintf(errbuf, "Error: especifique el nombre del fichero de salida");
+				return NULL;
+			}
+			nuevoFichero = calloc(strlen(pathOutput)+1, 1);
+			strncpy(nuevoFichero,pathOutput,i);
+			DIR *dirp=opendir(nuevoFichero);
+			if(dirp==NULL){
+				sprintf(errbuf, "Error: No existe el directorio del fichero de salida indicado");
+                free (nuevoFichero);
+				return NULL;
+			}else closedir(dirp);
+			//realloc( nuevoFichero, 0 ); 
+			free(nuevoFichero);
+		}
 	}
 	
 	int formatoSalida;
@@ -451,9 +563,14 @@ NDLTdataEscritura_t *NDLTabrirTrazaEscritura(char *pathOutput,char *formatOutput
 		pcap_t *pcap_open=pcap_open_dead(DLT_EN10MB,CAPLEN);
 		if(nuevo->displayOutput) nuevo->traceFile.pdh=pcap_dump_open(pcap_open, "-");
 		else nuevo->traceFile.pdh=pcap_dump_open(pcap_open, nuevo->path);
+		pcap_close(pcap_open);
 	}else if(nuevo->fileFormato == NDLTFORMAT_DRIV){
 		nuevo->traceFile.fh=fopen(nuevo->path, "w");
-		if (!nuevo->traceFile.fh) sprintf(errbuf, "Error: no se pudo abrir el fichero de salida %s", nuevo->path);
+		if (!nuevo->traceFile.fh){
+			sprintf(errbuf, "Error: no se pudo abrir el fichero de salida %s", nuevo->path);
+			NDLTcloseEscritura(nuevo);
+			return NULL;
+		}
 	}
 	return nuevo;
 }
@@ -470,17 +587,18 @@ int NDLTopenFileDiscards(NDLTdata_t *trazas,char *pathFile,char *errbuf) {
 		return 0;
 	}
 	trazas->filePacketsToDiscard = fopen(pathFile, "r");
-    	if (NULL == trazas->filePacketsToDiscard){ 
-    		sprintf(errbuf, "Error: no se pudo abrir el fichero: %s.\n", pathFile);
-    		return 0;
-    	}
-    	//leo la primera línea del fichero, para guardar el numero del primer paquete a descartar
-    	if(fgets(aux, TAM_LINE, trazas->filePacketsToDiscard)==NULL){
-    		sprintf(errbuf, "Error leyendo el fichero: %s. Esta vacio \n", pathFile);
+	if (NULL == trazas->filePacketsToDiscard){
+		sprintf(errbuf, "Error: no se pudo abrir el fichero: %s.\n", pathFile);
 		return 0;
-    	}
-    	trazas->nextPacketToDiscard=atoll(aux);
-    	return 1;
+	}
+	
+	//leo la primera línea del fichero, para guardar el numero del primer paquete a descartar
+	if(fgets(aux, TAM_LINE, trazas->filePacketsToDiscard)==NULL){
+		sprintf(errbuf, "Error leyendo el fichero: %s. Esta vacio \n", pathFile);
+		return 0;
+	}
+	trazas->nextPacketToDiscard=atoll(aux);
+	return 1;
 }
 
 /*
@@ -496,7 +614,10 @@ int setErrorOutput(NDLTdata_t *trazas,FILE *outputStderr){
 
 /*
 Función interna que realiza todas las comprobaciones para ver si se llama al callback del usuario con un paquete en concreto o no. Comprueba si el programa está saltando a un paquete en concreto, comprueba si se ha indicado un filtro y comprueba si hay un fichero con paquetes a descartar.
-Devuelve 1 en caso de exito o -1 si se ha producido algún error en la función checkPacketInFile(), por ejemplo que el fichero de descartes no esté ordenado.
+Codigos de resultado:
+	- Devuelve 1 en caso de exito
+	- Devuelve -1 si se ha producido algún error en la función checkPacketInFile(), por ejemplo que el fichero de descartes no esté ordenado.
+	- Devuelve 2 en caso de éxito y si está activa alguna función de obtener el siguiente paquete (NDLTnext() o NDLTnext_ex()), es decir, el usuario ha llamado a alguna de esas dos funciones.
 */
 static int loop_aux(NDLTdata_t *trazas,struct NDLTpkthdr pkthdr,const u_char *packet,packet_handler callback, u_char *user){
 	int codigoResult;
@@ -504,43 +625,30 @@ static int loop_aux(NDLTdata_t *trazas,struct NDLTpkthdr pkthdr,const u_char *pa
 	//llamar al callback si se cumplen una serie de cosas. Si se está saltando a un paquete se llama al callback
 	if(trazas->jumpPacketActivated){ 
 		if(checkPacketInFile(trazas)==-1) return(-1);
-               	callback(user, &pkthdr, packet);
-        }else{
-                //si se ha acabado de saltar. Se comprueba el filtro
-                if(trazas->pcapFilterString!=NULL){
-                	if(NDLTfilter(&trazas->filtroPcapCompilado, &pkthdr, packet)){
-                		//Si pasa el filtro se comprueba si hay paquetes a descartar
-                		if(trazas->filePacketsToDiscard!=NULL){
-                			//Si hay paquetes a descartar se comprueba si el paquete actual hay que descartarlo
-                			codigoResult=checkPacketInFile(trazas);
-                			if(codigoResult==-1) return(-1);
-                			else if(codigoResult==0) callback(user, &pkthdr, packet); //No se descarta
-                			else trazas->numPacketsDiscarded++;  //se aumenta el contador de descartados					 
-                		}
-                		//si no hay paquetes a descartar se llama al callback
-                		else callback(user, &pkthdr, packet);
-                	}else{
-                		trazas->numPacketsDiscarded++;
-                		if(checkPacketInFile(trazas)==-1) return(-1); //miramos a ver si ese paquete se descarta para leer el siguiente
-                	}
-                }else{			
-                	//si no se ha pasado filtro se comprueba si se ha pasado paquetes a descartar
-                	if(trazas->filePacketsToDiscard!=NULL){
-                		//Si hay paquetes a descartar se comprueba si el paquete actual hay que descartarlo
-                		codigoResult=checkPacketInFile(trazas);
-                		if(codigoResult==-1) return(-1);
-                		else if(codigoResult==0) callback(user, &pkthdr, packet);
-                		else trazas->numPacketsDiscarded++; //se aumenta el contador de descartados				 
-                	}
-                	//si no hay paquetes a descartar se llama al callback
-                	else callback(user, &pkthdr, packet);
-                }
-      }			
-      return 1;
+		callback(user, &pkthdr, packet);
+	}else{
+		//Se comprueba si el paquete actual hay que descartarlo
+		codigoResult=checkPacketInFile(trazas);
+		
+		if(codigoResult==-1) return(-1);
+		else if(codigoResult==0) {
+			//No se descarta por fichero de descartes pero se puede descartar por filtro, si es que se ha indicado un filtro
+			if(trazas->pcapFilterString!=NULL){
+				if(NDLTfilter(&trazas->filtroPcapCompilado, &pkthdr, packet)){
+					if(trazas->nextPacketActive==1 ) return 2; //para salir del bucle si se ha llamado a NDLTnext()
+					else callback(user, &pkthdr, packet); //No se descarta tampoco por filtro asi que se hace el callback
+				}else trazas->numPacketsDiscarded++;
+			}else{
+				if(trazas->nextPacketActive==1 ) return 2; //para salir del bucle si se ha llamado a NDLTnext()
+				else callback(user, &pkthdr, packet);
+			}
+		}else trazas->numPacketsDiscarded++;  //se aumenta el contador de descartados
+	}
+	return 1;
 }
 
 /*
-Función interna que comprueba si se han acabdo de leer todos los ficheros de todas las interfaces.
+Función interna que comprueba si se han acabado de leer todos los ficheros de todas las interfaces.
 Si es 0 aun no hemos acabado de leer todos los ficheros. Si es 1 todos los ficheros de todas las interfaces han sido leidos.
 */
 static int checkFin(NDLTdata_t *trazas){
@@ -550,21 +658,24 @@ static int checkFin(NDLTdata_t *trazas){
 	return 1;
 }
 
-//Devuelve 1 en éxito y otros valores en caso de error
+/*Códigos de respuesta:
+	- Devuelve 1 en éxito 
+	- Devuelve 2 en éxito cuando estamos en la función NDLTnext() o NDLTnext_ex()
+	- Devuelve otros valores en caso de error
+*/
 int NDLTloop(NDLTdata_t *trazas, packet_handler callback, u_char *user) {
 	unsigned char buf[MAX_PACKET_LEN];
 	char errbuf[PCAP_ERRBUF_SIZE];
 	struct pcap_pkthdr *hdr;
 	const u_char *packet;
-	u_int32_t secs,nsecs;
-	u_int16_t len,caplen;
 	struct NDLTpkthdr pkthdr;
 	unsigned long long  posALeerDeFichero = 0;
 	unsigned long long  nuevaPosALeerDeFichero = 0;
-	//int retNDLTopenNext,codigoResult;
 	int i;
-	int numInterfazElegido=0, resultado;
+	int numInterfazElegido=0, resultado=0,resLeerPaquete=0;
 	long double ts,tsMinimo=0;
+	
+	header_RAW_t headRaw;
 	
 	// Se supone que el fichero, o el primero de ellos, está ya abierto
 	// Esto permite por ejemplo llamar a NDLTjumpToPacket() y después a NDLTloop()
@@ -572,7 +683,10 @@ int NDLTloop(NDLTdata_t *trazas, packet_handler callback, u_char *user) {
 	while (1) {
 		if(trazas->multiFile){
 			//Comprobar si para todos los interfaces esta variable esta a 1 y si es asi salir del bucle infinito
-			if(checkFin(trazas)) break;
+			if(checkFin(trazas)){
+				if(trazas->nextPacketActive==1) return -2;
+				else break;
+			}
 			
 			//elijo el primer paquete que vea como minimo (del primer interfaz que tenga el fichero abierto, es decir, la variable leidosTodos a 0)
 			for(i=0;i<trazas->numInterfaces;i++){  
@@ -583,7 +697,7 @@ int NDLTloop(NDLTdata_t *trazas, packet_handler callback, u_char *user) {
 				}
 			}
 			//comprobar cual es el paquete con menor timestamp de los de los interfaces y guardar el número del interfaz en 'numInterfazElegido'
-			for(i=0;i<trazas->numInterfaces;i++){
+			for(i=numInterfazElegido+1;i<trazas->numInterfaces;i++){
 				ts=trazas->interfaces[i].pkthdr.ts.tv_sec+trazas->interfaces[i].pkthdr.ts.tv_nsec/1000000000.0L;
 				if(!trazas->interfaces[i].leidosTodos && ts<tsMinimo){
 					tsMinimo=ts;
@@ -594,95 +708,148 @@ int NDLTloop(NDLTdata_t *trazas, packet_handler callback, u_char *user) {
 		
 		if (trazas->fileFormato==NDLTFORMAT_PCAP){ //si la traza es pcap
 			if(trazas->multiFile){
+				//Se incrementa el número de paquetes leídos
 				trazas->numPktsLeidos++;
 				
 				// Incrementar el contador de bytes que se han leido
-                		
-                		nuevaPosALeerDeFichero = (unsigned long long)ftello(pcap_file(trazas->interfaces[numInterfazElegido].trazaAbierta.ph));
-                		if (nuevaPosALeerDeFichero > trazas->interfaces[numInterfazElegido].posALeerDeFichero) trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero - trazas->interfaces[numInterfazElegido].posALeerDeFichero;
-                		//if (nuevaPosALeerDeFichero > posALeerDeFichero) trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero - posALeerDeFichero;
-                		else trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero;
-                		
-                		//posALeerDeFichero = nuevaPosALeerDeFichero;
-                		trazas->interfaces[numInterfazElegido].posALeerDeFichero=nuevaPosALeerDeFichero;
-                		//llamar a la función que llamará al callback del usuario
-                		resultado=loop_aux(trazas,trazas->interfaces[numInterfazElegido].pkthdr,trazas->interfaces[numInterfazElegido].packet.pkt,callback,user);
-                		
-                		if(resultado!=1) return resultado;
-                		// actualizar la posicion de paquete con la del siguiente
-      				//trazas->posThisPacket = (unsigned long long)ftello(NDLTfile(trazas));
-      				trazas->interfaces[numInterfazElegido].posThisPacket = (unsigned long long)ftello(pcap_file(trazas->interfaces[numInterfazElegido].trazaAbierta.ph));
-      				
-      				//se va a leer el siguiente paquete del interfaz que ha sido elegido con menor timestamp
-				if(!leerPaquetePcap(trazas,numInterfazElegido)){
+				nuevaPosALeerDeFichero = (unsigned long long)ftello(pcap_file(trazas->interfaces[numInterfazElegido].trazaAbierta.ph));
+				if (nuevaPosALeerDeFichero > trazas->interfaces[numInterfazElegido].posALeerDeFichero) trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero - trazas->interfaces[numInterfazElegido].posALeerDeFichero;
+				else trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero;
+				trazas->interfaces[numInterfazElegido].posALeerDeFichero=nuevaPosALeerDeFichero;
+				
+				//llamar a la función que llamará al callback del usuario
+				resultado=loop_aux(trazas,trazas->interfaces[numInterfazElegido].pkthdr,trazas->interfaces[numInterfazElegido].packet.pkt,callback,user);
+				if(resultado==-1) return resultado;
+				if(resultado==2){
+					trazas->pkthdr_next.caplen=trazas->interfaces[numInterfazElegido].pkthdr.caplen;	
+					trazas->pkthdr_next.len=trazas->interfaces[numInterfazElegido].pkthdr.len;
+					trazas->pkthdr_next.ts.tv_sec=trazas->interfaces[numInterfazElegido].pkthdr.ts.tv_sec;
+					trazas->pkthdr_next.ts.tv_nsec=trazas->interfaces[numInterfazElegido].pkthdr.ts.tv_nsec;	
+					
+					memcpy(trazas->packet_next, trazas->interfaces[numInterfazElegido].packet.pkt, trazas->interfaces[numInterfazElegido].pkthdr.caplen);
+					//trazas->tamPacket=trazas->interfaces[numInterfazElegido].pkthdr.caplen;
+				}
+				
+				// actualizar la posicion de paquete con la del siguiente
+				trazas->interfaces[numInterfazElegido].posThisPacket = (unsigned long long)ftello(pcap_file(trazas->interfaces[numInterfazElegido].trazaAbierta.ph));
+				
+				//se va a leer el siguiente paquete del interfaz que ha sido elegido con menor timestamp
+				resLeerPaquete=leerPaquetePcap(trazas,numInterfazElegido);
+				if(resLeerPaquete==0){
+					//se ha terminado el fichero
 					//abrir el siguiente fichero, si hay mas ficheros disponibles
 					if(trazas->interfaces[numInterfazElegido].numficheroParaAbrir < trazas->interfaces[numInterfazElegido].numFicheros){
+						//Se cierra el fichero que ha terminado
 						pcap_close(trazas->interfaces[numInterfazElegido].trazaAbierta.ph);
-						pcap_t *pcap = pcap_open_offline(trazas->interfaces[numInterfazElegido].ficheros[trazas->interfaces[numInterfazElegido].numficheroParaAbrir], errbuf);
-						if (!pcap) {
+						//Se abre el siguiente fichero de la lista
+						trazas->interfaces[numInterfazElegido].trazaAbierta.ph = pcap_open_offline(trazas->interfaces[numInterfazElegido].ficheros[trazas->interfaces[numInterfazElegido].numficheroParaAbrir], errbuf);
+						if (!trazas->interfaces[numInterfazElegido].trazaAbierta.ph) {
 							fprintf(trazas->fileForError, "Error: no se pudo abrir el fichero %s. Error: %s\n", trazas->interfaces[numInterfazElegido].ficheros[trazas->interfaces[numInterfazElegido].numficheroParaAbrir],errbuf);
 							return 0;
 						}
-						trazas->interfaces[numInterfazElegido].trazaAbierta.ph = pcap;
+						
 						if(numInterfazElegido==0) trazas->contFiles++;
+						//Se aumenta el contador que indica el siguiente fichero a abrir
 						trazas->interfaces[numInterfazElegido].numficheroParaAbrir++;
+						
+						//Se lee el primer paquete del nuevo archivo abierto
 						leerPaquetePcap(trazas,numInterfazElegido);
 					}else{  //ya se han abierto todos los ficheros de ese interfaz
 						trazas->interfaces[numInterfazElegido].leidosTodos=1;
 					}
 				}
-      				if (trazas->shouldBreakLoopFlag) {
-             				trazas->shouldBreakLoopFlag = 0;
-             				trazas->jumpPacketActivated=0;
-             				return 1;
-      				}
+				
+				// si se ha activado este flag indica que hay que salir del loop en el caso de que se esté saltando a un paquete
+				if (trazas->shouldBreakLoopFlag) {
+					trazas->shouldBreakLoopFlag = 0;
+					trazas->jumpPacketActivated=0;
+					return 1;
+				}
 			}
-			else{
-				while (pcap_next_ex(trazas->traceFile.ph, &hdr, &packet)!=-2) {
+			else{   //solo se ha pasado un fichero (traza) como parámetro
+				while (pcap_next_ex(trazas->traceFile.ph, &hdr, &packet)!=-2) {  //leer paquete
+					//Se incrementa el número de paquetes leídos
 					trazas->numPktsLeidos++;
-					//adaptar el struct pcap_pkthdr a un NDLTpkthdr
+					
+					// Incrementar el contador de bytes que se han leido
+					nuevaPosALeerDeFichero = (unsigned long long)ftello(NDLTfile(trazas));
+					if (nuevaPosALeerDeFichero > posALeerDeFichero) trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero - posALeerDeFichero;
+					else trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero;
+					posALeerDeFichero = nuevaPosALeerDeFichero;
+					
+					//rellenar el NDLTpkthdr
 					pkthdr.caplen=hdr->caplen;
+					if(hdr->caplen> MAX_PACKET_LEN ){
+						fprintf(trazas->fileForError, "La longitud del paquete (%d) supera los limites (%d). \n", hdr->caplen, MAX_PACKET_LEN);
+						return 0;
+					}
 					pkthdr.len=hdr->len;
 					pkthdr.ts.tv_sec=hdr->ts.tv_sec;
 					pkthdr.ts.tv_nsec=hdr->ts.tv_usec*1000;
-                
-               				// Incrementar el contador de bytes que se han leido
-                			nuevaPosALeerDeFichero = (unsigned long long)ftello(NDLTfile(trazas));
-                			if (nuevaPosALeerDeFichero > posALeerDeFichero) trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero - posALeerDeFichero;
-                			else trazas->bytesTotalesLeidos += nuevaPosALeerDeFichero;
-                			posALeerDeFichero = nuevaPosALeerDeFichero;
-                		
-                			resultado=loop_aux(trazas,pkthdr,packet,callback,user);
-                			if(resultado!=1){ 
-                				return resultado;
-                			}
-                			 // actualizar la posicion de paquete con la del siguiente
-      					trazas->posThisPacket = (unsigned long long)ftello(NDLTfile(trazas));
-      					if (trazas->shouldBreakLoopFlag) {
-             					trazas->shouldBreakLoopFlag = 0;
-             					trazas->jumpPacketActivated=0;
-             					return 1;
+					
+					//llamar a la función que llamará al callback del usuario
+					resultado=loop_aux(trazas,pkthdr,packet,callback,user);
+					if(resultado==-1) return resultado;
+					
+					// actualizar la posicion de paquete con la del siguiente
+					trazas->posThisPacket = (unsigned long long)ftello(NDLTfile(trazas));
+					
+					// si se ha activado este flag indica que hay que salir del loop en el caso de que se esté saltando a un paquete
+					if (trazas->shouldBreakLoopFlag) {
+						trazas->shouldBreakLoopFlag = 0;
+						trazas->jumpPacketActivated=0;
+						return 1;
+					}
+					
+					if(trazas->nextPacketActive==1 && resultado==2){
+						
+						trazas->pkthdr_next.caplen=hdr->caplen;	
+						trazas->pkthdr_next.len=hdr->len;
+						trazas->pkthdr_next.ts.tv_sec=hdr->ts.tv_sec;
+						trazas->pkthdr_next.ts.tv_nsec=hdr->ts.tv_usec*1000;	
+							
+						memcpy(trazas->packet_next,packet, hdr->caplen);
+						//trazas->tamPacket= hdr->caplen;
+      						return resultado; //para salir del bucle si se ha llamado a NDLTnext()
       					}
                 		}
+                		if(trazas->nextPacketActive==1) return -2;
                 		break;
 			}
-		} else if (trazas->fileFormato==NDLTFORMAT_DRIV) {  //si la traza es driv
+		}else if (trazas->fileFormato==NDLTFORMAT_DRIV) {  //si la traza es driv
 			if(trazas->multiFile){
+				//Se incrementa el número de paquetes leídos
 				trazas->numPktsLeidos++;
-                		trazas->bytesTotalesLeidos += 2*sizeof(u_int32_t)+ 2*sizeof(u_int16_t); // Incrementar el contador de bytes que se han leido
-				trazas->bytesTotalesLeidos += trazas->interfaces[numInterfazElegido].pkthdr.caplen;  // Incrementar el contador de bytes que se han leido
-                    		resultado=loop_aux(trazas,trazas->interfaces[numInterfazElegido].pkthdr,trazas->interfaces[numInterfazElegido].packet.buffer,callback,user);
-                    		if(resultado!=1) return resultado;
-                    		
-                    		//leer otro paquete del interfaz que ha sido seleccionado
-				resultado=leerPaqueteFile(trazas,numInterfazElegido);
-				if(resultado==0) return -1;
 				
-				//COMPROBAR SI SE HA ACABADO EL FICHERO PARA ABRIR EL SIGUIENTE DEL INTERFAZ o SE HA PRODUCIDO UN ERROR DE LECTURA EN ESE FICHERO Y CAMBIAMOS A OTRO
-				if(feof(trazas->interfaces[numInterfazElegido].trazaAbierta.fh) || resultado==1){
+				// Incrementar el contador de bytes que se han leido
+				trazas->bytesTotalesLeidos += sizeof(header_RAW_t) + trazas->interfaces[numInterfazElegido].pkthdr.caplen; 
+				
+				//llamar a la función que llamará al callback del usuario
+				resultado=loop_aux(trazas,trazas->interfaces[numInterfazElegido].pkthdr,trazas->interfaces[numInterfazElegido].packet.buffer,callback,user);
+				if(resultado==-1) return resultado;
+				if(resultado==2){
+					trazas->pkthdr_next.caplen=trazas->interfaces[numInterfazElegido].pkthdr.caplen;	
+					trazas->pkthdr_next.len=trazas->interfaces[numInterfazElegido].pkthdr.len;
+					trazas->pkthdr_next.ts.tv_sec=trazas->interfaces[numInterfazElegido].pkthdr.ts.tv_sec;
+					trazas->pkthdr_next.ts.tv_nsec=trazas->interfaces[numInterfazElegido].pkthdr.ts.tv_nsec;	
+					
+					memcpy(trazas->packet_next, trazas->interfaces[numInterfazElegido].packet.buffer, trazas->interfaces[numInterfazElegido].pkthdr.caplen);
+					//trazas->tamPacket=trazas->interfaces[numInterfazElegido].pkthdr.caplen;
+				}
+				
+				// actualizar la posicion de paquete con la del siguiente
+				trazas->interfaces[numInterfazElegido].posThisPacket = (unsigned long long)ftello(trazas->interfaces[numInterfazElegido].trazaAbierta.fh);
+				 
+				//se va a leer el siguiente paquete del interfaz que ha sido elegido con menor timestamp
+				resLeerPaquete=leerPaqueteFile(trazas,numInterfazElegido);
+				if(resLeerPaquete==0 || resLeerPaquete==-1) return -1;
+				if(feof(trazas->interfaces[numInterfazElegido].trazaAbierta.fh) || resLeerPaquete==1){
+					//se ha terminado el fichero
+					//abrir el siguiente fichero, si hay mas ficheros disponibles
 					if(trazas->interfaces[numInterfazElegido].numficheroParaAbrir<trazas->interfaces[numInterfazElegido].numFicheros){
-						//abrir el siguiente fichero
+						//Se cierra el fichero que ha terminado
 						fclose(trazas->interfaces[numInterfazElegido].trazaAbierta.fh);
+						//Se abre el siguiente fichero de la lista
 						trazas->interfaces[numInterfazElegido].trazaAbierta.fh=fopen(trazas->interfaces[numInterfazElegido].ficheros[trazas->interfaces[numInterfazElegido].numficheroParaAbrir],"r");
 						if(!trazas->interfaces[numInterfazElegido].trazaAbierta.fh){ 
 							fprintf(trazas->fileForError, "Error: no se pudo abrir el fichero %s\n", trazas->interfaces[numInterfazElegido].ficheros[trazas->interfaces[numInterfazElegido].numficheroParaAbrir]);
@@ -690,76 +857,134 @@ int NDLTloop(NDLTdata_t *trazas, packet_handler callback, u_char *user) {
 						}
 						
 						if(numInterfazElegido==0) trazas->contFiles++;
+						//Se aumenta el contador que indica el siguiente fichero a abrir
 						trazas->interfaces[numInterfazElegido].numficheroParaAbrir++;
 						
-						//leer el primer paquete
-						resultado=leerPaqueteFile(trazas,numInterfazElegido);
-							
-						if(resultado==0) return -1;
+						//Se lee el primer paquete del nuevo archivo abierto
+						resLeerPaquete=leerPaqueteFile(trazas,numInterfazElegido);
+						if(resLeerPaquete==0 || resLeerPaquete==-1) return -1;
 					}else{  //ya se han abierto todos los ficheros de ese interfaz
 						trazas->interfaces[numInterfazElegido].leidosTodos=1;
 					}
 				}
-                    		
-                    		// actualizar la posicion de paquete con la del siguiente
-                		//trazas->posThisPacket = (unsigned long long)ftello(NDLTfile(trazas));
-                		trazas->interfaces[numInterfazElegido].posThisPacket = (unsigned long long)ftello(trazas->interfaces[numInterfazElegido].trazaAbierta.fh);
-                		if (trazas->shouldBreakLoopFlag) {
-                    			trazas->shouldBreakLoopFlag = 0;
-                    			trazas->jumpPacketActivated=0;
-                    			return 1;
-                		}
-			}else{
+				
+				// si se ha activado este flag indica que hay que salir del loop en el caso de que se esté saltando a un paquete
+				if (trazas->shouldBreakLoopFlag) {
+					trazas->shouldBreakLoopFlag = 0;
+					trazas->jumpPacketActivated=0;
+					return 1;
+				}
+			}else{   //solo se ha pasado un fichero (traza) como parámetro
 				while (!feof(trazas->traceFile.fh)) {
-					//leer la estructura de tiempo y la estructura de size
-					if( fread(&secs,1,sizeof(u_int32_t),trazas->traceFile.fh)!=sizeof(u_int32_t)) break;
-					if( fread(&nsecs,1,sizeof(u_int32_t),trazas->traceFile.fh)!=sizeof(u_int32_t)) break;
-					if( (secs==0) && (nsecs==0)) break;
-					if( fread(&caplen,1,sizeof(u_int16_t),trazas->traceFile.fh)!=sizeof(u_int16_t)) break;
-					if( fread(&len,1,sizeof(u_int16_t),trazas->traceFile.fh)!=sizeof(u_int16_t)) break;
-					if( caplen > MAX_PACKET_LEN ){
-						fprintf(trazas->fileForError, "La longitud del paquete (%d) supera los limites (%d)\n", caplen, MAX_PACKET_LEN);
+					//leer la cabecera del paquete
+					if(fread(&headRaw,1,sizeof(header_RAW_t),trazas->traceFile.fh) !=sizeof(header_RAW_t)) break;
+					if(headRaw.secs==0 && headRaw.nsecs==0) break;
+					if( headRaw.caplen > MAX_PACKET_LEN ){
+						fprintf(trazas->fileForError, "El caplen del paquete (%d) supera la longitud, len,  del paquete (%d).\n", headRaw.caplen, headRaw.len);
 						//si falla en el primer paquete puede ser porque el fichero sea un fichero de ficheros
 						if(trazas->numPktsLeidos==0) fprintf(trazas->fileForError, "Compruebe que el fichero no es un fichero de ficheros.\n");
 						return (-1);
 					}
+					
+					//Se incrementa el número de paquetes leídos
 					trazas->numPktsLeidos++;
-                			trazas->bytesTotalesLeidos += 2*sizeof(u_int32_t)+ 2*sizeof(u_int16_t); // Incrementar el contador de bytes que se han leido
-               
-					if( caplen > 0 ){
+					
+					// Incrementar el contador de bytes que se han leido
+					trazas->bytesTotalesLeidos += sizeof(header_RAW_t);
+               				
+					if( headRaw.caplen > 0 ){
 						//rellenar el NDLTpkthdr
-						pkthdr.caplen=caplen;
-						pkthdr.len=len;
-						pkthdr.ts.tv_sec=secs;
-						pkthdr.ts.tv_nsec=nsecs;
+						pkthdr.caplen=headRaw.caplen;
+						pkthdr.len=headRaw.len;
+						pkthdr.ts.tv_sec=headRaw.secs;
+						pkthdr.ts.tv_nsec=headRaw.nsecs;
 						// leer el paquete
-						if (fread(buf, 1, caplen, trazas->traceFile.fh) != caplen) {
-                        				fprintf(trazas->fileForError, "Error leyendo %u bytes\n", caplen);
-                        				return(-1);
-                    				}
-                    				trazas->bytesTotalesLeidos += caplen;  // Incrementar el contador de bytes que se han leido
-                    				resultado=loop_aux(trazas,pkthdr,buf,callback,user);
-                    				if(resultado!=1) return resultado;
+						if (fread(buf, 1, headRaw.caplen, trazas->traceFile.fh) != headRaw.caplen) {
+							fprintf(trazas->fileForError, "Error leyendo %u bytes\n", headRaw.caplen);
+							return(-1);
+						}
+						
+						// Incrementar el contador de bytes que se han leido
+						trazas->bytesTotalesLeidos += headRaw.caplen; 
+						 
+						//llamar a la función que llamará al callback del usuario
+						resultado=loop_aux(trazas,pkthdr,buf,callback,user);
+						if(resultado==-1) return resultado;
 					} else{ 
 						fprintf(trazas->fileForError, "Warning: caplen=0 !!\n");
 						trazas->numPacketsDiscarded++;    
 						if(checkPacketInFile(trazas)==-1) return(-1);
 					}
-                			
-                			// actualizar la posicion de paquete con la del siguiente
-                			trazas->posThisPacket = (unsigned long long)ftello(NDLTfile(trazas));
-                			if (trazas->shouldBreakLoopFlag) {
-                    				trazas->shouldBreakLoopFlag = 0;
-                    				trazas->jumpPacketActivated=0;
-                    				return 1;
-                			}
+					
+					// actualizar la posicion de paquete con la del siguiente
+					trazas->posThisPacket = (unsigned long long)ftello(NDLTfile(trazas));
+					
+					// si se ha activado este flag indica que hay que salir del loop en el caso de que se esté saltando a un paquete
+					if (trazas->shouldBreakLoopFlag) {
+						trazas->shouldBreakLoopFlag = 0;
+						trazas->jumpPacketActivated=0;
+						return 1;
+					}
+					if(trazas->nextPacketActive==1 && resultado==2){
+						trazas->pkthdr_next.caplen=pkthdr.caplen;	
+						trazas->pkthdr_next.len=pkthdr.len;
+						trazas->pkthdr_next.ts.tv_sec=pkthdr.ts.tv_sec;
+						trazas->pkthdr_next.ts.tv_nsec=pkthdr.ts.tv_nsec;
+							
+						memcpy(trazas->packet_next, buf, pkthdr.caplen);
+						//trazas->tamPacket=pkthdr.caplen;
+							
+						return resultado; //para salir del bucle si se ha llamado a NDLTnext()
+					}
 				}
+				if(trazas->nextPacketActive==1) return -2;
 				break;
 			}
 		}
-        	//trazas->posThisPacket = 0;
+		//trazas->posThisPacket = 0;
+		if(trazas->nextPacketActive==1 && resultado==2){
+			return resultado; //para salir del bucle si se ha llamado a NDLTnext()
+		}
 	}
 	return 1;
+}
+
+int NDLTnext_ex(NDLTdata_t *trazas, const struct NDLTpkthdr **h,const u_char **pkt_data){
+	int resultado;
+	u_char *user=NULL;
+	packet_handler callback=NULL;
+	
+	trazas->nextPacketActive=1;
+	resultado= NDLTloop(trazas, callback, user); 
+	
+	if(resultado==2){
+		*h=&(trazas->pkthdr_next);
+		
+		*pkt_data = trazas->packet_next;
+		//reservo memoria para el paquete
+		//*pkt_data=(char *)malloc(trazas->pkthdr_next.caplen+1);
+		//memcpy(*pkt_data, trazas->packet_next,trazas->pkthdr_next.caplen);
+		
+		return 1;
+	}else return resultado;
+}
+
+const u_char *NDLTnext(NDLTdata_t *trazas, const struct NDLTpkthdr **h){
+	int resultado;
+	u_char *user=NULL;
+	packet_handler callback=NULL;
+	
+	trazas->nextPacketActive=1;
+	resultado= NDLTloop(trazas, callback, user); 
+	
+	if(resultado==2){
+		
+		*h=&(trazas->pkthdr_next);
+		return trazas->packet_next;	
+	}
+	else{
+		return NULL;
+	}
 }
 
 
@@ -775,6 +1000,7 @@ void NDLTclose(NDLTdata_t *trazas) {
 	//si se ha indicado un fichero con paquetes a descartar se cierra
 	if(trazas->filePacketsToDiscard!=NULL) fclose(trazas->filePacketsToDiscard);
 	free(trazas->indices);
+	free(trazas->interfaces);
 	free(trazas);
 }
 
@@ -848,6 +1074,7 @@ int NDLTsetIndexFile(NDLTdata_t *trazas, char *indexFilePath) {
 	if (NULL != trazas->fileIndex) {
 		fclose(trazas->fileIndex);
 		free(trazas->indices);
+        trazas->indices = NULL;
 		trazas->numIndicesLeidos = 0;
 		trazas->maxIndicesCreados = 0;
 	}

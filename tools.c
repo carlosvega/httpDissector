@@ -6,8 +6,6 @@
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
 
-
-
 void print_backtrace(char *err){
 	fprintf(stderr, "%s\n", err);
 
@@ -162,26 +160,26 @@ char *timeval_to_char(struct timespec ts){
 	return ret;
 }
 
-char *hash_key(const packet_info *pktinfo){
+// char *hash_key(const packet_info *pktinfo){
 
-	char *buf = NULL;
+// 	char *buf = NULL;
 
-	if(pktinfo->request == 1){
-		buf = (char*) calloc(45, sizeof(char));
-		if(buf == NULL) 
-			return NULL;
-		else
-			snprintf(buf, 45, "%s%i%s%i", pktinfo->ip_addr_src, pktinfo->port_src, pktinfo->ip_addr_dst, pktinfo->port_dst);
-	}else if(pktinfo->request == 0){
-		buf = (char*) calloc(45, sizeof(char));
-		if(buf == NULL) 
-			return NULL;
-		else
-			snprintf(buf, 45, "%s%i%s%i", pktinfo->ip_addr_dst, pktinfo->port_dst, pktinfo->ip_addr_src, pktinfo->port_src);
-	}
+// 	if(pktinfo->request == 1){
+// 		buf = (char*) calloc(45, sizeof(char));
+// 		if(buf == NULL) 
+// 			return NULL;
+// 		else
+// 			snprintf(buf, 45, "%s%i%s%i", pktinfo->ip_addr_src, pktinfo->port_src, pktinfo->ip_addr_dst, pktinfo->port_dst);
+// 	}else if(pktinfo->request == 0){
+// 		buf = (char*) calloc(45, sizeof(char));
+// 		if(buf == NULL) 
+// 			return NULL;
+// 		else
+// 			snprintf(buf, 45, "%s%i%s%i", pktinfo->ip_addr_dst, pktinfo->port_dst, pktinfo->ip_addr_src, pktinfo->port_src);
+// 	}
 
-	return buf;
-}
+// 	return buf;
+// }
 
 /**
 	-1  if TIME1 < TIME2

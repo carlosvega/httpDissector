@@ -22,8 +22,10 @@ typedef struct {
 	struct sniff_ethernet *ethernet;// The ethernet header
 	struct sniff_ip *ip;            // The IP header
 	struct sniff_tcp *tcp;          // The TCP header
-	char ip_addr_src[ADDR_CONST];
-	char ip_addr_dst[ADDR_CONST];
+	// char ip_addr_src[ADDR_CONST];
+	// char ip_addr_dst[ADDR_CONST];
+  unsigned int ip_src;
+  unsigned int ip_dst;
 	struct timespec ts;
 	char url[URL_SIZE];
   char host[HOST_SIZE];

@@ -19,6 +19,9 @@ typedef struct {
   // char ip_client[ADDR_CONST];
   // char ip_server[ADDR_CONST];
   
+  unsigned char ip_client[4];
+  unsigned char ip_server[4];
+
   //Timestamps
   struct timespec req_ts;
   struct timespec res_ts;
@@ -39,7 +42,7 @@ typedef struct {
   http_op op;
 } print_element;
 
-void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int, char *ip_client, char *ip_server,
+void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
  short responseCode, char *response_msg, char *host, char *url, http_op op, tcp_seq seq);
