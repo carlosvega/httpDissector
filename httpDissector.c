@@ -24,12 +24,13 @@ packet_info *pktinfo = NULL;
 char version[32] = "Version 2.83";
 struct args_parse options;
 
+//LOAD
 struct timespec last_packet;
+struct timespec first_packet = {0};
+time_t current_second = 0;
+unsigned long long packet_counter_for_this_second = 0;
 
 struct rusage* memory = NULL;
-
-unsigned long long parse_time = 0;
-unsigned long long insert_time = 0;
 
 char format[8] = {0};
 
@@ -53,6 +54,7 @@ FILE *index_file = NULL;
 http_packet http = NULL;
 
 unsigned long total_packets_in_file = 0;
+
 
 void reset();
 void print_info(long elapsed);
@@ -356,34 +358,28 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
       
     if (pktinfo->size_tcp < 20) {
-    	
 		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
-		
 	    return 1;
     }
 
     pktinfo->payload = (u_char *)(packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
     pktinfo->size_payload = pkthdr->len - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
     pktinfo->ts = pkthdr->ts;
-	inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
-    inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
+	// inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
+ //    inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
 
   	// ERR_MSG("DEBUG/ calling http_parse_packet().\n");
 	
-  	if(http_parse_packet(pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip_addr_src, pktinfo->ip_addr_dst) == -1){
+  	if(http_parse_packet(pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip->ip_src, pktinfo->ip->ip_dst) == -1){
  		http_clean_up(&http);
- 		
 		// ERR_MSG("DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");
-		
  		return 1;
  	}
 
     if(pktinfo->size_payload <= 0){
     	pktinfo->request = -1;
     	http_clean_up(&http);
-    	
 		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_payload <= 0\n");
-		
     	return 1;
     }
 
@@ -452,73 +448,62 @@ void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_
 
 void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet)
 {
+	//LOCK
 	pthread_mutex_lock(&mutex);
-	
-	ERR_MSG("-------------\nDEBUG/ begining callback\n");
 
-	memset(pktinfo, 0, sizeof(packet_info));
+	if(first_packet.tv_sec == 0){
+		first_packet = pkthdr->ts;
+	}
 
+	//FISRT PACKET
+	// if(packet_counter_for_this_second == 0){
+	// 	first_packet = pkthdr->ts;
+	// 	last_packet = pkthdr->ts;
+	// 	current_second = pkthdr->ts.tv_sec;
+	// }
+
+	// if(current_second < pkthdr->ts.tv_sec){
+	// 	syslog (LOG_NOTICE, "LOAD: %ld %lld\n", last_packet.tv_sec, packet_counter_for_this_second);
+	// 	// fprintf(stderr, "LOAD: %ld %lld\n", last_packet.tv_sec, packet_counter_for_this_second);
+	// 	packet_counter_for_this_second = 0;
+	// 	current_second = pkthdr->ts.tv_sec;
+	// }
+
+	// packet_counter_for_this_second++;
 	last_packet = pkthdr->ts;
 	packets++;
 
-  	struct timeval t, t2;  
-  	gettimeofday(&t, NULL);
+	if(packets % options.skip != 0){
+		pthread_mutex_unlock(&mutex);
+		return;
+	}
+	
+	//ERR_MSG("-------------\nDEBUG/ begining callback\n");
+
+	memset(pktinfo, 0, sizeof(packet_info));
  
-	ERR_MSG("DEBUG/ calling parse_packet().\n");
+	//ERR_MSG("DEBUG/ calling parse_packet().\n");
   	int ret = parse_packet(packet, pkthdr, pktinfo);
 
-  	gettimeofday(&t2, NULL);
-  	parse_time += ((t2.tv_usec - t.tv_usec)  + ((t2.tv_sec - t.tv_sec) * 1000000.0f));
-
 	if(ret){
-		
-		ERR_MSG("DEBUG/ finish callback. Invalid packet.\n");
-		
+		//ERR_MSG("DEBUG/ finish callback. Invalid packet.\n");
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
 
 	if(pktinfo->request == -1){ //NI GET NI RESPONSE
-		
-		ERR_MSG("DEBUG/ finish callback. Invalid packet II.\n");
-		
+		//ERR_MSG("DEBUG/ finish callback. Invalid packet II.\n");
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
   
-	struct timeval t3, t4;  
-	gettimeofday(&t3, NULL);
- 
-	if(pktinfo->request == 1){ //GET o POST
-
-		
-		ERR_MSG("DEBUG/ calling insert_get_hashtable.\n");
-
-		if(insertPacket(pktinfo) != 0){
-			
-			ERR_MSG("DEBUG/ error inserting GET\n");
-			
-			decrement_inserts();
-		}
-
-	}else if(pktinfo->request == 0){ //RESPONSE
-
-		
-		ERR_MSG("DEBUG/ calling insert_resp_hashtable.\n");
-		
-		if(insertPacket(pktinfo) != 0){
-			
-			ERR_MSG("DEBUG/ error inserting RESP\n");
-			
-			decrement_inserts();
-		}
+	if(insertPacket(pktinfo) != 0){
+		decrement_inserts();
 	}
 	 
-    gettimeofday(&t4, NULL);
-    insert_time += ((t4.tv_usec - t3.tv_usec)  + ((t4.tv_sec - t3.tv_sec) * 1000000.0f));
     increment_inserts();
 
-	ERR_MSG("DEBUG/ finish callback\n");
+	//ERR_MSG("DEBUG/ finish callback\n");
 	
     pthread_mutex_unlock(&mutex);
 }
@@ -1064,6 +1049,8 @@ void print_info(long elapsed){
 	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_requests()-get_transactions());
 	
 	fprintf(stderr, "Max. hash table usage: %"PRIu32"\n", max_active_session_list_size);
+
+	fprintf(stderr, "Packets from %ld.%09ld to %ld.%09ld\n", first_packet.tv_sec, first_packet.tv_nsec, last_packet.tv_sec, last_packet.tv_nsec);
 
 	return;
 }

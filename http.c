@@ -169,23 +169,23 @@ http_op http_which_method(u_char * tcp_payload){
 
 	memcpy(method, tcp_payload, 8);
 
-	if(strncmp("GET", method, 3) == 0){
+	if(strncmp("GET ", method, 4) == 0){
 		return GET;
-	}else if(strncmp("HEAD", method, 4) == 0){
+	}else if(strncmp("HEAD ", method, 5) == 0){
 		return HEAD;
-	}else if(strncmp("POST", method, 4) == 0){
+	}else if(strncmp("POST ", method, 5) == 0){
 		return POST;
-	}else if(strncmp("PUT", method, 3) == 0){
+	}else if(strncmp("PUT ", method, 4) == 0){
 		return PUT;
-	}else if(strncmp("DELETE", method, 6) == 0){
+	}else if(strncmp("DELETE ", method, 7) == 0){
 		return DELETE;
-	}else if(strncmp("TRACE", method, 5) == 0){
+	}else if(strncmp("TRACE ", method, 6) == 0){
 		return TRACE;
-	}else if(strncmp("OPTIONS", method, 7) == 0){
+	}else if(strncmp("OPTIONS ", method, 8) == 0){
 		return OPTIONS;
-	}else if(strncmp("CONNECT", method, 7) == 0){
+	}else if(strncmp("CONNECT ", method, 8) == 0){
 		return CONNECT;
-	}else if(strncmp("PATCH", method, 5) == 0){
+	}else if(strncmp("PATCH ", method, 6) == 0){
 		return PATCH;
 	}else if(strncmp("HTTP/", method, 5) == 0){
 		return RESPONSE;
@@ -195,7 +195,7 @@ http_op http_which_method(u_char * tcp_payload){
 	return ERR;
 }
 
-int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char *ip_addr_src, char *ip_addr_dst){
+int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, struct in_addr ip_src, struct in_addr ip_dst){
 
 	if(length <= 0 || http_t == NULL || tcp_payload == NULL){
 		return -1;
@@ -232,7 +232,7 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, char
 
 		if(host == NULL){
 			http->has_host = 0;
-			strcpy(http->host, ip_addr_dst);
+			inet_ntop(AF_INET, &ip_dst, http->host, 16);
 		}else{
 			strcpy(http->host, host);
 			http->has_host = 1;

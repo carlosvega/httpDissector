@@ -39,8 +39,6 @@ typedef struct __attribute__((packed)) {
 } collision_list;
 
 typedef struct __attribute__((packed)) {
-    char ip_client[ADDR_CONST];
-	char ip_server[ADDR_CONST];
     in_addr_t ip_client_int;
     in_addr_t ip_server_int;
     tcp_seq last_client_seq;

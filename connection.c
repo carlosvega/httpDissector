@@ -107,13 +107,13 @@ void freeConnectionPool(void)
 void preFillConnection(packet_info *packet, connection *conn){
    
     if(packet->request){
-        conn->ip_client_int = inet_addr(packet->ip_addr_src);
-        conn->ip_server_int = inet_addr(packet->ip_addr_dst);
+        conn->ip_client_int = packet->ip->ip_src.s_addr;
+        conn->ip_server_int = packet->ip->ip_dst.s_addr;
         conn->port_client   = packet->port_src;
         conn->port_server   = packet->port_dst;
     }else{ //Si es respuesta la ip de origen es la del servidor
-        conn->ip_server_int = inet_addr(packet->ip_addr_src);
-        conn->ip_client_int = inet_addr(packet->ip_addr_dst);
+        conn->ip_server_int = packet->ip->ip_src.s_addr;
+        conn->ip_client_int = packet->ip->ip_dst.s_addr;
         conn->port_server   = packet->port_src;
         conn->port_client   = packet->port_dst;
     }
@@ -124,13 +124,13 @@ void preFillConnection(packet_info *packet, connection *conn){
 //Completes the information of the conn
 void fulfillConnection(packet_info *packet, connection *conn){
 
-    strncpy(conn->ip_client, packet->ip_addr_src, ADDR_CONST);
-    strncpy(conn->ip_server, packet->ip_addr_dst, ADDR_CONST);
+    // strncpy(conn->ip_client, packet->ip_addr_src, ADDR_CONST);
+    // strncpy(conn->ip_server, packet->ip_addr_dst, ADDR_CONST);
     conn->n_request     = 0;
     conn->n_response    = 0;
     conn->deleted_nodes = 0;
-    conn->ip_client_int = inet_addr(packet->ip_addr_src);
-    conn->ip_server_int = inet_addr(packet->ip_addr_dst);
+    conn->ip_client_int = packet->ip->ip_src.s_addr;
+    conn->ip_server_int = packet->ip->ip_dst.s_addr;
     conn->port_client   = packet->port_src;
     conn->port_server   = packet->port_dst;
 
@@ -157,7 +157,7 @@ int compareConnection(void *a, void *b)
 
 int addActiveConnexion(connection *conn){
 
-    ERR_MSG("DEBUG/ addActiveConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
+    // ERR_MSG("DEBUG/ addActiveConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
     
     getNodel();                                       //Obtener nodo del pool
     node_l *naux=nodel_aux;                           //Asignar conexion
@@ -173,7 +173,7 @@ int addActiveConnexion(connection *conn){
 
 int removeActiveConnexion(connection *conn){
 
-    ERR_MSG("DEBUG/ removeActiveConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
+    // ERR_MSG("DEBUG/ removeActiveConnexion - %"PRIu32" - %"PRIu32"; %"PRIu32" - %s:%u %s:%u \n", getIndexFromConnection(conn), conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->port_client, conn->ip_server, conn->port_server);
 
     list_unlink(&active_session_list, conn->active_node);
     releaseNodel(conn->active_node);
@@ -264,7 +264,7 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     struct timespec diff = tsSubtract(res_ts, req->ts);
 
     if(options.sorted){
-        addPrintElement(conn->ip_client_int, conn->ip_server_int, conn->ip_client, conn->ip_server, 
+        addPrintElement(conn->ip_client_int, conn->ip_server_int, 
             conn->port_client, conn->port_server, req->ts, 
             res_ts, diff, responseCode, response_msg, req->host, req->url, req->op, req->seq);
     }else if(options.rrd){
@@ -274,7 +274,16 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
             fflush(output);
             write_to_index(ftell(output));
         }
-        fprintf(output, "%s|%i|%s|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);        
+        //IPS TO PRETTY PRINT NUMBER VECTOR
+        unsigned char ip_client[4] = {0};
+        unsigned char ip_server[4] = {0};
+        *(unsigned int *) ip_client = conn->ip_client_int;
+        *(unsigned int *) ip_server = conn->ip_server_int;
+        fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
+            ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
+            conn->port_client, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
+            conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, 
+            RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);        
     }
 
     conn->n_response--;
@@ -293,7 +302,14 @@ void cleanUpConnection(connection *conn, FILE *gcoutput){
     while(conn->n_request > 0 && n!= NULL){
         if(gcoutput != NULL){
             request *req = (request*) n->data;
-            fprintf(gcoutput, "%s|%i|%s|%i|%ld.%09ld|%s|%s|%s\n", conn->ip_client, conn->port_client, conn->ip_server, conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, http_op_to_char(req->op), req->host, req->url);
+            unsigned char ip_client[4] = {0};
+            unsigned char ip_server[4] = {0};
+            *(unsigned int *) ip_client = conn->ip_client_int;
+            *(unsigned int *) ip_server = conn->ip_server_int;
+            fprintf(gcoutput, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%s|%s|%s\n", 
+            ip_client[0], ip_client[1], ip_client[2], ip_client[3], conn->port_client,
+            ip_server[0], ip_server[1], ip_server[2], ip_server[3], conn->port_server,
+            req->ts.tv_sec, req->ts.tv_nsec, http_op_to_char(req->op), req->host, req->url);
         }
         removeRequestFromConnection(conn, n);
         n = next;
@@ -472,9 +488,9 @@ int insertPacket (packet_info *aux_packet){
 ********************************************************/
 uint32_t getIndex(packet_info * packet){
     if(packet->op == RESPONSE){
-        return getIndex_global(inet_addr(packet->ip_addr_dst), inet_addr(packet->ip_addr_src), packet->port_dst, packet->port_src);
+        return getIndex_global(packet->ip->ip_dst.s_addr, packet->ip->ip_src.s_addr, packet->port_dst, packet->port_src);
     }else{
-        return getIndex_global(inet_addr(packet->ip_addr_src), inet_addr(packet->ip_addr_dst), packet->port_src, packet->port_dst); //OLD
+        return getIndex_global(packet->ip->ip_src.s_addr, packet->ip->ip_dst.s_addr, packet->port_src, packet->port_dst); //OLD
     }
 }
 

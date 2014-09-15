@@ -76,6 +76,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.noRtx       = 0;
   options.index       = NULL;
   options.discards    = NULL;
+  options.skip        = 1;
 
   strcpy(options.errbuf, "Invalid arguments");
 
@@ -112,6 +113,7 @@ struct args_parse parse_args(int argc, char **argv){
     { "two-lines",      0,  NULL,   'T'},
     { "version",        0,  NULL,   'V'},
     { "rrd",            0,  NULL,   'R'},
+    { "skip",           1,  NULL,   'K'},
 		{ NULL,             0,  NULL,    0 }
 	};
 
@@ -130,6 +132,9 @@ struct args_parse parse_args(int argc, char **argv){
           return options;
 			  case 'D' : 
           options.debug = atoi(optarg);
+          break;
+        case 'K' : 
+          options.skip = atoi(optarg);
           break;
         case 'i' : /* -i o --input */
           options.input = optarg;
