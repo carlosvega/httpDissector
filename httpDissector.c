@@ -363,7 +363,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     }
 
     pktinfo->payload = (u_char *)(packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
-    pktinfo->size_payload = pkthdr->len - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
+    pktinfo->size_payload = pkthdr->caplen - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
     pktinfo->ts = pkthdr->ts;
 	// inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
  //    inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
