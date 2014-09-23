@@ -223,7 +223,7 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 	// char *cadena = (char *) u_cadena;
 
 	char *cadena = (char *) tcp_payload;
-	cadena[MIN(CADENA_SIZE, length)] = 0;
+	cadena[MIN(CADENA_SIZE, length) - 1] = 0;
 
 	http->has_host = 0;
 	if(http->op != RESPONSE){ //REQUEST
