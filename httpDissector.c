@@ -327,6 +327,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	
 	memset(pktinfo->url, 0, URL_SIZE);
 	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
+	//VLAN
 	if (pktinfo->ethernet->ether_type == 0x81){
 		size_ethernet += 4;	
 	}
@@ -364,7 +365,8 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 
     pktinfo->payload = (u_char *)(packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
     pktinfo->size_payload = pkthdr->caplen - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
-    pktinfo->ts = pkthdr->ts;
+    pktinfo->ts.tv_sec = pkthdr->ts.tv_sec;
+    pktinfo->ts.tv_nsec = pkthdr->ts.tv_nsec;
 	// inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
  //    inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
 
@@ -703,9 +705,17 @@ int main(int argc, char *argv[]){
 				strcat(filter, options.filter);
 				break;
 			case AND:
-				filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 6)*sizeof(char));
-				strcat(filter, " and ");
-				strcat(filter, options.filter);
+				{
+				char *filter_aux = (char *) calloc((strlen(filter) + strlen(options.filter) + 6), sizeof(char));
+				
+				strcat(filter_aux, options.filter);
+				strcat(filter_aux, " and ");
+				strcat(filter_aux, filter);
+
+				char *aux = filter;
+				filter = filter_aux;
+				free(aux);
+				}
 				break;
 			case OVERWRITE:
 				free(filter);
