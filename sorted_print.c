@@ -183,10 +183,10 @@ void printElement(print_element *e){
     }else if(options.rrd){
         printRRD(e->req_ts, e->diff);
     }else{
-        if(options.index != NULL){
-            fflush(output);
-            write_to_index_with_ts(ftell(output), e->req_ts);
-        }
+        // if(options.index != NULL){
+        //     fflush(output);
+        //     write_to_index_with_ts(ftell(output), e->req_ts);
+        // }
 
         //IPS TO PRETTY PRINT NUMBER VECTOR
         unsigned char ip_client[4] = {0};

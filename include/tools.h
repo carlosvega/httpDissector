@@ -13,6 +13,8 @@
 // #include "util.h"
 #include "packet_info.h"
 
+typedef enum { false, true } bool;
+
 struct timespec timeval_to_timespec(struct timeval ts);
 void increment_total_requests();
 unsigned long long get_total_requests();

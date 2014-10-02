@@ -33,6 +33,8 @@ all: httpDissector
 
 err_mqueue: err_mqueue.c
 	$(CC) -c -lpthread err_mqueue.c -o err_mqueue.o
+sampling_index.o: sampling_index.c
+	$(CC) -c sampling_index.c -o sampling_index.o
 list.o: list.c
 	$(CC) -c list.c -o list.o
 sorted_print.o: sorted_print.c
@@ -59,9 +61,9 @@ http.o: http.c
 	$(CC) -c http.c -o http.o
 tools.o: tools.c
 	$(CC) -c tools.c -o tools.o
-httpDissector: httpDissector.c counters.o  index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
+httpDissector: httpDissector.c sampling_index.o counters.o  index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
-	$(CC)  httpDissector.o counters.o  index.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
+	$(CC)  httpDissector.o counters.o sampling_index.o index.o connection.o sorted_print.o list.o request.o response.o args_parse.o NDleeTrazas.o tools.o http.o alist.o -o httpDissector $(PCAPLIB) $(LDFLAGS)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c

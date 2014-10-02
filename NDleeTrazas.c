@@ -1084,7 +1084,9 @@ int NDLTsetIndexFile(NDLTdata_t *trazas, char *indexFilePath) {
 	
 	unsigned long long  numPacket, bytesPosition;
 	int fileIndex;
-	while (fscanf(trazas->fileIndex, "%llu %d %llu", &numPacket, &fileIndex, &bytesPosition) == 3) {
+	//UNUSED VARIABLES
+	unsigned long long ts, pps; double average_pps;
+	while (fscanf(trazas->fileIndex, "%llu %d %llu %llu %llu %lf", &numPacket, &fileIndex, &bytesPosition, &ts, &pps, &average_pps) >= 3) {
 		if (trazas->numIndicesLeidos >= trazas->maxIndicesCreados) {
 			// No hay espacio para guardarlo, reservar mas
 			struct NDLTindexElement *nuevoArrayIndices;

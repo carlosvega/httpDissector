@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <locale.h>
 #include <assert.h>
+#include "sampling_index.h"
 #include "list.h"
 #include "counters.h"
 #include "connection.h"
@@ -38,6 +39,7 @@
 
 /* ethernet headers are always exactly 14 bytes */
 
+
 typedef struct {
   int n;
   node_l *list;
@@ -51,6 +53,7 @@ unsigned int nFiles = 0;
 
 // void funcionLiberacion(gpointer data);
 // void print_foreach (gpointer key, gpointer value, gpointer user_data);
+void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet);
 void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet);
 void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet);
 

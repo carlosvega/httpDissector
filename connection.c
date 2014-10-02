@@ -270,10 +270,10 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     }else if(options.rrd){
         printRRD(req->ts, diff);
     }else if(!options.sorted){
-        if(options.index != NULL){
-            fflush(output);
-            write_to_index(ftell(output));
-        }
+        // if(options.index != NULL){
+        //     fflush(output);
+        //     write_to_index(ftell(output));
+        // }
         //IPS TO PRETTY PRINT NUMBER VECTOR
         unsigned char ip_client[4] = {0};
         unsigned char ip_server[4] = {0};
