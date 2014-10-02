@@ -42,7 +42,7 @@ void removeRequestFromConnection(connection *conn, node_l *req_node){
 
 void allocConnectionPool(void){
     
-    int i=0;
+    size_t i=0;
     node_l *n=NULL;
     conns = calloc(MAX_POOL_FLOW, sizeof(connection));
 
@@ -94,7 +94,6 @@ void freeConnectionPool(void)
         n=list_pop_first_node(&conn_pool_free);
         FREE(n);
     }
-
     while(conn_pool_used!=NULL)
     {
         n=list_pop_first_node(&conn_pool_used);
