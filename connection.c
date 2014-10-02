@@ -92,15 +92,15 @@ void freeConnectionPool(void)
     while(conn_pool_free!=NULL)
     {
         n=list_pop_first_node(&conn_pool_free);
-        free(n);
+        FREE(n);
     }
 
     while(conn_pool_used!=NULL)
     {
         n=list_pop_first_node(&conn_pool_used);
-        free(n);
+        FREE(n);
     }
-    free(conns);
+    FREE(conns);
 }
 
 //Add enough data to compare two conns
