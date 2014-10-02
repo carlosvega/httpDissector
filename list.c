@@ -330,15 +330,15 @@ void freeNodelPool(void)
     {
         i = i+1;
         n=list_pop_first_node(&nodel_pool_free);
-        free(n);
+        FREE(n);
     }
 
     while(nodel_pool_used!=NULL)
     {
         n=list_pop_first_node(&nodel_pool_used);
-        free(n);
+        FREE(n);
     }
 
 
-    free(nl);
+    FREE(nl);
 }

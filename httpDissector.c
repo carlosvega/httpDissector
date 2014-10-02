@@ -102,6 +102,10 @@ void sigintHandler(int sig){
 		freeNodelPool();
 		freeRequestPool();	
 	}
+
+	if(options.index!=NULL){
+		FREE(intervals);
+	}
 	
 	// err_mqueue_close();
 	FREE(session_table);
@@ -837,6 +841,10 @@ int main(int argc, char *argv[]){
 		}
 		FREE(files_path);
 		files_path = NULL;
+	}
+
+	if(options.index!=NULL){
+		FREE(intervals);
 	}
 
 	freeNodelPool();
