@@ -1,6 +1,6 @@
-CC = gcc -O2 -Wall -Iinclude/ $(DEBUG)
+CC = gcc -O3 -Wall -Iinclude/ $(DEBUG)
 LDFLAGS = -lm -lpthread
-#CFLAGS		= -g -O2 -D_BSD_SOURCE 
+#CFLAGS		= -g -O3 -D_BSD_SOURCE 
 COLOURFLAGS = -D _colours
 
 #GLIB =  `pkg-config --cflags --libs glib-2.0`  -L/usr/lib 
