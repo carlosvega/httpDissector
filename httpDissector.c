@@ -271,6 +271,7 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
   	}else{
 		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\t", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
 	}
+
 	if(options.log){
 		pthread_mutex_lock(&mutex);
 		syslog (LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ((int)(ratio*100)));
@@ -293,7 +294,7 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
 
     // ANSI Control codes to go back to the
     // previous line and clear it.
-    fprintf(stderr, "\n\033[F");
+    fprintf(stderr, "\033[F");
     fprintf(stderr, "\r");
     //fflush(stderr);
 }
