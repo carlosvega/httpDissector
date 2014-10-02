@@ -1,6 +1,12 @@
 #include "httpDissector.h"
 
+#define GC_SLEEP_SECS 25
+
 extern struct msgbuf sbuf;
+
+//INDEX
+unsigned long interval_ctr = 0;
+interval *intervals = NULL;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t collector;
@@ -19,16 +25,11 @@ int resized_session_table = 0;
 
 packet_info *pktinfo = NULL;
 
-#define GC_SLEEP_SECS 25
-
-char version[32] = "Version 2.83";
+char version[32] = "Version 2.84b";
 struct args_parse options;
 
-//LOAD
 struct timespec last_packet;
 struct timespec first_packet = {0};
-time_t current_second = 0;
-unsigned long long packet_counter_for_this_second = 0;
 
 struct rusage* memory = NULL;
 
@@ -37,14 +38,8 @@ char format[8] = {0};
 char *filter = NULL;
 char *global_filename = NULL;
 
-//PARALLEL PROCESSING
-
 char **files_path = NULL;
-int last_file = -1;
-pid_t father_pid;
 short progress_bar = 1;
-char *child_filename = NULL;
-char new_filename[256] = {0};
 
 FILE *output = NULL;
 FILE *gcoutput = NULL;
@@ -54,7 +49,6 @@ FILE *index_file = NULL;
 http_packet http = NULL;
 
 unsigned long total_packets_in_file = 0;
-
 
 void reset();
 void print_info(long elapsed);
@@ -108,6 +102,10 @@ void sigintHandler(int sig){
 		freeNodelPool();
 		freeRequestPool();	
 	}
+	
+	if(options.index){
+  		free(intervals);
+  	}
 	
 	// err_mqueue_close();
 	FREE(session_table);
@@ -313,7 +311,11 @@ void *barra_de_progreso(){
   }
 
   	while(running){
-  		loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+  		if(options.index != NULL){
+			loadBar(ftello(NDLTfile(ndldata)), ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+  		}else{
+  			loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+  		}
   		usleep(sleeptime);
   	}
 	
@@ -434,6 +436,33 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	return 0;
 }
 
+void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet){
+
+	static unsigned long current_interval = 0;
+	static bool in_interval = false;
+	static interval i;
+
+	//PROCESSING A NEW INTERVAL
+	if(!in_interval && current_interval < interval_ctr){
+		i = intervals[current_interval];
+		if(NDLTjumpToPacket(ndldata, i.start_packet) == 0){
+			//ERR
+			fprintf(stderr, "ERROR JUMPING IN FILE %llu\n", i.start_packet);
+			exit(1);
+		}
+		in_interval = true;
+	}else{
+		if(pkthdr->ts.tv_sec > i.end_ts){
+			in_interval = false;
+			current_interval++;
+		}else{
+			callback(useless, pkthdr, packet);
+		}
+	}
+
+	return;
+}
+
 void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet){
 
 	struct NDLTpkthdr pkthdr2;
@@ -456,20 +485,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 	if(first_packet.tv_sec == 0){
 		first_packet = pkthdr->ts;
 	}
-
-	//FISRT PACKET
-	// if(packet_counter_for_this_second == 0){
-	// 	first_packet = pkthdr->ts;
-	// 	last_packet = pkthdr->ts;
-	// 	current_second = pkthdr->ts.tv_sec;
-	// }
-
-	// if(current_second < pkthdr->ts.tv_sec){
-	// 	syslog (LOG_NOTICE, "LOAD: %ld %lld\n", last_packet.tv_sec, packet_counter_for_this_second);
-	// 	// fprintf(stderr, "LOAD: %ld %lld\n", last_packet.tv_sec, packet_counter_for_this_second);
-	// 	packet_counter_for_this_second = 0;
-	// 	current_second = pkthdr->ts.tv_sec;
-	// }
 
 	// packet_counter_for_this_second++;
 	last_packet = pkthdr->ts;
@@ -498,7 +513,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
-  
+
 	if(insertPacket(pktinfo) != 0){
 		decrement_inserts();
 	}
@@ -647,9 +662,7 @@ void reset(){
 int main(int argc, char *argv[]){
 
 	fprintf(stderr, "httpDissector: %s\n", version);
-	// fprintf(stderr, "sizeof table element: %lu, sizeof connection: %lu, sizeof request: %lu, sizeof print_element: %lu, sizeof node_l: %lu\n", sizeof(collision_list), sizeof(connection), sizeof(request), sizeof(print_element), sizeof(node_l));
-	// fprintf(stderr, "sizeof void*: %lu, sizeof int: %lu, sizeof u_short: %lu, sizeof char: %lu\n", sizeof(void*), sizeof(int), sizeof(unsigned short), sizeof(char));
-
+	
 	//GET 
 	//POST
 	//HEAD
@@ -767,14 +780,14 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	if(options.index != NULL){
-		index_file = fopen(options.index, "w");
-		if(index_file == NULL){
-			fprintf(stderr, "ERROR TRYING TO OPEN THE INDEX FILE\n");
-			FREE(filter);
-			return -8;
-		}
-	}
+	// if(options.index != NULL){
+	// 	index_file = fopen(options.index, "w");
+	// 	if(index_file == NULL){
+	// 		fprintf(stderr, "ERROR TRYING TO OPEN THE INDEX FILE\n");
+	// 		FREE(filter);
+	// 		return -8;
+	// 	}
+	// }
 
 	if(options.files){
 		files_path = parse_list_of_files(options.input, &nFiles);
@@ -784,22 +797,8 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	//INICIALIZO COSAS
-
-	//SI ES UNA LISTA DE FICHEROS
-	// if(options.files){
-		session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
-	// }else{
-	//	session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));
-	// }
-	
-	// int err = 0;
-	// if((err = posix_memalign((void **) &session_table, MIN(MAX_FLOWS_TABLE_SIZE * sizeof(collision_list), 1073741824), MAX_FLOWS_TABLE_SIZE * sizeof(collision_list)))){
-	// 	fprintf(stderr, "Posix_memalign error while allocating session_table: %s\n", strerror(err));
-	// 	exit(-1);
-	// }
-
-	// memset(session_table, 0, MAX_FLOWS_TABLE_SIZE * sizeof(collision_list));
+	//INICIALIZO TABLA
+	session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
 
 
 	//HTTP
@@ -813,16 +812,15 @@ int main(int argc, char *argv[]){
 
 	//PACKET_INFO
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
-
-	//SI NO ES UNA LISTA DE FICHEROS
-	// if(!options.files){
-	// 	inspect_PCAP_File();
-	// }
-
 	
 	//SORTED PRINT LIST
 	if(options.sorted){
 		initPrintElementList();
+	}
+
+	//USING INDEX FILE
+	if(options.index != NULL && !options.files){
+		intervals = read_index(options.index, options.input, &interval_ctr);
 	}
 
 	main_process(format, options.input);
@@ -847,21 +845,6 @@ int main(int argc, char *argv[]){
 	freeNodelPool();
 	freeConnectionPool();
 	freeRequestPool();
-
-	// HASH TABLE DATA
-	// unsigned long i=0;
-	// unsigned long total = 0;
-	// unsigned long total2 = 0;
-	// for(i=0; i< (resized_session_table ? BIG_MAX_FLOWS_TABLE_SIZE : MAX_FLOWS_TABLE_SIZE); i++){
-	// 	total += session_table[i].max_n;
-	// 	if(session_table[i].max_n > 1){
-	// 		total2 += session_table[i].max_n - 1;
-	// 	}
-	// 	// fprintf(stdout, "%d\n", session_table[i].max_n);
-	// }
-
-	// fprintf(stderr, "TOTAL DIFFERENT CONNECTIONS: %ld\n", total);
-	// fprintf(stderr, "TEORIC MAX OF COLLISIONS (tables with lists > 1): %ld\n", total2);
 
 	FREE(session_table);
 
@@ -917,10 +900,7 @@ int main_process(char *format, char *filename){
 
 
 		ERR_MSG("DEBUG/ After calling NDLTabrirTraza()\n");
-		
-		
-
-
+				
 	}else{ //READ FROM INTERFACE
 
 		ERR_MSG("DEBUG/ calling pcap_open_live()\n");
@@ -945,8 +925,6 @@ int main_process(char *format, char *filename){
 			return -4;
 		}
 	}
-
-	
 
 	ERR_MSG("DEBUG/ Creating hash table\n");
 
@@ -977,9 +955,22 @@ int main_process(char *format, char *filename){
 	ERR_MSG("DEBUG/ ===============\n");
 
 	if(options.interface == NULL){
-		if(NDLTloop(ndldata, callback, NULL) != 1){
+		int ret = 0;
+		if(options.index != NULL && !options.files){
+			ret = NDLTsetIndexFile(ndldata, options.index);
+			if(ret != 1){
+				fprintf(stderr, "ERROR LOADING INDEX FILE IN NDleeTrazas\n");
+				exit(-1);
+			}
+			ret = NDLTloop(ndldata, index_callback, NULL);
+		}else{
+			ret = NDLTloop(ndldata, callback, NULL);
+		}
+
+		if(ret != 1){
 			sigintHandler(1);
 		}
+		
 	}else{
 		pcap_loop(handle, -1, online_callback, NULL);
 	}
@@ -1005,8 +996,16 @@ int main_process(char *format, char *filename){
 
   	if(options.interface == NULL && progress_bar){
   		pthread_join(progress, NULL);
-  		loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, ndldata->bytesTotalesLeidos, 40);
+  		if(options.index != NULL){
+			loadBar(ftello(NDLTfile(ndldata)), ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+  		}else{
+  			loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+  		}
   		NDLTclose(ndldata);
+  	}
+
+  	if(options.index){
+  		free(intervals);
   	}
 
   	if(options.sorted){

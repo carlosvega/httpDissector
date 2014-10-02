@@ -13,8 +13,6 @@
 
 #define PRINT_POOL_SIZE 1000000
 
-typedef enum { false, true } bool;
-
 typedef struct {
   // char ip_client[ADDR_CONST];
   // char ip_server[ADDR_CONST];
