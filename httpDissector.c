@@ -103,10 +103,6 @@ void sigintHandler(int sig){
 		freeRequestPool();	
 	}
 	
-	if(options.index){
-  		free(intervals);
-  	}
-	
 	// err_mqueue_close();
 	FREE(session_table);
 	
@@ -1002,10 +998,6 @@ int main_process(char *format, char *filename){
   			loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
   		}
   		NDLTclose(ndldata);
-  	}
-
-  	if(options.index){
-  		free(intervals);
   	}
 
   	if(options.sorted){
