@@ -243,8 +243,12 @@ double hash_table_collisions_ratio(unsigned long collisions){
 void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, int w)
 {
  
-  struct timeval aux_exec;
-  struct timeval elapsed;
+	if(r<=0){
+		return;
+	}
+
+  	struct timeval aux_exec;
+  	struct timeval elapsed;
 
   	// Only update r times.
     if ( x % (n/r) != 0 ) return;
