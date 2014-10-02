@@ -19,7 +19,7 @@ unsigned long long getGottenRequests(){
 
 void allocRequestPool(void)
 {
-	int i=0;
+	size_t i=0;
 	node_l *n=NULL;
 	requests=calloc(REQUEST_POOL,sizeof(request));
 	

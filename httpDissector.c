@@ -98,9 +98,9 @@ void sigintHandler(int sig){
 	// FREE(pktinfo);
 	// http_free_packet(&http);
 	if(options.interface == NULL){
-		freeConnectionPool();
-		freeNodelPool();
-		freeRequestPool();	
+		// freeConnectionPool();
+		// freeRequestPool();	
+		// freeNodelPool();
 	}
 
 	if(options.index!=NULL){
@@ -851,9 +851,9 @@ int main(int argc, char *argv[]){
 		FREE(intervals);
 	}
 
-	freeNodelPool();
-	freeConnectionPool();
-	freeRequestPool();
+	// freeConnectionPool();
+	// freeRequestPool();
+	// freeNodelPool();
 
 	FREE(session_table);
 

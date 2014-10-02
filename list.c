@@ -270,7 +270,7 @@ node_l *nl;
 
 void allocNodelPool(void)
 {
-    int i=0;
+    size_t i=0;
     node_l *n=NULL;
     nl=malloc(sizeof(node_l)*MAX_POOL_NODE);
 
