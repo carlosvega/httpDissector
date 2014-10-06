@@ -94,6 +94,24 @@ void releaseRequest(request * f)
 	gottenRequests--;
 }
 
+void alternativeFreeRequestPool(void){
+	request_pool_free->prev->next = NULL;
+    while(request_pool_free->next !=NULL){
+        node_l *n = request_pool_free->next;
+        FREE(request_pool_free);
+        request_pool_free = n;
+    }
+    FREE(request_pool_free);
+    request_pool_used->prev->next = NULL;
+    while(request_pool_used->next !=NULL){
+        node_l *n = request_pool_used->next;
+        FREE(request_pool_used);
+        request_pool_used = n;
+    }
+    FREE(request_pool_used);
+    FREE(requests);
+}
+
 void freeRequestPool(void)
 {
 	node_l *n=NULL;

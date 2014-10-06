@@ -62,4 +62,7 @@ void allocNodelPool(void);
 void getNodel(void);
 void releaseNodel(node_l* f);
 void freeNodelPool(void);
+
+void alternativeFreeNodePool(void);
+
 #endif  /* ! _LIST_H */

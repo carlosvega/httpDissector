@@ -86,6 +86,28 @@ void releaseConnection(connection * f)
 
 }
 
+void alternativeFreeConnectionPool(void){
+    node_l *n = NULL;
+
+    conn_pool_free->prev->next = NULL;
+    while(conn_pool_free != NULL && conn_pool_free->next !=NULL && conn_pool_free != conn_pool_free->next){
+        n = conn_pool_free->next;
+        FREE(conn_pool_free);
+        conn_pool_free = n;
+    }
+    FREE(conn_pool_free);
+    
+    conn_pool_used->prev->next = NULL;
+    while(conn_pool_used != NULL && conn_pool_used->next !=NULL && conn_pool_used != conn_pool_used->next){
+        n = conn_pool_used->next;
+        FREE(conn_pool_used);
+        conn_pool_used = n;
+    }
+    FREE(conn_pool_used);
+
+    FREE(conns);
+}
+
 void freeConnectionPool(void)
 {
     node_l *n=NULL;
