@@ -14,4 +14,6 @@ void freeRequestPool(void);
 node_l *request_search(node_l *first, tcp_seq seq, int *number);
 void fillRequest(packet_info *packet, request *req);
 
+void alternativeFreeRequestPool(void);
+
 #endif

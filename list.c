@@ -322,6 +322,24 @@ void releaseNodel(node_l* f)
 
 }
 
+void alternativeFreeNodePool(void){
+    nodel_pool_free->prev->next = NULL;
+    while(nodel_pool_free->next !=NULL){
+        node_l *n = nodel_pool_free->next;
+        FREE(nodel_pool_free);
+        nodel_pool_free = n;
+    }
+    FREE(nodel_pool_free);
+    nodel_pool_used->prev->next = NULL;
+    while(nodel_pool_used->next !=NULL){
+        node_l *n = nodel_pool_used->next;
+        FREE(nodel_pool_used);
+        nodel_pool_used = n;
+    }
+    FREE(nodel_pool_used);
+    FREE(nl);
+}
+
 void freeNodelPool(void)
 {
     node_l *n=NULL;

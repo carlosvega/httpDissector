@@ -80,4 +80,6 @@ void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index);
 int addResponseToConnexion(connection *conn, packet_info *aux_packet);
 int insertNewConnexion(packet_info *aux_packet, uint32_t index);
 
+void alternativeFreeConnectionPool(void);
+
 #endif 

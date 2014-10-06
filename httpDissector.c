@@ -851,6 +851,13 @@ int main(int argc, char *argv[]){
 		FREE(intervals);
 	}
 
+	alternativeFreeConnectionPool();
+	fprintf(stderr, "ey0\n");
+	alternativeFreeRequestPool();
+	fprintf(stderr, "ey1\n");
+	alternativeFreeNodePool();
+	fprintf(stderr, "ey2\n");
+
 	// freeConnectionPool();
 	// freeRequestPool();
 	// freeNodelPool();
