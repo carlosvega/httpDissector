@@ -826,6 +826,10 @@ int main(int argc, char *argv[]){
 	//USING INDEX FILE
 	if(options.index != NULL && !options.files){
 		intervals = read_index(options.index, options.input, &interval_ctr);
+		if(interval_ctr == 0){
+			fprintf(stderr, "\nFile not big enough to use indices.\n\n");
+			options.index = NULL;
+		}
 	}
 
 	main_process(format, options.input);

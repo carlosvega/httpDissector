@@ -76,14 +76,14 @@ void printElements(){
 }
 
 int isRtx(print_element *a, print_element *b){
-    // return (a->ip_client_int == b->ip_client_int &&
-    //         a->ip_server_int == b->ip_server_int &&
-    //         a->port_client   == b->port_client   &&
-    //         a->port_server   == b->port_server   &&
-    //         a->seq           == b->seq) 
-    // ? 1 : 0;
+    return (a->ip_client_int == b->ip_client_int &&
+            a->ip_server_int == b->ip_server_int &&
+            a->port_client   == b->port_client   &&
+            a->port_server   == b->port_server   &&
+            a->seq           == b->seq) 
+    ? 1 : 0;
 
-    return !memcmp(a, b, sizeof(in_addr_t)*2 + sizeof(unsigned short)*2 + sizeof(tcp_seq));
+    // return !memcmp(a, b, sizeof(in_addr_t)*2 + sizeof(unsigned short)*2 + sizeof(tcp_seq));
 }
 
 void tagRetransmissions(){
