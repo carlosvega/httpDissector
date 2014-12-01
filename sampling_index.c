@@ -33,7 +33,7 @@ interval* read_index(char *index_filename, char *original_file, unsigned long *i
 	}
 
 	//FOR EACH LINE IN FILE
-	unsigned long long pkt, byte, ts, pps;
+	unsigned long long pkt, byte, ts, pps; //PPS = packets per second
 	double average_pps;
 	short one = 0;
 
