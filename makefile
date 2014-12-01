@@ -29,8 +29,10 @@ LNETLIB		= libnet-1.1.6/src/.libs/libnet.a
 LIBS_SRC	= libnids-1.24/src/libnids.a
 LIBS		= $(PCAPLIB) $(LNETLIB) -lgthread-2.0 
 
-all: httpDissector
+all: httpDissector indice_traza
 
+indice_traza: main_indiceTraza.c
+	$(CC) -std=c99 main_indiceTraza.c NDleeTrazas.c -lpcap -o indiceTraza
 err_mqueue: err_mqueue.c
 	$(CC) -c -lpthread err_mqueue.c -o err_mqueue.o
 sampling_index.o: sampling_index.c
@@ -72,4 +74,4 @@ prueba: NDleeTrazas.o args_parse.o
 	$(CC) -c prueba.c -o prueba.o
 	$(CC) prueba.o args_parse.o NDleeTrazas.o -o prueba $(PCAPLIB)
 clean:	
-	rm -f *.o index counters alist tools tslist args_parse http httpDissector NDleeTrazas list
+	rm -f *.o index counters alist tools tslist args_parse http httpDissector NDleeTrazas list indiceTraza

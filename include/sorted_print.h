@@ -19,6 +19,9 @@ typedef struct {
   
   unsigned char ip_client[4];
   unsigned char ip_server[4];
+  unsigned short port_client;
+  unsigned short port_server;
+  tcp_seq seq;
 
   //Timestamps
   struct timespec req_ts;
@@ -31,11 +34,10 @@ typedef struct {
   //IPs, ports & seq
   in_addr_t ip_client_int;
   in_addr_t ip_server_int;
-  tcp_seq seq;
+  
   //
   short responseCode;
-  unsigned short port_client;
-  unsigned short port_server;
+  
   bool isRtx;
   http_op op;
 } print_element;

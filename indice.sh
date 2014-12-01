@@ -1,4 +1,6 @@
-./indiceTraza -f ~/samples/merge_http.pcap -k 100 | \
+format=`echo $1 | awk -F '.' '{print $NF}'`
+echo "File format: $format"
+./indiceTraza -f $1 -p $format -k 100 | \
 #paquete, fichero, byte, ts
 #acumulado
 gawk '{print $1,$3,$4,($3-aux),($1-aux2); aux=$3; aux2=$1}' | \
