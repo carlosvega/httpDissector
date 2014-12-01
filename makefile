@@ -1,4 +1,4 @@
-CC = clang -g -O3 -Wall -Iinclude/ $(DEBUG)
+CC = gcc -O3 -Wall -Iinclude/ $(DEBUG)
 LDFLAGS = -lm -lpthread
 #CFLAGS		= -g -O3 -D_BSD_SOURCE 
 COLOURFLAGS = -D _colours
@@ -32,7 +32,7 @@ LIBS		= $(PCAPLIB) $(LNETLIB) -lgthread-2.0
 all: httpDissector indice_traza
 
 indice_traza: main_indiceTraza.c
-	$(CC) -std=c99 main_indiceTraza.c NDleeTrazas.c -lpcap -o indiceTraza
+	$(CC) -std=gnu99 main_indiceTraza.c NDleeTrazas.c -lpcap -o indiceTraza
 err_mqueue: err_mqueue.c
 	$(CC) -c -lpthread err_mqueue.c -o err_mqueue.o
 sampling_index.o: sampling_index.c
