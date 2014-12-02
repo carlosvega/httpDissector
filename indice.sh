@@ -1,5 +1,5 @@
 format=`echo $1 | awk -F '.' '{print $NF}'`
-echo "File format: $format"
+>&2 echo "File format: $format"
 ./indiceTraza -f $1 -p $format -k 100 | \
 #paquete, fichero, byte, ts
 #acumulado
