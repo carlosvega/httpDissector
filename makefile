@@ -1,4 +1,4 @@
-CC = gcc -O3 -Wall -Iinclude/ $(DEBUG)
+CC = clang -O3 -Wall -Iinclude/ $(DEBUG)
 LDFLAGS = -lm -lpthread
 #CFLAGS		= -g -O3 -D_BSD_SOURCE 
 COLOURFLAGS = -D _colours
