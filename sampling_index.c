@@ -2,7 +2,7 @@
 
 #define INTERVAL_BLOCK 100
 #define INTERVAL_MIN_TIME 120
-#define MIN_TIME_BETWEEN_INTERVALS 240
+#define MIN_TIME_BETWEEN_INTERVALS 900 //240
 
 typedef enum { false, true } bool;
 
@@ -48,7 +48,8 @@ interval* read_index(char *index_filename, char *original_file, unsigned long *i
 
 		if(!in_interval){
 			//NEW INTERVAL
-			if((pps <= 10000 || pps >= average_pps) && (ts - last_interval_ts) > MIN_TIME_BETWEEN_INTERVALS){
+			//if((pps <= 10000 || pps >= average_pps) && (ts - last_interval_ts) > MIN_TIME_BETWEEN_INTERVALS){
+			if(pps >= average_pps && (ts - last_interval_ts) > MIN_TIME_BETWEEN_INTERVALS){
 				in_interval = true;
 
 				intervals[interval_ctr].start_packet = pkt;
@@ -58,7 +59,8 @@ interval* read_index(char *index_filename, char *original_file, unsigned long *i
 			}
 		}else{ //IN INTERVAL
 			//END OF INTERVAL
-			if((pps >= 10000 && pps < average_pps) && ((ts - intervals[interval_ctr].start_ts) > INTERVAL_MIN_TIME)){
+			//if((pps >= 10000 && pps < average_pps) && ((ts - intervals[interval_ctr].start_ts) > INTERVAL_MIN_TIME)){
+			if(pps < average_pps && ((ts - intervals[interval_ctr].start_ts) > INTERVAL_MIN_TIME)){
 				intervals[interval_ctr].end_packet = pkt;
 				intervals[interval_ctr].end_byte   = byte;
 				intervals[interval_ctr].end_ts	   = ts;
