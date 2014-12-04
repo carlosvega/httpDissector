@@ -14,7 +14,12 @@ long size_of_file(char *filename){
 	return sz;
 }
 
+void print_interval(interval *i, int n){
+	fprintf(stderr, "INTERVAL %d %llu %llu\n", n, i->start_ts, i->end_ts);
+}
+
 interval* read_index(char *index_filename, char *original_file, unsigned long *inter_ctr){
+
 
 	fprintf(stderr, "%s %s\n", index_filename, original_file);
 
@@ -57,6 +62,7 @@ interval* read_index(char *index_filename, char *original_file, unsigned long *i
 				intervals[interval_ctr].end_packet = pkt;
 				intervals[interval_ctr].end_byte   = byte;
 				intervals[interval_ctr].end_ts	   = ts;
+				print_interval(&intervals[interval_ctr], interval_ctr);
 
 				//fprintf(stdout, "FROM %llu TO %llu BYTES: %llu\n", intervals[interval_ctr].start_ts, intervals[interval_ctr].end_ts, intervals[interval_ctr].end_byte - intervals[interval_ctr].start_byte);
 				byte_ctr += (intervals[interval_ctr].end_byte - intervals[interval_ctr].start_byte);
