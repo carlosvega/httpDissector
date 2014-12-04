@@ -2,7 +2,7 @@
 
 #define INTERVAL_BLOCK 100
 #define INTERVAL_MIN_TIME 120
-#define MIN_TIME_BETWEEN_INTERVALS 900
+#define MIN_TIME_BETWEEN_INTERVALS 240
 
 typedef enum { false, true } bool;
 
