@@ -87,7 +87,7 @@ interval* read_index(char *index_filename, char *original_file, unsigned long *i
 	fprintf(stderr, "INTERVALS:                   %lu\n", interval_ctr);
 	fprintf(stderr, "AVERAGE SIZE OF INTERVAL:    %.2lf secs\n", avg_interval_size/((double) interval_ctr));
 	fprintf(stderr, "AVERAGE PACKETS IN INTERVAL: %.2lf pkts\n", avg_packets_in_interval/((double) interval_ctr));
-	fprintf(stderr, "%% A PROCESAR DEL FICHERO:    %lf%%\n", byte_ctr/((double) original_file_size));
+	fprintf(stderr, "%% A PROCESAR DEL FICHERO:    %lf%%\n", ( byte_ctr / ((double) original_file_size) ) * 100 );
 
 	*inter_ctr = interval_ctr;
 	fclose(index_file);
