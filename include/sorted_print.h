@@ -31,6 +31,7 @@ typedef struct {
   char  response_msg[RESP_MSG_SIZE];
   char  url[URL_SIZE];
   char  host[HOST_SIZE];
+  char  agent[AGENT_SIZE];
   //IPs, ports & seq
   in_addr_t ip_client_int;
   in_addr_t ip_server_int;
@@ -45,7 +46,7 @@ typedef struct {
 void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
- short responseCode, char *response_msg, char *host, char *url, http_op op, tcp_seq seq);
+ short responseCode, char *response_msg, char *host, char *agent, char *url, http_op op, tcp_seq seq);
 
 int isRtx(print_element *a, print_element *b);
 void tagRetransmissions();

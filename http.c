@@ -21,11 +21,13 @@ struct _internal_http_packet{
 	http_op op;
 	char method[32];
 	char version[32];
+	char agent[2048];
 	char uri[2048];
 	char host[256];
 	int response_code;
 	char response_msg[256];
 	short has_host;
+	short has_agent;
 };
 
 // pcre_extra *pcreExtra;
@@ -145,6 +147,14 @@ char *http_get_host(http_packet http){
 	return http->host;
 }
 
+char *http_get_agent(http_packet http){
+	if(!http || !http->agent){
+		return NULL;
+	}
+
+	return http->agent;
+}
+
 int http_get_response_code(http_packet http){
 	if(!http){
 		return -1;
@@ -236,6 +246,18 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 		}else{
 			strcpy(http->host, host);
 			http->has_host = 1;
+		}
+
+		if(options.agent){
+			char *agent = get_user_agent_from_headers(cadena);
+
+			if(agent == NULL){
+				http->has_agent = 0;
+				strcpy(http->agent, "no agent");
+			}else{
+				strcpy(http->agent, agent);
+				http->has_agent = 1;
+			}
 		}
 		
 	}else{ //RESPONSE
@@ -356,6 +378,31 @@ int http_parse_headers(http_packet *http_t, char *cadena, int length){
 		
 		FREE(aux_hdr);
 		return ret;
+}
+
+char *get_user_agent_from_headers(char *cadena){
+
+	int reti;
+
+	memset(cadena_aux, 0, CADENA_AUX_SIZE);
+	
+	char *host_1 = strstr(cadena, "User-Agent");
+	if(host_1 != NULL){		
+		sscanf (host_1, "User-Agent: %s\r\n", cadena_aux);
+
+		/* Execute regular expression */
+		reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
+	    if( !reti ){
+	        return cadena_aux;
+	    }
+	    else{
+	        return NULL;
+	    }
+	}else{
+		return NULL;
+	}
+
+	return cadena_aux;
 }
 
 char *get_host_from_headers(char *cadena){

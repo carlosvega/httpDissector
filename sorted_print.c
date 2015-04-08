@@ -25,7 +25,7 @@ void freePrintElementList(){
 void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int,
  unsigned short port_client, unsigned short port_server,
  struct timespec req_ts, struct timespec res_ts, struct timespec diff,
- short responseCode, char *response_msg, char *host, char *url, http_op op, tcp_seq seq){
+ short responseCode, char *response_msg, char *host, char *agent, char *url, http_op op, tcp_seq seq){
 
     //COPY ELEMENT
     // strncpy(print_element_list[print_element_counter].ip_client, ip_client, ADDR_CONST);
@@ -39,6 +39,7 @@ void addPrintElement(in_addr_t ip_client_int, in_addr_t ip_server_int,
     strncpy(print_element_list[print_element_counter].response_msg, response_msg, RESP_MSG_SIZE);
     strncpy(print_element_list[print_element_counter].url, url, URL_SIZE);
     strncpy(print_element_list[print_element_counter].host, host, HOST_SIZE);
+    strncpy(print_element_list[print_element_counter].agent, agent, AGENT_SIZE);
     print_element_list[print_element_counter].op = op;
     print_element_list[print_element_counter].seq = seq;
     print_element_list[print_element_counter].isRtx = false;
@@ -194,11 +195,19 @@ void printElement(print_element *e){
         *(unsigned int *) ip_client = e->ip_client_int;
         *(unsigned int *) ip_server = e->ip_server_int;
 
-        fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
+        if(options.agent){
+            fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s|%s\n", 
             ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
             e->port_client, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
             e->port_server, e->req_ts.tv_sec, e->req_ts.tv_nsec, e->res_ts.tv_sec, e->res_ts.tv_nsec, e->diff.tv_sec, e->diff.tv_nsec, 
-            RESP_MSG_SIZE, e->response_msg, e->responseCode, http_op_to_char(e->op), e->host, e->url);   
+            RESP_MSG_SIZE, e->response_msg, e->responseCode, http_op_to_char(e->op), e->agent, e->host, e->url);   
+        }else if(!options.agent){
+            fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
+                ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
+                e->port_client, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
+                e->port_server, e->req_ts.tv_sec, e->req_ts.tv_nsec, e->res_ts.tv_sec, e->res_ts.tv_nsec, e->diff.tv_sec, e->diff.tv_nsec, 
+                RESP_MSG_SIZE, e->response_msg, e->responseCode, http_op_to_char(e->op), e->host, e->url);   
+        }
 
         fflush(output);
         // free(ip_client);

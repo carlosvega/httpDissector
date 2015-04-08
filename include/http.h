@@ -32,6 +32,7 @@ char *http_get_method(http_packet http);
 char *http_get_version(http_packet http);
 char *http_get_uri(http_packet http);
 char *http_get_host(http_packet http);
+char *http_get_agent(http_packet http);
 int http_get_response_code(http_packet http);
 char *http_get_response_msg(http_packet http);
 void http_print_headers(http_packet *http_t);
@@ -40,5 +41,6 @@ int http_alloc(http_packet *http_t);
 void http_free_packet(http_packet *http);
 int http_clean_up(http_packet *http);
 char *get_host_from_headers(char *cadena);
+char *get_user_agent_from_headers(char *cadena);
 
 #endif

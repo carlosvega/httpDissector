@@ -25,7 +25,7 @@ int resized_session_table = 0;
 
 packet_info *pktinfo = NULL;
 
-char version[32] = "Version 2.85b";
+char version[32] = "Version 2.86b";
 struct args_parse options;
 
 struct timespec last_packet;
@@ -400,8 +400,10 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		pktinfo->response_msg[RESP_MSG_SIZE - 1] = 0;
 	}else if(http_is_request(pktinfo->op)){
 		char * host = http_get_host(http);
+		char * agent = http_get_agent(http);
 		char * uri = http_get_uri(http);
 		
+		strcpy(pktinfo->agent, agent);
 		strcpy(pktinfo->host, host);
 		strcpy(pktinfo->url, uri);
 		

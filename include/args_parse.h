@@ -37,6 +37,7 @@ struct args_parse{
 	short noRtx;
 	short debug;
 	short sorted;
+	short agent;
 };
 
 void how_to_use(char *name);

@@ -14,6 +14,7 @@
 
 #define SIZE_ETHERNET 14
 #define ADDR_CONST 16
+#define AGENT_SIZE 2500
 #define URL_SIZE 2500
 #define HOST_SIZE 256
 #define RESP_MSG_SIZE 256
@@ -27,7 +28,8 @@ typedef struct {
   unsigned int ip_src;
   unsigned int ip_dst;
 	struct timespec ts;
-	char url[URL_SIZE];
+	char agent[AGENT_SIZE];
+  char url[URL_SIZE];
   char host[HOST_SIZE];
 	u_int size_ip;
   u_int size_tcp;
@@ -55,6 +57,7 @@ typedef struct {
 typedef struct  {
 	char url[URL_SIZE];
   char host[HOST_SIZE];
+  char agent[AGENT_SIZE];
 	tcp_seq seq;					// Sequence number
 	tcp_seq ack;					// Acknowledgement number
 	struct timespec ts;
