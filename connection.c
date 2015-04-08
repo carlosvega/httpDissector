@@ -265,7 +265,7 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
     if(options.sorted){
         addPrintElement(conn->ip_client_int, conn->ip_server_int, 
             conn->port_client, conn->port_server, req->ts, 
-            res_ts, diff, responseCode, response_msg, req->host, req->url, req->op, req->seq);
+            res_ts, diff, responseCode, response_msg, req->host, req->agent, req->url, req->op, req->seq);
     }else if(options.rrd){
         printRRD(req->ts, diff);
     }else if(!options.sorted){
@@ -278,11 +278,19 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
         unsigned char ip_server[4] = {0};
         *(unsigned int *) ip_client = conn->ip_client_int;
         *(unsigned int *) ip_server = conn->ip_server_int;
-        fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
-            ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
-            conn->port_client, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
-            conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, 
-            RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);        
+        if(options.agent){
+            fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s|%s\n", 
+                ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
+                conn->port_client, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
+                conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, 
+                RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->agent, req->host, req->url);        
+        }else if(!options.agent){
+            fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s\n", 
+                ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
+                conn->port_client, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
+                conn->port_server, req->ts.tv_sec, req->ts.tv_nsec, res_ts.tv_sec, res_ts.tv_nsec, diff.tv_sec, diff.tv_nsec, 
+                RESP_MSG_SIZE, response_msg, responseCode, http_op_to_char(req->op), req->host, req->url);        
+        }
     }
 
     conn->n_response--;
