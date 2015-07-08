@@ -484,7 +484,11 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	pkthdr2.ts.tv_sec = header->ts.tv_sec;
 	pkthdr2.ts.tv_nsec = header->ts.tv_usec * 1000;
 
-	callback(arg, &pkthdr2, payload);
+	//callback(arg, &pkthdr2, payload);
+
+	fprintf(stderr, "NOT IMPLEMENTED.\n");
+
+	exit(-1);
 
 	return;
 
