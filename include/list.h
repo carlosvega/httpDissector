@@ -33,7 +33,7 @@
 #define list_get_next_node(list, link) ((link)->next == *(list) ? NULL : (link)->next)
 #define list_get_prev_node(list, link) ((link) == *(list) ? NULL : (link)->prev)
 
-#define MAX_POOL_NODE 4000000
+#define MAX_POOL_NODE 5000000
 #define MAX_POOL_FLOW 1000000
 
 typedef struct node_l node_l;
