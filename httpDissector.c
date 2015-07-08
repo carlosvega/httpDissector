@@ -1045,7 +1045,7 @@ void print_info(long elapsed){
 	if(options.interface){
 		struct pcap_stat ps;
  		pcap_stats(handle, &ps);
-		fprintf(stderr, "PCAP STATS: recv: %u; drop: %u; ifdrop: %u\n", ps.ps_recv, ps.ps_drop, ps.ps_ifdrop);
+		fprintf(stderr, "\nPCAP STATS: recv: %u; drop: %u; ifdrop: %u", ps.ps_recv, ps.ps_drop, ps.ps_ifdrop);
 	}
 	
 	fprintf(stderr, "\n\nFile: %s \nTotal packets in file: %'ld (Processed packets: %'ld)\n", global_filename == NULL? options.interface : global_filename, total_packets_in_file, packets);
