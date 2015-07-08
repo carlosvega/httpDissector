@@ -921,8 +921,10 @@ int main_process(char *format, char *filename){
 
 	char errbuf[PCAP_ERRBUF_SIZE] = {0};
 	
-
-	if(options.interface == NULL){
+	if(options.hpcap != -1){
+		hpcap_packet_online_loop(options.hpcap, options.hpcap_ifindex, options.hpcap_qindex, hpcap_callback, NULL);
+		exit(-1);
+	}else if(options.interface == NULL){
 		
 		ERR_MSG("DEBUG/ Before calling NDLTabrirTraza()\n");
 
@@ -947,11 +949,7 @@ int main_process(char *format, char *filename){
 
 
 		ERR_MSG("DEBUG/ After calling NDLTabrirTraza()\n");
-				
-	}else if(options.hpcap != -1){
-		hpcap_packet_online_loop(options.hpcap, options.hpcap_ifindex, options.hpcap_qindex, hpcap_callback, NULL);
-		exit(-1);
-
+		
 	}else{ //READ FROM INTERFACE
 
 		ERR_MSG("DEBUG/ calling pcap_open_live()\n");
