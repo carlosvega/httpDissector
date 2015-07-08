@@ -506,6 +506,7 @@ void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_
 
 void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet)
 {
+
 	//LOCK
 	pthread_mutex_lock(&mutex);
 

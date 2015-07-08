@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define REQUEST_POOL 1100000//3,000,000
+#define REQUEST_POOL 3100000//3,000,000
 #define RESPONSE_POOL 10
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
