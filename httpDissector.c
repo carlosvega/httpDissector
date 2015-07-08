@@ -474,6 +474,34 @@ void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_ch
 	return;
 }
 
+u_int64_t pkts,bytes;
+u_int32_t last_sec=0;
+
+void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
+	// struct NDLTpkthdr pkthdr2;
+	// pkthdr2.caplen = header->caplen;
+	// pkthdr2.len = header->len;
+	// pkthdr2.ts.tv_sec = header->ts.tv_sec;
+	// pkthdr2.ts.tv_nsec = header->ts.tv_usec * 1000;
+
+	//callback(arg, &pkthdr2, payload);
+
+	if( header->ts.tv_sec != last_sec )
+	{
+		printf("%lu\t%lu\n", pkts, 8*bytes);
+		pkts = 0;
+		bytes = 0;
+		last_sec = header->ts.tv_sec;
+	}
+	pkts++;
+	bytes += header->len;
+
+
+
+	return;
+
+}
+
 void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet){
 
 	struct NDLTpkthdr pkthdr2;
@@ -920,6 +948,10 @@ int main_process(char *format, char *filename){
 
 		ERR_MSG("DEBUG/ After calling NDLTabrirTraza()\n");
 				
+	}else if(options.hpcap != -1){
+		hpcap_packet_online_loop(options.hpcap, options.hpcap_ifindex, options.hpcap_qindex, hpcap_callback, NULL);
+		exit(-1);
+
 	}else{ //READ FROM INTERFACE
 
 		ERR_MSG("DEBUG/ calling pcap_open_live()\n");
@@ -1035,9 +1067,6 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
- 	
-
-
 	setlocale(LC_ALL, "en_US"); 
 
 	setvbuf(stderr, NULL, _IONBF, 0);
