@@ -231,6 +231,7 @@ struct args_parse parse_args(int argc, char **argv){
 
         case 'Y' : /*HPCAP*/
           options.hpcap = atoi(optarg);
+          options.err = 0;
           break;
 
         case 'z' : /*HPCAP*/
