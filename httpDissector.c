@@ -1,8 +1,12 @@
 #include "httpDissector.h"
 
-#define GC_SLEEP_SECS 25
+#define GC_SLEEP_SECS 60
 
 extern struct msgbuf sbuf;
+
+
+//PCAP HANDLER
+pcap_t *handle = NULL;
 
 //INDEX
 unsigned long interval_ctr = 0;
@@ -62,7 +66,7 @@ void sigintHandler(int sig){
 
 	fprintf(stderr, "\n\nSkipping, wait...\n");
 	
-	remove_old_active_nodes(last_packet);
+	//ºremove_old_active_nodes(last_packet);
 	running = 0;
 	
 	if(options.interface == NULL && progress_bar){
@@ -888,7 +892,7 @@ int main_process(char *format, char *filename){
 	}
 
 	char errbuf[PCAP_ERRBUF_SIZE] = {0};
-	pcap_t *handle = NULL;
+	
 
 	if(options.interface == NULL){
 		
@@ -1031,9 +1035,19 @@ int main_process(char *format, char *filename){
 
 void print_info(long elapsed){
 	
+ 	
+
+
 	setlocale(LC_ALL, "en_US"); 
 
 	setvbuf(stderr, NULL, _IONBF, 0);
+
+	if(options.interface){
+		struct pcap_stat ps;
+ 		pcap_stats(handle, &ps);
+		fprintf(stderr, "PCAP STATS: recv: %u; drop: %u; ifdrop: %u\n", ps.ps_recv, ps.ps_drop, ps.ps_ifdrop);
+	}
+	
 	fprintf(stderr, "\n\nFile: %s \nTotal packets in file: %'ld (Processed packets: %'ld)\n", global_filename == NULL? options.interface : global_filename, total_packets_in_file, packets);
 	
 	if(elapsed != 0){
