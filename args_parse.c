@@ -6,6 +6,9 @@ void how_to_use(char *name){
   fprintf(stderr, "%s [options] -i=input_file\n\n", name);
   // fprintf(stderr, "\t-b  --binary\t\t\tThe output is binary.\n");
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface.\n");
+  fprintf(stderr, "\t    --hpcap=<core>\t\tUses HPCAP.\n");
+  fprintf(stderr, "\t    --hpcap_ifindex=<ifindex>\t\tHPCAP ifindex parameter. Default 1.\n");
+  fprintf(stderr, "\t    --hpcap_qindex=<qindex>\t\tHPCAP qindex parameter. Default 0.\n");
   fprintf(stderr, "\t    --filter_or=<filter>\tJoins the default filter with the introduced one with an 'OR'.\n");
   fprintf(stderr, "\t    --filter_and=<filter>\tJoins the default filter with the introduced one with an 'AND'.\n");
   fprintf(stderr, "\t    --filter_ovr=<filter>\tOverwrites the default filter with the introduced one.\n");
@@ -63,6 +66,9 @@ struct args_parse parse_args(int argc, char **argv){
   options.filter_mode = OR;
   options.url         = NULL;
   options.host        = NULL;
+  options.hpcap       = -1;
+  options.hpcap_qindex = 0;
+  options.hpcap_ifindex = 1;
   options.raw         = -1;
   options.rrd         = 0;
   options.debug       = 0;
@@ -91,34 +97,37 @@ struct args_parse parse_args(int argc, char **argv){
 	/* Una estructura de varios arrays describiendo los valores largos */
 	const struct option long_op[] =
 	{
-		{ "help",           0,  NULL,   'h'},
-    { "debug",          1,  NULL,   'D'},
-		{ "output",         1,  NULL,   'o'},
-		{ "raw",		        0, 	NULL, 	'r'},
-    { "gc-output",      1,  NULL,   'O'},
-    { "index",          1,  NULL,   'x'},
-    { "no-collector",   0,  NULL,   'C'},
-    { "sorted",         0,  NULL,   'S'},
-    { "agent",          0,  NULL,   'A'},
-    { "log",            0,  NULL,   'L'},
-    { "noRtx",          0,  NULL,   'X'},
-		{ "pcap",			      0, 	NULL, 	'p'},
-		{ "input",		      1, 	NULL, 	'i'},
-    { "discards",       1,  NULL,   'd'},
+		{ "agent",          0,  NULL,   'A'},
     { "capture",        1,  NULL,   'c'},
-		{ "filter_or", 		  1, 	NULL, 	'f'},
+    { "no-collector",   0,  NULL,   'C'},
+    { "discards",       1,  NULL,   'd'},
+    { "debug",          1,  NULL,   'D'},
+    { "filter_or",      1,  NULL,   'f'},
     { "filter_and",     1,  NULL,   'F'},
-    { "filter_ovr",     1,  NULL,   'W'},
-    { "url",            1,  NULL,   'u'},
+    { "help",           0,  NULL,   'h'},
     { "host",           1,  NULL,   'H'},
-    { "verbose",        0,  NULL,   'v'},
-    // { "binary",         0,  NULL,   'b'},
+    { "input",          1,  NULL,   'i'},
     { "input-files",    0,  NULL,   'I'},
-    { "two-lines",      0,  NULL,   'T'},
-    { "version",        0,  NULL,   'V'},
-    { "rrd",            0,  NULL,   'R'},
     { "skip",           1,  NULL,   'K'},
+    { "log",            0,  NULL,   'L'},
+		{ "output",         1,  NULL,   'o'},
+    { "gc-output",      1,  NULL,   'O'},
+    { "raw",            0,  NULL,   'r'},
+    { "rrd",            0,  NULL,   'R'},
+    { "sorted",         0,  NULL,   'S'},
+    { "two-lines",      0,  NULL,   'T'},
+		{ "pcap",			      0, 	NULL, 	'p'},
+    { "url",            1,  NULL,   'u'},
+    { "verbose",        0,  NULL,   'v'},
+    { "version",        0,  NULL,   'V'},
+    { "filter_ovr",     1,  NULL,   'W'},
+    { "hpcap",          1,  NULL,   'Y'},
+    { "index",          1,  NULL,   'x'},
+    { "noRtx",          0,  NULL,   'X'},
+    { "hpcap_ifindex",  1,  NULL,   'z'},
+    { "hpcap_qindex",   1,  NULL,   'Z'},    
 		{ NULL,             0,  NULL,    0 }
+    // { "binary",         0,  NULL,   'b'},
 	};
 
 	while(1){
@@ -219,6 +228,19 @@ struct args_parse parse_args(int argc, char **argv){
           options.filter = optarg;
           options.filter_mode = OVERWRITE;
           break;
+
+        case 'Y' : /*HPCAP*/
+          options.hpcap = atoi(optarg);
+          break;
+
+        case 'z' : /*HPCAP*/
+          options.hpcap_ifindex = atoi(optarg);
+          break;
+
+        case 'Z' : /*HPCAP*/
+          options.hpcap_qindex = atoi(optarg);
+          break;
+
 
         case 'v' :
           options.verbose = 1;

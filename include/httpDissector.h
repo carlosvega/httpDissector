@@ -4,6 +4,9 @@
 #include <inttypes.h>
 #include <locale.h>
 #include <assert.h>
+//HPCAP
+#include "hpcap_utils.h"
+//
 #include "sampling_index.h"
 #include "list.h"
 #include "counters.h"

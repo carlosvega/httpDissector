@@ -29,6 +29,9 @@ struct args_parse{
 	char *input;
 	char *discards;
 	char *filter;
+	int hpcap;
+	int hpcap_ifindex;
+	int hpcap_qindex;
 	short filter_mode;
 	char *interface;
 	char *url;
