@@ -514,6 +514,22 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 	//LOCK
 	pthread_mutex_lock(&mutex);
 
+	if( (getGottenRequests() / ((float) REQUEST_POOL)) > 0.6 ){
+		if (options.verbose) {
+	        fprintf(stderr, "DEBUG/ ==============================\n");
+	        fprintf(stderr, "DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
+		}
+
+		unsigned long removed = remove_old_active_nodes(last_packet);
+		increment_total_removed_requests(removed);
+
+		if (options.verbose)
+		{
+		    fprintf(stderr, "DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
+		    fprintf(stderr, "DEBUG/ ==============================\n\n");
+		}
+    }
+
 	if(first_packet.tv_sec == 0){
 		first_packet = pkthdr->ts;
 	}
