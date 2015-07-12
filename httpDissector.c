@@ -486,29 +486,29 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	pkthdr2.ts.tv_nsec = header->ts.tv_usec * 1000;
 
 
-	// memset(pktinfo, 0, sizeof(packet_info));
+	memset(pktinfo, 0, sizeof(packet_info));
  
-	// //ERR_MSG("DEBUG/ calling parse_packet().\n");
- //  	int ret = parse_packet(payload, &pkthdr2, pktinfo);
+	//ERR_MSG("DEBUG/ calling parse_packet().\n");
+  	int ret = parse_packet(payload, &pkthdr2, pktinfo);
 
-	// if(!ret){
-	// 	nn_packets += 1;
-	// 	if(nn_packets % 100000 == 0){
-	// 		fprintf(stderr, "%d -> %d\n", pktinfo->port_src, pktinfo->port_dst);
-	// 	}
-	// }
+	if(!ret){
+		nn_packets += 1;
+		fprintf(stderr, "%d -> %d\n", pktinfo->port_src, pktinfo->port_dst);
+	}else{
+		fprintf(stderr, "ERROR\n");
+	}
 
 	//callback(arg, &pkthdr2, payload);
 
-	if( header->ts.tv_sec != last_sec )
-	{
-		printf("%lu\t%lu\n", pkts, 8*bytes);
-		pkts = 0;
-		bytes = 0;
-		last_sec = header->ts.tv_sec;
-	}
-	pkts++;
-	bytes += header->len;
+	// if( header->ts.tv_sec != last_sec )
+	// {
+	// 	printf("%lu\t%lu\n", pkts, 8*bytes);
+	// 	pkts = 0;
+	// 	bytes = 0;
+	// 	last_sec = header->ts.tv_sec;
+	// }
+	// pkts++;
+	// bytes += header->len;
 
 	// fprintf(stderr, "NOT IMPLEMENTED.\n");
 
