@@ -336,6 +336,13 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	// ERR_MSG("DEBUG/ begining parse_packet().\n");
 	size_t size_ethernet = SIZE_ETHERNET;
 	
+	int j;
+	for(j = 0; j < 8; j++){
+		fprintf(stderr, "%02X ", packet[j]);
+	}
+
+	exit(-1);
+
 	memset(pktinfo->url, 0, URL_SIZE);
 	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
 	//VLAN
