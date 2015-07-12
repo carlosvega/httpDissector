@@ -361,9 +361,11 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	}
 	fprintf(stdout, "\n");
 
+	u_char *ip_p = (packet + size_ethernet);
+
 	fprintf(stdout, "IP:\n");
 	for(j = 0; j < 1000; j++){
-		fprintf(stdout, "%02X ", pktinfo->ip[j]);
+		fprintf(stdout, "%02X ", ip_p[j]);
 	}
 	fprintf(stdout, "\n");
 
