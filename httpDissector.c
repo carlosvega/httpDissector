@@ -331,12 +331,6 @@ void *barra_de_progreso(){
 	return NULL;
 }
 
-inline uint32_t asm_ntohl(uint32_t x)
-{
-   __asm__ ("mov eax, a\n\t"
-   			"bswap eax");
-}
-
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
 
 	// ERR_MSG("DEBUG/ begining parse_packet().\n");
@@ -372,8 +366,8 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	pktinfo->port_src = ntohs(pktinfo->tcp->th_sport);       /* source port */
 	pktinfo->port_dst = ntohs(pktinfo->tcp->th_dport);       /* destination port */
       
-	pktinfo->tcp->th_seq = asm_ntohl(pktinfo->tcp->th_seq);
-    pktinfo->tcp->th_ack = asm_ntohl(pktinfo->tcp->th_ack);
+	pktinfo->tcp->th_seq = ntohl(pktinfo->tcp->th_seq);
+    pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
       
     if (pktinfo->size_tcp < 20) {
 		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
