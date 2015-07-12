@@ -486,9 +486,19 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 
 	//callback(arg, &pkthdr2, payload);
 
-	fprintf(stderr, "NOT IMPLEMENTED.\n");
+	if( header->ts.tv_sec != last_sec )
+	{
+		printf("%lu\t%lu\n", pkts, 8*bytes);
+		pkts = 0;
+		bytes = 0;
+		last_sec = header->ts.tv_sec;
+	}
+	pkts++;
+	bytes += header->len;
 
-	exit(-1);
+	// fprintf(stderr, "NOT IMPLEMENTED.\n");
+
+	// exit(-1);
 
 	return;
 
