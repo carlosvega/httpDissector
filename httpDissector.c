@@ -489,7 +489,7 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	memset(pktinfo, 0, sizeof(packet_info));
  
 	//ERR_MSG("DEBUG/ calling parse_packet().\n");
-  	int ret = parse_packet(payload, pkthdr2, pktinfo);
+  	int ret = parse_packet(payload, &pkthdr2, pktinfo);
 
 	if(!ret){
 		packets += 1;
