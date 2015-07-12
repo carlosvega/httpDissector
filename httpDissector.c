@@ -476,7 +476,7 @@ void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_ch
 
 u_int64_t pkts,bytes;
 u_int32_t last_sec=0;
-u_int32_t packets = 0;
+u_int32_t nn_packets = 0;
 
 void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	struct NDLTpkthdr pkthdr2;
@@ -492,8 +492,10 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
   	int ret = parse_packet(payload, &pkthdr2, pktinfo);
 
 	if(!ret){
-		packets += 1;
-		fprintf(stderr, "%d -> %d\n", pktinfo->port_src, pktinfo->port_dst);
+		nn_packets += 1;
+		if(nn_packets % 100000 == 0){
+			fprintf(stderr, "%d -> %d\n", pktinfo->port_src, pktinfo->port_dst);
+		}
 	}
 
 	//callback(arg, &pkthdr2, payload);
