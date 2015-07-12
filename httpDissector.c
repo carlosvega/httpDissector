@@ -375,38 +375,38 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	    return 1;
     }
 
-    int j;
-	fprintf(stdout, "Packet:\n");
-	for(j = 0; j < 500; j++){
-		fprintf(stdout, "%02X ", packet[j]);
-	}
-	fprintf(stdout, "\n");
+ //    int j;
+	// fprintf(stdout, "Packet:\n");
+	// for(j = 0; j < 500; j++){
+	// 	fprintf(stdout, "%02X ", packet[j]);
+	// }
+	// fprintf(stdout, "\n");
 
-	u_char *ip_p = (packet + size_ethernet);
+	// u_char *ip_p = (packet + size_ethernet);
 
-	fprintf(stdout, "IP:\n");
-	for(j = 0; j < 500; j++){
-		fprintf(stdout, "%02X ", ip_p[j]);
-	}
-	fprintf(stdout, "\n");
+	// fprintf(stdout, "IP:\n");
+	// for(j = 0; j < 500; j++){
+	// 	fprintf(stdout, "%02X ", ip_p[j]);
+	// }
+	// fprintf(stdout, "\n");
 
-	u_char *tcp_p = (packet + size_ethernet + pktinfo->size_ip);
+	// u_char *tcp_p = (packet + size_ethernet + pktinfo->size_ip);
 
-	fprintf(stdout, "TCP:\n");
-	for(j = 0; j < 500; j++){
-		fprintf(stdout, "%02X ", tcp_p[j]);
-	}
-	fprintf(stdout, "\n");
+	// fprintf(stdout, "TCP:\n");
+	// for(j = 0; j < 500; j++){
+	// 	fprintf(stdout, "%02X ", tcp_p[j]);
+	// }
+	// fprintf(stdout, "\n");
 
-	u_char *payload_p = (packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
+	// u_char *payload_p = (packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
 
-	fprintf(stdout, "PAYLOAD:\n");
-	for(j = 0; j < 500; j++){
-		fprintf(stdout, "%02X ", payload_p[j]);
-	}
-	fprintf(stdout, "\n");
+	// fprintf(stdout, "PAYLOAD:\n");
+	// for(j = 0; j < 500; j++){
+	// 	fprintf(stdout, "%02X ", payload_p[j]);
+	// }
+	// fprintf(stdout, "\n");
 
-	exit(-1);
+	// exit(-1);
 
     pktinfo->payload = (u_char *)(packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
     pktinfo->size_payload = pkthdr->caplen - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
