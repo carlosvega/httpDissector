@@ -333,7 +333,8 @@ void *barra_de_progreso(){
 
 inline uint32_t asm_ntohl(uint32_t x)
 {
-  asm("bswapl %1" : "=a" (x) : "a"(x));
+   __asm__ ("mov eax, a\n\t"
+   			"bswap eax");
 }
 
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
