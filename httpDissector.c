@@ -485,11 +485,16 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	pkthdr2.ts.tv_sec = header->ts.tv_sec;
 	pkthdr2.ts.tv_nsec = header->ts.tv_usec * 1000;
 
+	fprintf(stderr, "TEST 1\n");
 
 	memset(pktinfo, 0, sizeof(packet_info));
+
+	fprintf(stderr, "TEST 2\n");
  
 	//ERR_MSG("DEBUG/ calling parse_packet().\n");
   	int ret = parse_packet(payload, &pkthdr2, pktinfo);
+
+  	fprintf(stderr, "TEST 3\n");
 
 	if(!ret){
 		nn_packets += 1;

@@ -1,6 +1,6 @@
 HPCAPDIR=HPCAP4
 
-CC = clang -O3 -Wall -D_GNU_SOURCE -Iinclude/ 
+CC = clang -g -Wall -D_GNU_SOURCE -Iinclude/ 
 LDFLAGS = -lm -lpthread -lhpcap -lpcap
 
 LIB_DIR =  -L$(HPCAPDIR)/lib -I$(HPCAPDIR)/include
