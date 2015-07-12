@@ -337,10 +337,10 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	size_t size_ethernet = SIZE_ETHERNET;
 	
 	int j;
-	for(j = 0; j < 8; j++){
+	for(j = 0; j < 500; j++){
 		fprintf(stderr, "%02X ", packet[j]);
 	}
-
+	fprintf(stderr, "\n");
 	exit(-1);
 
 	memset(pktinfo->url, 0, URL_SIZE);
