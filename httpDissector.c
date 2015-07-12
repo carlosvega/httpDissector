@@ -336,12 +336,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	// ERR_MSG("DEBUG/ begining parse_packet().\n");
 	size_t size_ethernet = SIZE_ETHERNET;
 	
-	int j;
-	for(j = 0; j < 1000; j++){
-		fprintf(stdout, "%02X ", packet[j]);
-	}
-	fprintf(stdout, "\n");
-	exit(-1);
 
 	memset(pktinfo->url, 0, URL_SIZE);
 	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
@@ -359,6 +353,19 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		
 		return 1;
 	}
+
+	int j;
+	fprintf(stdout, "Packet:\n");
+	for(j = 0; j < 1000; j++){
+		fprintf(stdout, "%02X ", packet[j]);
+	}
+	fprintf(stdout, "\n");
+
+	fprintf(stdout, "IP:\n");
+	for(j = 0; j < 1000; j++){
+		fprintf(stdout, "%02X ", pktinfo->ip[j]);
+	}
+	fprintf(stdout, "\n");
 
 	if(pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)){
 		
