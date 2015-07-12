@@ -331,7 +331,7 @@ void *barra_de_progreso(){
 	return NULL;
 }
 
-inline unsigned int asm_ntohl(unsigned int x)
+inline uint32_t asm_ntohl(uint32_t x)
 {
   asm("bswapl %1" : "=a" (x) : "a"(x));
 }
