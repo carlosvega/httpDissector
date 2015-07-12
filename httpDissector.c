@@ -29,7 +29,7 @@ int resized_session_table = 0;
 
 packet_info *pktinfo = NULL;
 
-char version[32] = "Version 2.86b";
+char version[32] = "Version 2.87b";
 struct args_parse options;
 
 struct timespec last_packet;
