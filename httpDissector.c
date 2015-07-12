@@ -338,7 +338,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	
 	int j;
 	for(j = 0; j < 500; j++){
-		fprintf(stderr, "%c ", packet[j]);
+		fprintf(stdout, "%c ", packet[j]);
 	}
 	fprintf(stderr, "\n");
 	exit(-1);
