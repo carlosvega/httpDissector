@@ -476,6 +476,7 @@ void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_ch
 
 u_int64_t pkts,bytes;
 u_int32_t last_sec=0;
+u_int32_t packets = 0;
 
 void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	struct NDLTpkthdr pkthdr2;
@@ -484,17 +485,28 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	pkthdr2.ts.tv_sec = header->ts.tv_sec;
 	pkthdr2.ts.tv_nsec = header->ts.tv_usec * 1000;
 
+
+	memset(pktinfo, 0, sizeof(packet_info));
+ 
+	//ERR_MSG("DEBUG/ calling parse_packet().\n");
+  	int ret = parse_packet(payload, pkthdr2, pktinfo);
+
+	if(!ret){
+		packets += 1;
+		fprintf(stderr, "%d -> %d\n", pktinfo->port_src, pktinfo->port_dst);
+	}
+
 	//callback(arg, &pkthdr2, payload);
 
-	if( header->ts.tv_sec != last_sec )
-	{
-		printf("%lu\t%lu\n", pkts, 8*bytes);
-		pkts = 0;
-		bytes = 0;
-		last_sec = header->ts.tv_sec;
-	}
-	pkts++;
-	bytes += header->len;
+	// if( header->ts.tv_sec != last_sec )
+	// {
+	// 	printf("%lu\t%lu\n", pkts, 8*bytes);
+	// 	pkts = 0;
+	// 	bytes = 0;
+	// 	last_sec = header->ts.tv_sec;
+	// }
+	// pkts++;
+	// bytes += header->len;
 
 	// fprintf(stderr, "NOT IMPLEMENTED.\n");
 
