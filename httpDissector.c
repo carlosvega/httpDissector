@@ -335,13 +335,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 
 	// ERR_MSG("DEBUG/ begining parse_packet().\n");
 	size_t size_ethernet = SIZE_ETHERNET;
-	
-	int j;
-	for(j = 0; j < 8; j++){
-		fprintf(stderr, "%02X ", packet[j]);
-	}
-
-	exit(-1);
 
 	memset(pktinfo->url, 0, URL_SIZE);
 	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
@@ -350,6 +343,10 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		size_ethernet += 4;	
 	}
 	
+	// if (pktinfo->ethernet->ether_type == ){
+
+	// }
+
 	pktinfo->ip = (struct sniff_ip*)(packet + size_ethernet);
 	pktinfo->size_ip = IP_HL(pktinfo->ip)*4;
 
@@ -372,9 +369,45 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 
 	pktinfo->port_src = ntohs(pktinfo->tcp->th_sport);       /* source port */
 	pktinfo->port_dst = ntohs(pktinfo->tcp->th_dport);       /* destination port */
-      
+    
+	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_sport)))[0]);
+	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_sport)))[1]);
+	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_dport)))[0]);
+	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_dport)))[1]);
+
+	// int j;
+ //    fprintf(stdout, "Packet:\n");
+ //    for(j = 0; j < 500; j++){
+ //            fprintf(stdout, "%02X ", packet[j]);
+ //    }
+ //    fprintf(stdout, "\n");
+
+ //    u_char *ip_p = (packet + size_ethernet);
+
+ //    fprintf(stdout, "IP:\n");
+ //    for(j = 0; j < 500; j++){
+ //            fprintf(stdout, "%02X ", ip_p[j]);
+ //    }
+ //    fprintf(stdout, "\n");
+
+ //    u_char *tcp_p = (packet + size_ethernet + pktinfo->size_ip);
+
+ //    fprintf(stdout, "TCP:\n");
+ //    for(j = 0; j < 500; j++){
+ //            fprintf(stdout, "%02X ", tcp_p[j]);
+ //    }
+ //    fprintf(stdout, "\n");
+
+ //    u_char *payload_p = (packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
+
+ //    fprintf(stdout, "PAYLOAD:\n");
+ //    for(j = 0; j < 500; j++){
+ //            fprintf(stdout, "%02X ", payload_p[j]);
+ //    }
+ //    fprintf(stdout, "\n");
+
 	pktinfo->tcp->th_seq = ntohl(pktinfo->tcp->th_seq);
-    pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
+ 	pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
       
     if (pktinfo->size_tcp < 20) {
 		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
@@ -484,6 +517,8 @@ void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_ch
 u_int64_t pkts,bytes;
 u_int32_t last_sec=0;
 u_int32_t nn_packets = 0;
+#define PAYLOAD_AUX_SIZE 1800
+u_char *payload_aux = NULL;
 
 void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	struct NDLTpkthdr pkthdr2;
@@ -492,23 +527,28 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 	pkthdr2.ts.tv_sec = header->ts.tv_sec;
 	pkthdr2.ts.tv_nsec = header->ts.tv_usec * 1000;
 
-	fprintf(stderr, "TEST 1\n");
+ 	memset(payload_aux, 0, PAYLOAD_AUX_SIZE);
+ 	memcpy(payload_aux, payload, PAYLOAD_AUX_SIZE > pkthdr2.caplen ? pkthdr2.caplen : PAYLOAD_AUX_SIZE);
 
-	memset(pktinfo, 0, sizeof(packet_info));
+	callback(arg, &pkthdr2, payload_aux);
 
-	fprintf(stderr, "TEST 2\n");
+	// fprintf(stderr, "TEST 1\n");
+
+	// memset(pktinfo, 0, sizeof(packet_info));
+
+	// fprintf(stderr, "TEST 2\n");
  
-	//ERR_MSG("DEBUG/ calling parse_packet().\n");
-  	int ret = parse_packet(payload, &pkthdr2, pktinfo);
+	// //ERR_MSG("DEBUG/ calling parse_packet().\n");
+ //  	int ret = parse_packet(payload_aux, &pkthdr2, pktinfo);
 
-  	fprintf(stderr, "TEST 3\n");
+ //  	fprintf(stderr, "TEST 3\n");
 
-	if(!ret){
-		nn_packets += 1;
-		fprintf(stderr, "%d -> %d\n", pktinfo->port_src, pktinfo->port_dst);
-	}else{
-		fprintf(stderr, "ERROR\n");
-	}
+	// if(!ret){
+	// 	nn_packets += 1;
+	// 	fprintf(stderr, "%d -> %d\n", pktinfo->port_src, pktinfo->port_dst);
+	// }else{
+	// 	fprintf(stderr, "ERROR\n");
+	// }
 
 	//callback(arg, &pkthdr2, payload);
 
@@ -896,6 +936,9 @@ int main(int argc, char *argv[]){
 
 	//PACKET_INFO
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
+
+	//PAYLOAD_AUX
+	payload_aux = (u_char *) malloc(sizeof(u_char)*PAYLOAD_AUX_SIZE);
 	
 	//SORTED PRINT LIST
 	if(options.sorted){
