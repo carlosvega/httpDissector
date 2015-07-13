@@ -4,7 +4,6 @@
 
 extern struct msgbuf sbuf;
 
-
 //PCAP HANDLER
 pcap_t *handle = NULL;
 
@@ -29,7 +28,7 @@ int resized_session_table = 0;
 
 packet_info *pktinfo = NULL;
 
-char version[32] = "Version 2.87b";
+char version[32] = "Version 2.88b";
 struct args_parse options;
 
 struct timespec last_packet;
