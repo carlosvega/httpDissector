@@ -1,13 +1,14 @@
 HPCAPDIR=HPCAP4
+PACKETFEEDERDIR=../packet_feeder_shrmem
 
 CC = clang -g -Wall -D_GNU_SOURCE -Iinclude/ 
-LDFLAGS = -lm -lpthread -lhpcap -lpcap
+LDFLAGS = -lm -lpthread -lhpcap -lpcap -lrt
 
-LIB_DIR =  -L$(HPCAPDIR)/lib -I$(HPCAPDIR)/include
+LIB_DIR =  -L$(HPCAPDIR)/lib -I$(HPCAPDIR)/include -L$(PACKETFEEDERDIR) -I$(PACKETFEEDERDIR)
 
 PCAPLIB		= -lpcap
 
-all: httpDissector indice_traza
+all: httpDissector httpDissector_packetFeeder indice_traza
 
 indice_traza: main_indiceTraza.c
 	$(CC) -std=gnu99 main_indiceTraza.c NDleeTrazas.c -lpcap -o $@
@@ -48,9 +49,14 @@ prueba_hpcap: prueba_hpcap.c hpcap_utils.o lib/libmgmon.c
 httpDissector: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o lib/libmgmon.c
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
 	$(CC)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
+
+httpDissector_packetFeeder: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o ../packet_feeder_shrmem/packet_feeder_NDLT.o args_parse.o hpcap_utils.o lib/libmgmon.c ../packet_feeder_shrmem/packet_buffers.o
+	$(MAKE) -C $(PACKETFEEDERDIR)
+	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
+	$(CC)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
 NDleeTrazas.o: NDleeTrazas.c
 	$(CC) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
 	$(CC) -c $^ -o $@
 clean:	
-	rm -f *.o prueba_hpcap index counters alist tools tslist args_parse http httpDissector NDleeTrazas list indiceTraza
+	rm -f *.o prueba_hpcap index counters alist tools tslist args_parse http httpDissector httpDissector_packetFeeder NDleeTrazas list indiceTraza
