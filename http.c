@@ -382,17 +382,14 @@ int http_parse_headers(http_packet *http_t, char *cadena, int length){
 
 char *get_user_agent_from_headers(char *cadena){
 
-	int reti;
 
 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
 	
 	char *host_1 = strstr(cadena, "User-Agent");
 	if(host_1 != NULL){		
-		sscanf (host_1, "User-Agent: %s\r\n", cadena_aux);
-
-		/* Execute regular expression */
-		reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
-	    if( !reti ){
+		int ret = sscanf (host_1, "User-Agent: %s\r\n", cadena_aux);
+		
+	    if( ret == 1 ){
 	        return cadena_aux;
 	    }
 	    else{
