@@ -27,6 +27,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t    --sorted\t\t\tSorted output by request timestamp\n");
   fprintf(stderr, "\t    --agent\t\t\tPrint user-agent information\n");
+  fprintf(stderr, "\t    --fqdn\t\t\tHost header must be a FQDN, otherwise the IP will be printed as host.\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
   fprintf(stderr, "\t    --version\t\t\tShows the program version\n");
@@ -82,6 +83,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.version     = 0;
   options.sorted      = 0;
   options.agent       = 0;
+  options.fqdn        = 0;
   options.noRtx       = 0;
   options.index       = NULL;
   options.discards    = NULL;
@@ -117,6 +119,7 @@ struct args_parse parse_args(int argc, char **argv){
     { "sorted",         0,  NULL,   'S'},
     { "two-lines",      0,  NULL,   'T'},
 		{ "pcap",			      0, 	NULL, 	'p'},
+    { "fqdn",           0,  NULL,   'q'},
     { "url",            1,  NULL,   'u'},
     { "verbose",        0,  NULL,   'v'},
     { "version",        0,  NULL,   'V'},
@@ -212,6 +215,10 @@ struct args_parse parse_args(int argc, char **argv){
           	return options;
           }
           options.raw = 0;
+          break;
+
+        case 'q' : /* --agent */
+          options.fqdn = 1;
           break;
 
         case 'f' : /*filter OR*/

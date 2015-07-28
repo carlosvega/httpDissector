@@ -40,6 +40,9 @@
 #define PROMISC 1
 #define to_MS 1000 //specifies the read timeout in milliseconds.
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 /* ethernet headers are always exactly 14 bytes */
 
 

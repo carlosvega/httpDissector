@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include "args_parse.h"
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 extern struct msgbuf sbuf;
 extern struct args_parse options;
 #define ERR_MSG(...) do{if(options.debug){fprintf(stderr, __VA_ARGS__);}}while(0)
@@ -404,26 +407,28 @@ char *get_user_agent_from_headers(char *cadena){
 
 char *get_host_from_headers(char *cadena){
 
-	int reti;
+	int reti, ret;
 
 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
 	char *host_1 = strstr(cadena, "Host");
-	if(host_1 != NULL){		
-		sscanf (host_1, "Host: %s\r\n", cadena_aux);
 
-		/* Execute regular expression */
-		reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
-	    if( !reti ){
-	        return cadena_aux;
-	    }
-	    else{
-	        return NULL;
-	    }
-	}else{
-		return NULL;
+	if(unlikely(host_1 != NULL)){		
+		
+		ret = sscanf (host_1, "Host: %s\r\n", cadena_aux);
+
+		if(likely(ret == 1)){
+			if(likely(options.fqdn == 0)){
+				return cadena_aux;
+			} else if (options.fqdn == 1){
+				reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
+			    if( !reti ){
+			        return cadena_aux;
+			    }
+			}
+		} 
 	}
-
-	return cadena_aux;
+	
+	return NULL;
 }
 
 // char *get_host_from_headers(char *cadena){
