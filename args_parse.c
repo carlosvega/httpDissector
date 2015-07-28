@@ -7,8 +7,8 @@ void how_to_use(char *name){
   // fprintf(stderr, "\t-b  --binary\t\t\tThe output is binary.\n");
   fprintf(stderr, "\t-c  --capture=<interface>\tCapture from the given interface.\n");
   fprintf(stderr, "\t    --hpcap=<core>\t\tUses HPCAP.\n");
-  fprintf(stderr, "\t    --hpcap_ifindex=<ifindex>\t\tHPCAP ifindex parameter. Default 1.\n");
-  fprintf(stderr, "\t    --hpcap_qindex=<qindex>\t\tHPCAP qindex parameter. Default 0.\n");
+  fprintf(stderr, "\t    --hpcap_ifindex=<ifindex>\tHPCAP ifindex parameter. Default 1.\n");
+  fprintf(stderr, "\t    --hpcap_qindex=<qindex>\tHPCAP qindex parameter. Default 0.\n");
   fprintf(stderr, "\t    --filter_or=<filter>\tJoins the default filter with the introduced one with an 'OR'.\n");
   fprintf(stderr, "\t    --filter_and=<filter>\tJoins the default filter with the introduced one with an 'AND'.\n");
   fprintf(stderr, "\t    --filter_ovr=<filter>\tOverwrites the default filter with the introduced one.\n");
