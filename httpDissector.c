@@ -368,48 +368,11 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 
 	pktinfo->port_src = ntohs(pktinfo->tcp->th_sport);       /* source port */
 	pktinfo->port_dst = ntohs(pktinfo->tcp->th_dport);       /* destination port */
-    
-	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_sport)))[0]);
-	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_sport)))[1]);
-	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_dport)))[0]);
-	// fprintf(stdout, "%02X\n", ((unsigned char*)(&(pktinfo->tcp->th_dport)))[1]);
-
-	// int j;
- //    fprintf(stdout, "Packet:\n");
- //    for(j = 0; j < 500; j++){
- //            fprintf(stdout, "%02X ", packet[j]);
- //    }
- //    fprintf(stdout, "\n");
-
- //    u_char *ip_p = (packet + size_ethernet);
-
- //    fprintf(stdout, "IP:\n");
- //    for(j = 0; j < 500; j++){
- //            fprintf(stdout, "%02X ", ip_p[j]);
- //    }
- //    fprintf(stdout, "\n");
-
- //    u_char *tcp_p = (packet + size_ethernet + pktinfo->size_ip);
-
- //    fprintf(stdout, "TCP:\n");
- //    for(j = 0; j < 500; j++){
- //            fprintf(stdout, "%02X ", tcp_p[j]);
- //    }
- //    fprintf(stdout, "\n");
-
- //    u_char *payload_p = (packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
-
- //    fprintf(stdout, "PAYLOAD:\n");
- //    for(j = 0; j < 500; j++){
- //            fprintf(stdout, "%02X ", payload_p[j]);
- //    }
- //    fprintf(stdout, "\n");
 
 	pktinfo->tcp->th_seq = ntohl(pktinfo->tcp->th_seq);
  	pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
       
     if (pktinfo->size_tcp < 20) {
-		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_tcp < 20\n");
 	    return 1;
     }
 
@@ -417,10 +380,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
     pktinfo->size_payload = pkthdr->caplen - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
     pktinfo->ts.tv_sec = pkthdr->ts.tv_sec;
     pktinfo->ts.tv_nsec = pkthdr->ts.tv_nsec;
-	// inet_ntop(AF_INET, &(pktinfo->ip->ip_src), pktinfo->ip_addr_src, 16);
- //    inet_ntop(AF_INET, &(pktinfo->ip->ip_dst), pktinfo->ip_addr_dst, 16);
-
-  	// ERR_MSG("DEBUG/ calling http_parse_packet().\n");
 	
   	if(http_parse_packet(pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip->ip_src, pktinfo->ip->ip_dst) == -1){
  		http_clean_up(&http);
@@ -555,8 +514,8 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 	//LOCK
 	pthread_mutex_lock(&mutex);
 
-	if( (getGottenRequests() / ((float) REQUEST_POOL)) > 0.6 ){
-		if (options.verbose) {
+	if( unlikely((getGottenRequests() / ((float) REQUEST_POOL)) > 0.6 )){
+		if (unlikely(options.verbose)) {
 	        fprintf(stderr, "DEBUG/ ==============================\n");
 	        fprintf(stderr, "DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
 		}
@@ -564,8 +523,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		unsigned long removed = remove_old_active_nodes(last_packet);
 		increment_total_removed_requests(removed);
 
-		if (options.verbose)
-		{
+		if (unlikely(options.verbose)){
 		    fprintf(stderr, "DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
 		    fprintf(stderr, "DEBUG/ ==============================\n\n");
 		}
@@ -575,7 +533,6 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		first_packet = pkthdr->ts;
 	}
 
-	// packet_counter_for_this_second++;
 	last_packet = pkthdr->ts;
 	packets++;
 
@@ -584,21 +541,16 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 		return;
 	}
 	
-	//ERR_MSG("-------------\nDEBUG/ begining callback\n");
-
 	memset(pktinfo, 0, sizeof(packet_info));
  
-	//ERR_MSG("DEBUG/ calling parse_packet().\n");
   	int ret = parse_packet(packet, pkthdr, pktinfo);
 
 	if(ret){
-		//ERR_MSG("DEBUG/ finish callback. Invalid packet.\n");
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
 
 	if(pktinfo->request == -1){ //NI GET NI RESPONSE
-		//ERR_MSG("DEBUG/ finish callback. Invalid packet II.\n");
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
@@ -609,9 +561,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 	 
     increment_inserts();
 
-	//ERR_MSG("DEBUG/ finish callback\n");
-	
-    pthread_mutex_unlock(&mutex);
+	pthread_mutex_unlock(&mutex);
 }
 
 //////ADDED
@@ -619,101 +569,10 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 uint32_t *variance_data = NULL;
 int variance_packets = 0;
 
-// void inspect_PCAP_File_Callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet){
-
-// 	if(variance_packets < 800000){
-// 		memset(pktinfo, 0, sizeof(packet_info));
-// 		parse_packet(packet, pkthdr, pktinfo);
-		
-// 		if(pktinfo->request == 1){ //GET o POST
-	
-// 			if(insertPacket(pktinfo) != 0){
-// 				decrement_inserts();
-// 			}else{
-// 				increment_inserts();
-// 				variance_packets++;
-// 				variance_data[variance_packets] = getIndex(pktinfo);
-// 			}
-// 		}
-
-// 	}else{
-// 		NDLTbreakloop(ndldata);
-// 		NDLTclose(ndldata);
-// 		ndldata = NULL;
-// 	}
-// }
 
 int indexCompareFunction(const void *a, const void *b){
 	return ( *(uint32_t*)a - *(uint32_t*)b);
 }
-
-// int inspect_PCAP_File(){
-
-// 	//IF FILE BIG ENOUGH
-// 	// FILE *f = fopen(options.input, "rb");
-// 	// fseek(f, 0L, SEEK_END);
-// 	// long sz = ftell(f);
-// 	// rewind(f);
-// 	// fclose(f);
-
-// 	// if(sz < 4294967296){ //file size < 4GB
-// 	// 	return 0;
-// 	// }
-
-// 	variance_data = (uint32_t*) calloc(800000, sizeof(uint32_t));
-
-// 	char errbuf[PCAP_ERRBUF_SIZE] = {0};
-
-// 	ndldata = NDLTabrirTraza(options.input, format, filter, 0, errbuf);
-
-// 	if(NDLTloop(ndldata, inspect_PCAP_File_Callback, NULL) != 1){
-// 		fprintf(stderr, "Error reading the file. Check parameters.\n");
-// 		exit(1);
-// 	}
-	
-// 	int i = 0;
-		
-// 	qsort(variance_data, variance_packets, sizeof(uint32_t), indexCompareFunction);
-// 	int64_t last_index = -1;
-// 	uint32_t index = 0;
-
-// 	double mean = 0;
-// 	double variance = 0;
-// 	int total = 0;
-// 	int sum = 0;
-// 	int n_col = 0;
-
-
-// 	for(i=0; i<800000; i++){
-// 		index = variance_data[i];
-// 		if(index > last_index){
-// 			int n = session_table[index].n;
-// 			total += n;
-// 			if(n>1){
-// 				n_col++;
-// 				variance += n * n;
-// 				sum += n;
-// 			}
-// 			last_index = index;
-// 		}
-// 	}
-
-// 	mean = sum / ((double) n_col);
-// 	variance = (variance + (sum * sum)/n_col) / ((double) (n_col-1));
-
-// 	fprintf(stderr, "Mean: %f\tVariance:%f\tSt.Dv:%f\n", mean, variance, sqrt(variance));
-
-// 	if(sqrt(variance) > 3){
-// 		resized_session_table = 1;
-// 		fprintf(stderr, "HASH TABLE RESIZED FROM 2^24 to 2^30 !\n");
-// 	}
-
-// 	reset();
-
-// 	FREE(variance_data);
-// 	ndldata = NULL;
-// 	return 0;
-// }
 
 void reset(){
 	freeNodelPool();

@@ -41,6 +41,7 @@ struct args_parse{
 	short debug;
 	short sorted;
 	short agent;
+	short fqdn;
 };
 
 void how_to_use(char *name);
