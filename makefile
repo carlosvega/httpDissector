@@ -1,7 +1,7 @@
 HPCAPDIR=HPCAP4
 PACKETFEEDERDIR=../packet_feeder_shrmem
 
-CC = clang -g -Wall -D_GNU_SOURCE -Iinclude/ 
+CC = gcc -g -Wall -D_GNU_SOURCE -Iinclude/ 
 LDFLAGS = -lm -lpthread -lhpcap -lpcap -lrt
 
 LIB_DIR =  -L$(HPCAPDIR)/lib -I$(HPCAPDIR)/include -L$(PACKETFEEDERDIR) -I$(PACKETFEEDERDIR)

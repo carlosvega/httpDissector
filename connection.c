@@ -278,6 +278,7 @@ void printTransaction(connection *conn, struct timespec res_ts, char* response_m
         unsigned char ip_server[4] = {0};
         *(unsigned int *) ip_client = conn->ip_client_int;
         *(unsigned int *) ip_server = conn->ip_server_int;
+
         if(options.agent){
             fprintf(output, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s|%s\n", 
                 ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
@@ -365,6 +366,8 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
     }
 
     conn->n_response++;
+
+    fprintf("RES LEN: %d.\n", aux_packet->size_payload);
 
     if(position==0){
         printTransaction(conn, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);   
