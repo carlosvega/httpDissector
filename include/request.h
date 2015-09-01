@@ -13,6 +13,7 @@ void releaseRequest(request * f);
 void freeRequestPool(void);
 node_l *request_search(node_l *first, tcp_seq seq, int *number);
 void fillRequest(packet_info *packet, request *req);
+void copyRequest(request *req_old, request *req_new);
 
 void alternativeFreeRequestPool(void);
 
