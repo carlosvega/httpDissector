@@ -196,6 +196,27 @@ int updateActiveConnexion(connection *conn){
     return 0;
 }
 
+void addRequestToConnexionAgain(connection *conn, request *req_old){
+    increment_request_counter(req_old->op);
+
+    node_l *naux = NULL;
+
+    request *req_new = getRequest();
+    copyRequest(req_old, req_new);
+    getNodel();
+    naux = nodel_aux;
+    naux->data = req_new;
+    list_append_node(&conn->list, naux);
+
+    conn->last_client_seq = aux_packet->tcp->th_seq;    //Actualizar ultimos numeros
+    conn->last_client_ack = aux_packet->tcp->th_ack;    //de seq y ack del cliente
+    conn->n_request++;
+    conn->last_ts = aux_packet->ts;                 //Actualizar last timestamp
+
+    increment_active_requests();
+    increment_total_requests();
+}
+
 void addRequestToConnexion(connection *conn, packet_info *aux_packet){
 
     increment_request_counter(aux_packet->op);
@@ -367,7 +388,12 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
 
     conn->n_response++;
 
-    fprintf("RES LEN: %d.\n", aux_packet->size_payload);
+    //IF 100 Continue
+    if(aux_packet->responseCode == 100){
+        //Add Request again
+        request *req_old = (request*) req_node->data;
+        addRequestToConnexionAgain(conn, req_old);
+    }
 
     if(position==0){
         printTransaction(conn, aux_packet->ts, aux_packet->response_msg, aux_packet->responseCode, req_node);   

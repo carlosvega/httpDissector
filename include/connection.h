@@ -75,6 +75,7 @@ int addActiveConnexion(connection *conn);
 int removeActiveConnexion(connection *conn);
 int updateActiveConnexion(connection *conn);
 void addRequestToConnexion(connection *conn, packet_info *aux_packet);
+void addRequestToConnexionAgain(connection *conn, request *req_old);
 void printTransaction(connection *conn, struct timespec res_ts, char* response_msg, short responseCode, node_l *req_node);
 void removeConnexion(connection *conn, node_l *conexion_node, uint32_t index);
 int addResponseToConnexion(connection *conn, packet_info *aux_packet);
