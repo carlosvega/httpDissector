@@ -118,8 +118,8 @@ void copyRequest(request *req_old, request *req_new){
 	strncpy(req_new->host, req_old->host, HOST_SIZE);
 	strncpy(req_new->agent, req_old->agent, AGENT_SIZE);
 	req_new->op = req_old->op;
-	req_new->seq = req_old->tcp->th_seq;
-	req_new->ack = req_old->tcp->th_ack;
+	req_new->seq = req_old->seq;
+	req_new->ack = req_old->ack;
 	req_new->ts = req_old->ts;
 	req_new->aux_res = NULL;
 	return;

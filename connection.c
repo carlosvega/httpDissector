@@ -196,10 +196,13 @@ int updateActiveConnexion(connection *conn){
     return 0;
 }
 
-void addRequestToConnexionAgain(connection *conn, request *req_old){
+void addRequestToConnexionAgain(connection *conn, request *req_old, u_int res_payload_size){
     increment_request_counter(req_old->op);
 
     node_l *naux = NULL;
+
+    //INCREMENT ACK TO MATCH NEXT RESPONSE
+    req_old->ack = req_old->ack + res_payload_size;
 
     request *req_new = getRequest();
     copyRequest(req_old, req_new);
@@ -208,10 +211,10 @@ void addRequestToConnexionAgain(connection *conn, request *req_old){
     naux->data = req_new;
     list_append_node(&conn->list, naux);
 
-    conn->last_client_seq = aux_packet->tcp->th_seq;    //Actualizar ultimos numeros
-    conn->last_client_ack = aux_packet->tcp->th_ack;    //de seq y ack del cliente
+    conn->last_client_seq = req_old->seq;    //Actualizar ultimos numeros
+    conn->last_client_ack = req_old->ack;    //de seq y ack del cliente
     conn->n_request++;
-    conn->last_ts = aux_packet->ts;                 //Actualizar last timestamp
+    conn->last_ts = req_old->ts;             //Actualizar last timestamp
 
     increment_active_requests();
     increment_total_requests();
@@ -392,7 +395,7 @@ int addResponseToConnexion(connection *conn, packet_info *aux_packet){
     if(aux_packet->responseCode == 100){
         //Add Request again
         request *req_old = (request*) req_node->data;
-        addRequestToConnexionAgain(conn, req_old);
+        addRequestToConnexionAgain(conn, req_old, aux_packet->size_payload);
     }
 
     if(position==0){
