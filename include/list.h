@@ -33,8 +33,16 @@
 #define list_get_next_node(list, link) ((link)->next == *(list) ? NULL : (link)->next)
 #define list_get_prev_node(list, link) ((link) == *(list) ? NULL : (link)->prev)
 
+#ifndef LOW_MEMORY_DISSECTOR
 #define MAX_POOL_NODE 3100000
 #define MAX_POOL_FLOW 1000000
+#endif
+#ifdef LOW_MEMORY_DISSECTOR
+#define MAX_POOL_NODE 2100000
+#define MAX_POOL_FLOW 1000000
+#endif
+
+
 
 typedef struct node_l node_l;
 struct node_l {

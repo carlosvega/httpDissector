@@ -24,7 +24,7 @@ void allocRequestPool(void)
 	requests=calloc(REQUEST_POOL,sizeof(request));
 	
 	if(requests == NULL){
-		fprintf(stderr, "Execute the program on a host with enought memory. REQUEST_POOL: %ld\n", REQUEST_POOL);
+		fprintf(stderr, "Execute the program on a host with enought memory. REQUEST_POOL: %d\n", REQUEST_POOL);
 	}
 
 	assert(requests!=NULL);
