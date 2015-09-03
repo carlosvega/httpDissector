@@ -12,6 +12,10 @@ LIB_DIR = -L$(PACKETFEEDERDIR) -I$(PACKETFEEDERDIR)
 
 PCAPLIB		= -lpcap
 
+ifeq (, $(shell which clang))
+$(error "No clang in $(PATH), consider doing yum install clang")
+endif
+
 LOW_MEMORY: CFLAGS = $(PRECFLAGS) -D LOW_MEMORY_DISSECTOR
 HPCAP: CFLAGS = $(PRECFLAGS) -D HPCAP_SUPPORT 
 
