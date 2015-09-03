@@ -3,10 +3,7 @@ PACKETFEEDERDIR=../packet_feeder_shrmem
 
 CC = clang
 
-@clang_ok := $(shell which clang)
-
-ifeq (, $(clang_ok))
-#@echo "WARNING. CLANG NOT FOUND, SWITCHING TO GCC."
+ifeq (, $(shell which clang))
 $(warning CLANG NOT FOUND, SWITCHING TO GCC)
 CC = gcc
 endif
