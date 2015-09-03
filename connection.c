@@ -47,7 +47,7 @@ void allocConnectionPool(void){
     conns = calloc(MAX_POOL_FLOW, sizeof(connection));
 
     if(conns == NULL){
-        fprintf(stderr, "Execute the program on a host with enought memory.\n");
+        fprintf(stderr, "Execute the program on a host with enought memory. MAX_POOL_FLOW: %ld\n", MAX_POOL_FLOW);
     }
 
     //ASSERT
