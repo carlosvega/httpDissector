@@ -4,7 +4,7 @@ PACKETFEEDERDIR=../packet_feeder_shrmem
 CC = clang
 
 ifeq (, $(shell which clang))
-$(error "No clang in $(PATH), consider doing yum install clang")
+@echo "No clang found, switching to gcc")
 CC = gcc
 endif
 
@@ -17,8 +17,6 @@ HPCAP_DIR = -L$(HPCAPDIR)/lib -I$(HPCAPDIR)/include
 LIB_DIR = -L$(PACKETFEEDERDIR) -I$(PACKETFEEDERDIR)
 
 PCAPLIB		= -lpcap
-
-
 
 LOW_MEMORY: CFLAGS = $(PRECFLAGS) -D LOW_MEMORY_DISSECTOR
 HPCAP: CFLAGS = $(PRECFLAGS) -D HPCAP_SUPPORT 
