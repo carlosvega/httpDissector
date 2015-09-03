@@ -55,7 +55,7 @@ httpDissector: httpDissector.c sampling_index.o counters.o index.o connection.o 
 	$(CC)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
 httpDissector_LOW_MEMORY: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
 	$(CC_LOW)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
-	$(CC_LOW)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
+	$(CC_LOW)  $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(LDFLAGS)
 httpDissectorHPCAP: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o lib/libmgmon.c
 	$(CC_HPCAP)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
 	$(CC_HPCAP)  $(HPCAP_DIR) $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
