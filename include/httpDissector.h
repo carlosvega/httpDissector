@@ -5,7 +5,9 @@
 #include <locale.h>
 #include <assert.h>
 //HPCAP
+#ifdef HPCAP_SUPPORT
 #include "hpcap_utils.h"
+#endif
 //
 #include "sampling_index.h"
 #include "list.h"
