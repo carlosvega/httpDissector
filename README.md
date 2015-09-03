@@ -47,7 +47,7 @@ sudo yum install kernel-devel kernel-headers make gcc libpcacp-devel
 **Version 2.x**
 
  - Added support for [HPCAP](https://github.com/hpcn-uam/HPCAP). Compile with make [HPCAP](https://github.com/hpcn-uam/HPCAP)
- - Added support for "100 Continue" HTTP transacctions
+ - Added support for ["100 Continue" HTTP transacctions](http://www.jmarshall.com/easy/http/#http1.1c4)
  - Improved the makefile with a LOW_MEMORY option. make LOW_MEMORY
  - Improved the makefile. If clang doesn't exists, use gcc instead automatically 
  - Added --agent option to print the User Agent header
