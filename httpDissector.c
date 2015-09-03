@@ -834,8 +834,14 @@ int main_process(char *format, char *filename){
 	char errbuf[PCAP_ERRBUF_SIZE] = {0};
 	
 	if(options.hpcap != -1){
+		#ifdef HPCAP_SUPPORT
 		hpcap_packet_online_loop(options.hpcap, options.hpcap_ifindex, options.hpcap_qindex, hpcap_callback, NULL);
 		exit(-1);
+		#endif
+		#ifndef HPCAP_SUPPORT
+		fprintf(stderr, "NO HPCAP SUPPORT IN THIS COMPILED VERSION. PLEASE, RECOMPILE WITH HPCAP_SUPPORT OPTION ENABLED\n");
+		exit(-2);
+		#endif
 	}else if(options.interface == NULL){
 		
 		ERR_MSG("DEBUG/ Before calling NDLTabrirTraza()\n");
