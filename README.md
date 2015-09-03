@@ -44,16 +44,16 @@ sudo yum install kernel-devel kernel-headers make gcc libpcacp-devel
 
 ### Change log
 
-__Version 2.x __
+**Version 2.x**
 
- - Added support for HPCAP. Compile with make HPCAP
+ - Added support for [HPCAP](https://github.com/hpcn-uam/HPCAP). Compile with make [HPCAP](https://github.com/hpcn-uam/HPCAP)
  - Added support for "100 Continue" HTTP transacctions
  - Improved the makefile with a LOW_MEMORY option. make LOW_MEMORY
  - Improved the makefile. If clang doesn't exists, use gcc instead automatically 
  - Added --agent option to print the User Agent header
  - Added vlan support
 
-__Version 2.1 __
+**Version 2.1**
 
  - Glib is no longer required.
  - The hash table is a double linked list of node_l (list.c)
@@ -67,7 +67,7 @@ __Version 2.1 __
  - Changed Glib mutex for `pthread_mutex_t`.
  - Added a little control to avoid wrong matches when a retransmissions happens. This will be improved.
 
-Version 1
+**Version 1**
 
  - Small changes
  - Added trash collector (Every 10 seconds)
@@ -89,7 +89,7 @@ Version 1
 
 ### Problems to solve
 
- - Multicore version => Solved thanks to Paula's feeder !
+ - Multicore version => Solved thanks to [Paula's feeder !](https://bitbucket.org/pau_roquero/packet-feeder-shared-memory). We achieve 10Gbps using [HPCAP](https://github.com/hpcn-uam/HPCAP) and 2 instances of httpDissector.
  - Take account of retransmissions and lost packets to ensure that there are no wrong matches. => Solved thanks to the option --noRtx 
 
 I got to lunch, see you later.
