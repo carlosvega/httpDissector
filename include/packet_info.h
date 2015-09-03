@@ -7,7 +7,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef LOW_MEMORY_DISSECTOR
 #define REQUEST_POOL 3100000//3,000,000
+#endif
+#ifdef LOW_MEMORY_DISSECTOR
+#define REQUEST_POOL 2000000
+#endif
+
 #define RESPONSE_POOL 10
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
