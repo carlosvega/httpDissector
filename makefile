@@ -4,7 +4,7 @@ PACKETFEEDERDIR=../packet_feeder_shrmem
 CC = clang
 
 ifeq (, $(shell which clang))
-@echo "No clang found, switching to gcc")
+@echo "No clang found, switching to gcc"
 CC = gcc
 endif
 
