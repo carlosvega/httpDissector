@@ -839,7 +839,7 @@ int main_process(char *format, char *filename){
 		exit(-1);
 		#endif
 		#ifndef HPCAP_SUPPORT
-		fprintf(stderr, "NO HPCAP SUPPORT IN THIS COMPILED VERSION. PLEASE, RECOMPILE WITH HPCAP_SUPPORT OPTION ENABLED\n");
+		fprintf(stderr, "NO HPCAP SUPPORT IN THIS COMPILED VERSION. PLEASE, RECOMPILE WITH make httpDissectorHPCAP.\n");
 		exit(-2);
 		#endif
 	}else if(options.interface == NULL){
