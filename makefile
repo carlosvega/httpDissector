@@ -2,7 +2,6 @@ HPCAPDIR=HPCAP4
 PACKETFEEDERDIR=../packet_feeder_shrmem
 
 CC = gcc -g -Wall -D_GNU_SOURCE -Iinclude/ 
-CC_LOW = gcc -g -Wall -D_GNU_SOURCE -D LOW_MEMORY_DISSECTOR -Iinclude/ 
 CC_HPCAP = gcc -g -Wall -D_GNU_SOURCE -D HPCAP_SUPPORT -Iinclude/
 LDFLAGS = -lm -lpthread -lpcap -lrt
 HPCAPFLAGS = -lhpcap
@@ -11,6 +10,8 @@ HPCAP_DIR = -L$(HPCAPDIR)/lib -I$(HPCAPDIR)/include
 LIB_DIR = -L$(PACKETFEEDERDIR) -I$(PACKETFEEDERDIR)
 
 PCAPLIB		= -lpcap
+
+httpDissector_LOW_MEMORY: CC = gcc -g -Wall -D_GNU_SOURCE -Iinclude/ -D LOW_MEMORY_DISSECTOR
 
 all: httpDissector indice_traza
 
@@ -54,8 +55,8 @@ httpDissector: httpDissector.c sampling_index.o counters.o index.o connection.o 
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
 	$(CC)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
 httpDissector_LOW_MEMORY: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
-	$(CC_LOW)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
-	$(CC_LOW)  $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(LDFLAGS)
+	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
+	$(CC)  $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(LDFLAGS)
 httpDissectorHPCAP: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o lib/libmgmon.c
 	$(CC_HPCAP)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
 	$(CC_HPCAP)  $(HPCAP_DIR) $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
