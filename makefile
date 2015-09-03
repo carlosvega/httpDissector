@@ -13,10 +13,8 @@ LIB_DIR = -L$(PACKETFEEDERDIR) -I$(PACKETFEEDERDIR)
 PCAPLIB		= -lpcap
 
 LOW_MEMORY: 
-	@echo "WARNING: COMPILING LOW_MEMORY VERSION. The size of the pools are reduced. This could lead to an expected behaviour."
 	CFLAGS = $(PRECFLAGS) -D LOW_MEMORY_DISSECTOR
 HPCAP: 
-	@echo "INFO: COMPILING HPCAP VERSION..."
 	CFLAGS = $(PRECFLAGS) -D HPCAP_SUPPORT 
 
 all: httpDissector indice_traza
@@ -61,9 +59,11 @@ httpDissector: httpDissector.c sampling_index.o counters.o index.o connection.o 
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
 LOW_MEMORY: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
+	@echo "WARNING: COMPILING LOW_MEMORY VERSION. The size of the pools are reduced. This could lead to an expected behaviour."
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(LDFLAGS)
 HPCAP: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o lib/libmgmon.c
+	@echo "INFO: COMPILING HPCAP VERSION..."
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $(HPCAP_DIR) $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
 httpDissector_packetFeeder: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o ../packet_feeder_shrmem/packet_feeder_NDLT.o args_parse.o hpcap_utils.o lib/libmgmon.c ../packet_feeder_shrmem/packet_buffers.o
