@@ -2,7 +2,7 @@ HPCAPDIR=HPCAP4
 PACKETFEEDERDIR=../packet_feeder_shrmem
 
 CC = gcc -g -Wall -D_GNU_SOURCE -Iinclude/ 
-CC_HPCAP = gcc -g -Wall -D_GNU_SOURCE -D HPCAP_SUPPORT -Iinclude/ 
+CC_HPCAP = gcc -g -Wall -D_GNU_SOURCE -D HPCAP_SUPPORT -Iinclude/
 LDFLAGS = -lm -lpthread -lpcap -lrt
 HPCAPFLAGS = -lhpcap
 
@@ -52,9 +52,9 @@ prueba_hpcap: prueba_hpcap.c hpcap_utils.o lib/libmgmon.c
 httpDissector: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
 	$(CC)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
-httpDissector_HPCAP: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o lib/libmgmon.c
- 	$(CC_HPCAP)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
- 	$(CC_HPCAP)  $(HPCAP_DIR) $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
+httpDissectorHPCAP: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o lib/libmgmon.c
+	$(CC_HPCAP)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
+	$(CC_HPCAP)  $(HPCAP_DIR) $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
 httpDissector_packetFeeder: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o ../packet_feeder_shrmem/packet_feeder_NDLT.o args_parse.o hpcap_utils.o lib/libmgmon.c ../packet_feeder_shrmem/packet_buffers.o
 	$(MAKE) -C $(PACKETFEEDERDIR)
 	$(CC)  -c $(CFLAGS) httpDissector.c -o httpDissector.o
