@@ -609,7 +609,12 @@ void reset(){
 
 int main(int argc, char *argv[]){
 
+	#ifdef LOW_MEMORY_DISSECTOR
+	fprintf(stderr, "httpDissector: %s LOW MEMORY MODE\n", version);
+	#endif
+	#ifndef LOW_MEMORY_DISSECTOR
 	fprintf(stderr, "httpDissector: %s\n", version);
+	#endif
 	
 	//GET 
 	//POST
