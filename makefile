@@ -10,7 +10,13 @@ endif
 
 PRECFLAGS = $(CC) -Wall -D_GNU_SOURCE -Iinclude/ 
 CFLAGS = $(PRECFLAGS)
-LDFLAGS = -lm -lpthread -lpcap -lrt
+LDFLAGS = -lm -lpthread -lpcap
+
+OS := $(shell uname -s)
+ifeq ($(OS),Linux)
+LFLAGS += -lrt
+endif
+
 HPCAPFLAGS = -lhpcap
 
 HPCAP_DIR = -L$(HPCAPDIR)/lib -I$(HPCAPDIR)/include
@@ -61,15 +67,15 @@ prueba_hpcap: prueba_hpcap.c hpcap_utils.o lib/libmgmon.c
 	$(CFLAGS) $(LIB_DIR) -o $@ $^ -lhpcap -lpcap -lm -lpthread
 httpDissector: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
-	$(CFLAGS)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
+	$(CFLAGS)  $^ -o $@ $(PCAPLIB) $(LDFLAGS)
 LOW_MEMORY: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
 	@echo "WARNING: COMPILING LOW_MEMORY VERSION. The size of the pools are reduced. This could lead to an expected behaviour."
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
-	$(CFLAGS)  $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(LDFLAGS)
+	$(CFLAGS)  $^ -o httpDissector $(PCAPLIB) $(LDFLAGS)
 HPCAP: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o lib/libmgmon.c
 	@echo "INFO: COMPILING HPCAP VERSION..."
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
-	$(CFLAGS)  $(HPCAP_DIR) $(LIB_DIR) $^ -o httpDissector $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
+	$(CFLAGS)  $(HPCAP_DIR) $^ -o httpDissector $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
 httpDissector_packetFeeder: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o ../packet_feeder_shrmem/packet_feeder_NDLT.o args_parse.o hpcap_utils.o lib/libmgmon.c ../packet_feeder_shrmem/packet_buffers.o
 	$(MAKE) -C $(PACKETFEEDERDIR)
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
