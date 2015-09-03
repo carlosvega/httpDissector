@@ -10,7 +10,7 @@ Afterwards these data is plotted to analyze the HTTP traffic and improve its beh
 This application uses libpcap package.
 
 ## How could I get in touch with you?
-You can send me an email to this address: carlosvega@gmx.es
+You can send me an email to this address: carlos.vega@uam.es
 
 ## Dependencies
 
@@ -18,7 +18,7 @@ libpcap library.
 
 If you use __Fedora__ you need make sure these packets are installed:
 - make
-- gcc
+- gcc or clang
 - libpcacp-devel
 - And it would be fine if you also install kernel-devel and kernel-headers
 
@@ -27,7 +27,7 @@ If you use __Ubuntu__ you need make sure these packets are installed:
 
 Dependency tree
 
-            hope
+        httpDissector
              ||
              ||——libpcap
                    
@@ -42,10 +42,18 @@ sudo yum install kernel-devel kernel-headers make gcc libpcacp-devel
 4. make
 5. ./httpDissector and follow the instructions
 
-
 ### Change log
 
-__Version 2 !__
+__Version 2.x __
+
+ - Added support for HPCAP. Compile with make HPCAP
+ - Added support for "100 Continue" HTTP transacctions
+ - Improved the makefile with a LOW_MEMORY option. make LOW_MEMORY
+ - Improved the makefile. If clang doesn't exists, use gcc instead automatically 
+ - Added --agent option to print the User Agent header
+ - Added vlan support
+
+__Version 2.1 __
 
  - Glib is no longer required.
  - The hash table is a double linked list of node_l (list.c)
@@ -81,13 +89,7 @@ Version 1
 
 ### Problems to solve
 
- - Multicore version
- - Take account of retransmissions and lost packets to ensure that there are no wrong matches.
-
-### To do
-
- - Concurrent version
- - Fix problems with retransmissions
-
+ - Multicore version => Solved thanks to Paula's feeder !
+ - Take account of retransmissions and lost packets to ensure that there are no wrong matches. => Solved thanks to the option --noRtx 
 
 I got to lunch, see you later.
