@@ -3,7 +3,7 @@ PACKETFEEDERDIR=../packet_feeder_shrmem
 
 CC = clang
 
-ifeq (, $(shell which clang))
+ifeq (, $(@shell which clang))
 CC = gcc
 endif
 
