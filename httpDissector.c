@@ -289,7 +289,7 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
 		unsigned long collisions = hash_table_collisions();
 		syslog (LOG_NOTICE, "HASH_USAGE: %u %f%% COLLISIONS: %ld COLLISIONS_RATIO: %f%%", active_session_list_size, hash_table_usage()*100, collisions, hash_table_collisions_ratio(collisions)*100);
 		syslog (LOG_NOTICE, "POOL USAGE: node_pool: %f%% connections_pool: %f%% requests_pool: %f%%", pool_nodes_used_ratio()*100, pool_connections_used_ratio()*100, pool_requests_used_ratio()*100);
-		
+		syslog (LOG_NOTICE, "TRANSACTIONS: %ld REQUESTS: %ld RESPONSES: %ld", get_transactions(), get_total_requests(), get_total_responses());
 
 		// syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), get_total_requests(), get_active_requests(), active_session_list_size, get_total_connexions(), getGottenResponses());
     	getrusage(RUSAGE_SELF, memory);

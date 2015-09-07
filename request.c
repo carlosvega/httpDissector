@@ -88,8 +88,11 @@ node_l *request_search(node_l *first, tcp_seq seq, int *number){
 
 void releaseRequest(request * f)
 {
+	//Coge el primer nodo de la lista de usados
 	node_l *n=list_pop_first_node(&request_pool_used);
+	//Le asigna la peticion que vamos a liberar
 	n->data=(void*)f;
+	//La mete en la lista de libres y mas tarde cuando se reuse se resetearan los datos
 	list_prepend_node(&request_pool_free,n);
 	gottenRequests--;
 }
