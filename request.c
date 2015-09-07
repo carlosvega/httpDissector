@@ -121,7 +121,7 @@ void copyRequest(request *req_old, request *req_new){
 	req_new->seq = req_old->seq;
 	req_new->ack = req_old->ack;
 	req_new->ts = req_old->ts;
-	req_new->aux_res = NULL;
+//NOT USED	req_new->aux_res = NULL;
 	return;
 }
 
@@ -133,6 +133,6 @@ void fillRequest(packet_info *packet, request *req){
 	req->seq = packet->tcp->th_seq;
 	req->ack = packet->tcp->th_ack;
 	req->ts = packet->ts;
-	req->aux_res = NULL;
+//NOT USED	req->aux_res = NULL;
 	return;
 }

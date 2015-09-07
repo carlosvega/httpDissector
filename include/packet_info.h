@@ -11,7 +11,7 @@
 #define REQUEST_POOL 3100000//3,000,000
 #endif
 #ifdef LOW_MEMORY_DISSECTOR
-#define REQUEST_POOL 1000000
+#define REQUEST_POOL 500000
 #endif
 
 #define RESPONSE_POOL 10
@@ -20,7 +20,7 @@
 
 #define SIZE_ETHERNET 14
 #define ADDR_CONST 16
-#define AGENT_SIZE 2500
+#define AGENT_SIZE 256
 #define URL_SIZE 2500
 #define HOST_SIZE 256
 #define RESP_MSG_SIZE 256
@@ -60,14 +60,14 @@ typedef struct {
   http_op op;
 } response;
 
-typedef struct  {
+typedef struct __attribute__((packed)) {
 	char url[URL_SIZE];
   char host[HOST_SIZE];
   char agent[AGENT_SIZE];
 	tcp_seq seq;					// Sequence number
 	tcp_seq ack;					// Acknowledgement number
 	struct timespec ts;
-	response *aux_res;
+//NOT USED	response *aux_res;
   http_op op;
 } request;
 

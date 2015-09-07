@@ -32,7 +32,8 @@ void removeRequestFromConnection(connection *conn, node_l *req_node){
     req_node->data = NULL;                          //Resetear data del nodo
     releaseNodel(req_node);
         // memset(req, 0, sizeof(request));             //Resetear request
-    req->aux_res = NULL;
+    //NOT USED
+    //req->aux_res = NULL;
     releaseRequest(req);                            //Devolver request al pool de requests
     conn->n_request--;
     decrement_active_requests();
