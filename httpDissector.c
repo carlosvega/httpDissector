@@ -283,6 +283,10 @@ void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, i
 		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\t", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
 	}
 
+	#ifdef __linux__
+		fprintf(stderr, "\n");
+	#endif
+
 	if(options.log){
 		pthread_mutex_lock(&mutex);
 		syslog (LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ((int)(ratio*100)));
