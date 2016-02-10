@@ -6,6 +6,8 @@ extern struct msgbuf sbuf;
 
 //PCAP HANDLER
 pcap_t *handle = NULL;
+long max_caplen = 0;
+long max_len = 0;
 
 //INDEX
 unsigned long interval_ctr = 0;
@@ -540,6 +542,14 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 
 	}
 
+	if(pkthdr->caplen > max_caplen){
+		max_caplen = pkthdr->caplen;
+	}
+
+	if(pkthdr->len > max_len){
+		max_len = pkthdr->len;
+	}
+
 	last_packet = pkthdr->ts;
 	packets++;
 
@@ -1046,6 +1056,7 @@ void print_info(long elapsed){
 	fprintf(stderr, "Max. hash table usage: %"PRIu32"\n", max_active_session_list_size);
 
 	fprintf(stderr, "Packets from %ld.%09ld to %ld.%09ld\n", first_packet.tv_sec, first_packet.tv_nsec, last_packet.tv_sec, last_packet.tv_nsec);
+	fprintf(stderr, "Max caplen: %ld, Max len: %ld\n", max_caplen, max_len);
 
 	return;
 }
