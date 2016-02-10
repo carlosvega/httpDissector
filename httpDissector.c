@@ -323,6 +323,7 @@ void *barra_de_progreso(){
   }
 
   	while(running){
+  		usleep(10000);
   		if(options.index != NULL){
 			loadBar(ftello(NDLTfile(ndldata)), ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
   		}else{
@@ -535,6 +536,8 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 
 	if(first_packet.tv_sec == 0){
 		first_packet = pkthdr->ts;
+		fprintf(stderr, "First Packet. Caplen: %"PRIu32", Len: %"PRIu32"\n", pkthdr->caplen, pkthdr->len);
+
 	}
 
 	last_packet = pkthdr->ts;
@@ -865,6 +868,10 @@ int main_process(char *format, char *filename){
 			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n", errbuf);
 			fprintf(stderr, "File: %s\tRAW flag = %s\n", options.input, options.raw == 0? "false" : "true");
 			return -1;
+		}
+
+		if(options.raw != 1){
+			fprintf(stderr, "Snapshot length: %d\n", pcap_snapshot(ndldata->traceFile.ph));
 		}
 
 		if(options.discards!=NULL){
