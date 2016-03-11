@@ -24,8 +24,12 @@ struct args_parse{
 	short log;
 	short charts;
 	char *output;
+	char format[8];
+	FILE *output_file;
+	char **files_path;
 	char *index;
 	char *gcoutput;
+	FILE *gcoutput_file;
 	char *input;
 	char *discards;
 	char *filter;
