@@ -24,7 +24,6 @@ struct  timespec  tsAdd (struct  timespec  time1, struct  timespec  time2);
 double  tsFloat (struct  timespec  time);
 const char *boyermoore_search(const char *haystack, const char *needle);
 char *timeval_to_char(struct timespec ts);
-char *hash_key(const packet_info *pktinfo);
 char ** parse_list_of_files(char *filename, unsigned int *n_files);
 int  tsCompare (struct  timespec  time1, struct  timespec  time2);
 
