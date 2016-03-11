@@ -26,7 +26,7 @@ void how_to_use(char *name){
   fprintf(stderr, "\t-r  --raw\t\t\tSets the input file format as raw.\n");
   fprintf(stderr, "\t-R  --rrd\t\t\tOnly Prints second and the diff average from that second\n");
   fprintf(stderr, "\t    --sorted\t\t\tSorted output by request timestamp\n");
-  fprintf(stderr, "\t    --agent\t\t\tPrint user-agent information\n");
+  // fprintf(stderr, "\t    --agent\t\t\tPrint user-agent information\n");
   fprintf(stderr, "\t    --fqdn\t\t\tHost header must be a FQDN, otherwise the IP will be printed as host.\n");
   fprintf(stderr, "\t-u  --url=<url>\t\t\tFilter the request by url\n");
   fprintf(stderr, "\t-v  --verbose\t\t\tVerbose mode. Shows information about the Garbage Collector\n");
@@ -74,6 +74,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.rrd         = 0;
   options.debug       = 0;
   options.log         = 0;
+  options.files_path  = NULL;
   options.twolines    = 0;
   options.files       = 0;
   options.err         = -1;
@@ -82,7 +83,7 @@ struct args_parse parse_args(int argc, char **argv){
   options.verbose     = 0;
   options.version     = 0;
   options.sorted      = 0;
-  options.agent       = 0;
+  options.agent       = 1;
   options.fqdn        = 0;
   options.noRtx       = 0;
   options.index       = NULL;
@@ -312,7 +313,6 @@ struct args_parse parse_args(int argc, char **argv){
           return options;
 	  }
 	}
-
 
   if(options.raw == -1){
     options.raw = 0;
