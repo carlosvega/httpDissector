@@ -9,13 +9,13 @@
 #include "hpcap_utils.h"
 #endif
 //
-#include "sampling_index.h"
+// #include "sampling_index.h"
 #include "list.h"
-#include "counters.h"
-#include "connection.h"
-#include "request.h"
-#include "response.h"
-#include "packet_info.h"
+// #include "counters.h"
+// #include "connection.h"
+// #include "request.h"
+// #include "response.h"
+// #include "packet_info.h"
 #include "tools.h"
 #include "NDleeTrazas.h"
 #include "http.h"
@@ -38,20 +38,14 @@
 #include <signal.h>
 #include <math.h>
 
-#define SNAPLEN 65535
-#define PROMISC 1
-#define to_MS 1000 //specifies the read timeout in milliseconds.
+#include "process_packet.h"
+
+
 
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
-/* ethernet headers are always exactly 14 bytes */
 
-
-typedef struct {
-  int n;
-  node_l *list;
-} colisiones;
 
 static unsigned long packets = 0;
 struct timeval start;
