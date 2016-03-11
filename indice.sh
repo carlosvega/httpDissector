@@ -1,6 +1,6 @@
 format=`echo $1 | awk -F '.' '{print $NF}'`
 >&2 echo "File format: $format"
-./indiceTraza -f $1 -p $format -k 100 | \
+./indice_traza -f $1 -p $format -k 100 | \
 #paquete, fichero, byte, ts
 #acumulado
 gawk '{print $1,$3,$4,($3-aux),($1-aux2); aux=$3; aux2=$1}' | \
