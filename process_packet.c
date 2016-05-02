@@ -89,14 +89,14 @@ int set_read_from_files(){
 	}else{ //SOLE FILE
 		processing->ndldata = NDLTabrirTraza(options->input, options->format, options->filter, 0, errbuf);
 	}
-
+	
 	if(processing->ndldata == NULL){ //ERROR OPENINF FILE
 		fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n", errbuf);
 		fprintf(stderr, "File: %s\tRAW flag = %s\n", options->input, options->raw == 0? "false" : "true");
 		return -1;
 	}
-
-	if(options->raw != 1){ //PRINT SNAPSHOT LENGTH
+	
+	if(options->raw != 1 && !options->files){ //PRINT SNAPSHOT LENGTH
 		fprintf(stderr, "Snapshot length: %d\n", pcap_snapshot(processing->ndldata->traceFile.ph));
 	}
 
@@ -106,6 +106,7 @@ int set_read_from_files(){
 			return -1;
 		}
 	}
+
 	return 0;
 }
 
@@ -325,7 +326,7 @@ void *recolector_de_basura(){
 
 	fprintf(stderr, "COLLECTOR INITIALIZED\n");
 
-	long s_time = 1000000;
+	long s_time = 10000;
 	long l=0;
 	//60 sleeps of 1 second, just to be able to end the thread properly
 	while(l<GC_SLEEP_SECS){ usleep(s_time); processing->running == 0 ? l=GC_SLEEP_SECS : (l+=s_time);}
