@@ -880,7 +880,7 @@ int main_process(char *format, char *filename){
 			return -1;
 		}
 
-		if(options.raw != 1){
+		if(options.raw != 1 && !options.files){
 			fprintf(stderr, "Snapshot length: %d\n", pcap_snapshot(ndldata->traceFile.ph));
 		}
 
