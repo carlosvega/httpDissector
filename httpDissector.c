@@ -87,7 +87,9 @@ int main(int argc, char *argv[]){
 
 	//ALLOC STUFF
 	//ALLOC POOL
-	fprintf(stderr, "ALLOC POOL!\n");
+	fprintf(stderr, "ALLOC COLLISION LIST POOL!\n");
+	alloc_collision_list_pool();
+	fprintf(stderr, "ALLOC HTTP EVENT POOL!\n");
 	alloc_http_event_pool();
 	//ALLOC TABLE
 	fprintf(stderr, "ALLOC TABLE!\n");
