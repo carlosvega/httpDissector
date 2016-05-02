@@ -1,13 +1,10 @@
 #ifndef _PROCESS_PACKET_H
 #define _PROCESS_PACKET_H
 
-
 #include "args_parse.h"
 #include "http.h"
 #include "hash_table.h"
 #include "tools.h"
-
-
 
 #define SNAPLEN 65535
 #define PROMISC 1

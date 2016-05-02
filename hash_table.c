@@ -63,6 +63,7 @@ http_event* find_event_on_table(uint32_t index, hash_key *key){
 
 int remove_event_from_table(hash_key *key){
 	//CHECK IF ANOTHER EVENT WITH THE SAME KEY AND INFO EXISTS
+
 	uint32_t index = calc_index(key);
 	collision_list *cell = event_table[index];
 
@@ -228,7 +229,7 @@ http_event* get_event_from_table(hash_key *key){
   	gettimeofday(&aux_exec, NULL);  
   	timersub(&aux_exec, &processing->start, &elapsed);
   	if(cell->used >= COLLISION_SIZE-1){
-		fprintf(stderr, "EVENT LIST OF THE CELL IS FULL ! - index %"PRIu32" (u %d) - ELEMENTS: %"PRIu32" PACKETS: %ld ELAPSED: %ld PPS: %ld USED_COL_POOL: %ld\n", index, cell->used, elements, processing->packets, elapsed.tv_sec, elapsed.tv_sec > 0 ? processing->packets/elapsed.tv_sec : 0, get_used());
+		fprintf(stderr, "EVENT LIST OF THE CELL IS FULL ! - index %"PRIu32" (u %d) - ELEMENTS: %"PRIu32" PACKETS: %ld ELAPSED: %ld PPS: %ld USED_COL_POOL: %ld\n", index, cell->used, elements, processing->packets, elapsed.tv_sec, elapsed.tv_sec > 0 ? processing->packets/elapsed.tv_sec : 0, get_used_collision_list_elements());
   	}else{
   		fprintf(stderr, "NULL WITHOUT FULL LIST OF THE CELL\n");
 	}

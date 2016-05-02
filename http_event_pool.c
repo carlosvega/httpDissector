@@ -5,6 +5,10 @@ http_event  *pool_http_event_objects = NULL;
 http_event  *tmp_http_event = NULL; //USED TO SWAP ELEMENTS
 int last_http_event = -1; //POSITION OF THE LAST ELEMENT POPED
 
+unsigned long get_used_http_event_elements(){
+	return last_http_event;
+}
+
 void free_http_event_pool(){
 	FREE(pool_http_event_pointers);
 	FREE(pool_http_event_objects);
