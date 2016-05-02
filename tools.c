@@ -201,6 +201,21 @@ int  tsCompare (struct  timespec  time1, struct  timespec  time2){
 
 }
 
+struct  timespec  tsSubtract2 (struct  timespec  t1, struct  timespec  t2){
+
+	struct  timespec  diff ;
+
+	if ((t1.tv_sec < t2.tv_sec) || ((t1.tv_sec == t2.tv_sec) && (t1.tv_nsec < t2.tv_nsec))){
+		diff = tsSubtract(t2, t1);
+		diff.tv_sec = diff.tv_sec*-1;
+	}else{
+		diff = tsSubtract(t1, t2);
+	}
+
+    return (diff) ;
+
+}
+
 struct  timespec  tsSubtract (struct  timespec  t1, struct  timespec  t2){
 
 	struct  timespec  diff ;

@@ -20,6 +20,7 @@ void increment_total_requests();
 unsigned long long get_total_requests();
 void print_backtrace(char *err);
 struct  timespec  tsSubtract (struct  timespec  t1, struct  timespec  t2);
+struct  timespec  tsSubtract2 (struct  timespec  t1, struct  timespec  t2);
 struct  timespec  tsAdd (struct  timespec  time1, struct  timespec  time2);
 double  tsFloat (struct  timespec  time);
 const char *boyermoore_search(const char *haystack, const char *needle);

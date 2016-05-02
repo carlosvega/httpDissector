@@ -281,26 +281,26 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 	return 0;
 } 
 
-void print_http_event(http_event **event, FILE *output_file){
+void print_http_event(http_event *event, FILE *output_file){
 	unsigned char ip_client[4] = {0};
     unsigned char ip_server[4] = {0};
-    *(unsigned int *) ip_client = (*event)->key.ip_src;
-    *(unsigned int *) ip_server = (*event)->key.ip_dst;
-    struct timespec diff = tsSubtract((*event)->ts_res,  (*event)->ts_req);
+    *(unsigned int *) ip_client = event->key.ip_src;
+    *(unsigned int *) ip_server = event->key.ip_dst;
+    struct timespec diff = tsSubtract(event->ts_res,  event->ts_req);
 
 	fprintf(output_file, "%d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s|%s\n", 
             ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
-            (*event)->key.port_src, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
-            (*event)->key.port_dst, (*event)->ts_req.tv_sec, (*event)->ts_req.tv_nsec, (*event)->ts_res.tv_sec, (*event)->ts_res.tv_nsec, diff.tv_sec, diff.tv_nsec, 
-            RESP_MSG_SIZE, (*event)->response_msg, (*event)->response_code, http_op_to_char((*event)->method), (*event)->agent, (*event)->host, (*event)->url);    
+            event->key.port_src, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
+            event->key.port_dst, event->ts_req.tv_sec, event->ts_req.tv_nsec, event->ts_res.tv_sec, event->ts_res.tv_nsec, diff.tv_sec, diff.tv_nsec, 
+            RESP_MSG_SIZE, event->response_msg, event->response_code, http_op_to_char(event->method), event->agent, event->host, event->url);    
 }
 
-int http_fill_event(u_char *tcp_payload, int length, http_event **event, http_op op){
+int http_fill_event(u_char *tcp_payload, int length, http_event *event, http_op op){
 	//TODO
 	//Hacer que compruebe que esta esperando, tener cuidado con las copias secundarias
 	//Comprobar si la transaccion estaria completa y cambiar la variable convenientemente
 
-	if(op==RESPONSE && (*event)->status == WAITING_REQUEST){ //BOTH ARE RESPONSES
+	if(op==RESPONSE && event->status == WAITING_REQUEST){ //BOTH ARE RESPONSES
 		// fprintf(stderr, "DUPLICATE RESPONSE\n");
 		// print_http_event(event, stdout);
 		// char *cadena = (char *) tcp_payload;
@@ -309,7 +309,7 @@ int http_fill_event(u_char *tcp_payload, int length, http_event **event, http_op
 		return -1; //ERROR
 	}
 
-	if(http_is_request(op) && (*event)->status == WAITING_RESPONSE){ //BOTH ARE REQUESTS
+	if(http_is_request(op) && event->status == WAITING_RESPONSE){ //BOTH ARE REQUESTS
 		// fprintf(stderr, "DUPLICATE REQUEST\n");
 		// print_http_event(event, stdout);
 		// char *cadena = (char *) tcp_payload;
@@ -334,49 +334,49 @@ int http_fill_event(u_char *tcp_payload, int length, http_event **event, http_op
 			cadena[i-cadena] = 0;
 		}
 		
-		ret = sscanf(cadena, "%32s %hd %[^\r\n]\r\n", version, &(*event)->response_code, (*event)->response_msg);
+		ret = sscanf(cadena, "%32s %hd %[^\r\n]\r\n", version, &event->response_code, event->response_msg);
 
 		if(ret < 2){
-			(*event)->response_code = -1;
+			event->response_code = -1;
 		}
 
-		(*event)->response_msg[RESP_MSG_SIZE - 1] = 0;
+		event->response_msg[RESP_MSG_SIZE - 1] = 0;
 		
 		//CHANGE STATUS
-		if((*event)->status == WAITING_RESPONSE){
-			(*event)->status = TRANSACTION_COMPLETE;
-		}else if((*event)->status == EMPTY){
-			(*event)->status = WAITING_REQUEST;
+		if(event->status == WAITING_RESPONSE){
+			event->status = TRANSACTION_COMPLETE;
+		}else if(event->status == EMPTY){
+			event->status = WAITING_REQUEST;
 		}
 
-
 	}else{ //REQUEST
-		(*event)->method = op;
+		event->method = op;
 		char method[32];
-		sscanf(cadena, "%32s %2048s %32s\r\n", method, (*event)->url, version);
+		sscanf(cadena, "%32s %2048s %32s\r\n", method, event->url, version);
 		char *host = get_host_from_headers(cadena);
 
 		if(host == NULL){
-			inet_ntop(AF_INET, &(*event)->key.ip_dst, (*event)->host, 16);
+			inet_ntop(AF_INET, &event->key.ip_dst, event->host, 16);
 		}else{
-			strcpy((*event)->host, host);
+			strcpy(event->host, host);
 		}
 
 		if(options->agent){
 			char *agent = get_user_agent_from_headers(cadena);
 			if(agent == NULL){
-				strcpy((*event)->agent, "no agent");
+				strcpy(event->agent, "no agent");
 			}else{
-				strcpy((*event)->agent, agent);
+				strcpy(event->agent, agent);
 			}
 		}
 
 		//CHANGE STATUS
-		if((*event)->status == WAITING_REQUEST){
-			(*event)->status = TRANSACTION_COMPLETE;
-		}else if((*event)->status == EMPTY){
-			(*event)->status = WAITING_RESPONSE;
+		if(event->status == WAITING_REQUEST){
+			event->status = TRANSACTION_COMPLETE;
+		}else if(event->status == EMPTY){
+			event->status = WAITING_RESPONSE;
 		}
+		
 	}
 
 	return 0;

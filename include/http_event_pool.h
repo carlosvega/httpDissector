@@ -13,8 +13,8 @@
 
 void free_http_event_pool();
 void alloc_http_event_pool();
-http_event** pop_http_event();
-void push_http_event(http_event **element);
+http_event* pop_http_event();
+void push_http_event(http_event *element);
 
 
 #endif 

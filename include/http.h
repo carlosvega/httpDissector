@@ -29,8 +29,8 @@ http_op http_which_method(u_char * tcp_payload);
 int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, struct in_addr ip_src, struct in_addr ip_dst);
 
 http_op check_op_from_payload(u_char *tcp_payload, int length);
-int http_fill_event(u_char *tcp_payload, int length, http_event **event, http_op op);
-void print_http_event(http_event **event, FILE *output_file);
+int http_fill_event(u_char *tcp_payload, int length, http_event *event, http_op op);
+void print_http_event(http_event *event, FILE *output_file);
 
 int http_is_request(http_op h);
 char *http_op_to_char(http_op h);
