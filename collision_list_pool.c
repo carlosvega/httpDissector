@@ -1,12 +1,63 @@
 #include "collision_list_pool.h"
+#include "tools.h"
 
 collision_list **pool_collision_list_pointers = NULL;
 collision_list  *pool_collision_list_objects  = NULL;
 collision_list  **tmp_collision_list = NULL; //USED TO SWAP ELEMENTS
 unsigned long last_collision_list = -1; //POSITION OF THE LAST ELEMENT POPED
 
-unsigned long get_used(){
+extern process_info *processing;
+
+unsigned long get_used_collision_list_elements(){
 	return last_collision_list;
+}
+
+void clean_old_elements(){
+	struct timespec diff_req = {0}, diff_res = {0};
+
+	long i;
+	for(i=0; i<last_collision_list; i++){
+		collision_list *cell = pool_collision_list_pointers[i];
+		long j;
+		for(j=0; j<cell->used; j++){
+			http_event *event = cell->events[j];
+			if(event == NULL){ //NOT A PROBLEM IF MORE ELEMENTS IN CELL
+				// int flag = 0;
+				// if(j==0){
+				// 	int k;
+				// 	//COUNT NOT NULL EVENTS IN COLLISION LIST
+				// 	for(k=0; k<COLLISION_SIZE; k++){
+				// 		http_event *h = cell->events[k];
+				// 		if(h != NULL){
+				// 			flag+=1;
+				// 		}
+				// 	}
+				// }
+				// if(flag > cell->used){
+				// 	fprintf(stderr, "EVENT IS NULL %ld - used: %ld - flag: %d\n", j, cell->used, flag);
+				// }
+				continue;
+			}
+
+			diff_req.tv_sec = 0; diff_req.tv_nsec = 0; //REQ
+			diff_res.tv_sec = 0; diff_res.tv_nsec = 0; //RES
+
+			if(event->ts_req.tv_sec != 0){
+				diff_req = tsSubtract2(processing->last_packet, event->ts_req);
+			}
+
+			if(event->ts_res.tv_sec != 0){
+				diff_res = tsSubtract2(processing->last_packet, event->ts_res);
+			}
+
+			if(labs(diff_req.tv_sec) > 60 || labs(diff_res.tv_sec) > 60){
+				pthread_mutex_lock(&processing->mutex);
+				remove_event_from_table(&event->key);
+				pthread_mutex_unlock(&processing->mutex);
+			}
+
+		}
+	}
 }
 
 void free_collision_list_pool(){

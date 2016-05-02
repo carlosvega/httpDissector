@@ -321,6 +321,43 @@ void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_
 	return;
 }
 
+void *recolector_de_basura(){ 
+
+	fprintf(stderr, "COLLECTOR INITIALIZED\n");
+
+	long s_time = 1000000;
+	long l=0;
+	//60 sleeps of 1 second, just to be able to end the thread properly
+	while(l<GC_SLEEP_SECS){ usleep(s_time); processing->running == 0 ? l=GC_SLEEP_SECS : (l+=s_time);}
+	while(processing->running){
+		
+		l=0;
+	 	
+		float col_ratio  = get_used_collision_list_elements()/(double)COLLISION_LIST_POOL_SIZE;
+		float http_ratio = get_used_http_event_elements()/(double)HTTP_EVENT_POOL_SIZE;
+		// fprintf(stderr, "Ratio Collision  List %lf\n", col_ratio);
+		// fprintf(stderr, "Ratio HTTP EVENT List %lf\n", http_ratio);
+		// fprintf(stderr, "Ratio HTTP EVENT per cell %lf\n", get_used_http_event_elements()/(double)get_used_collision_list_elements() );
+
+		if(col_ratio > 0.5 || http_ratio > 0.5){
+			
+			clean_old_elements();
+
+			col_ratio  = get_used_collision_list_elements()/(double)COLLISION_LIST_POOL_SIZE;
+			http_ratio = get_used_http_event_elements()/(double)HTTP_EVENT_POOL_SIZE;
+			fprintf(stderr, "AFTER Ratio Collision  List %lf\n", col_ratio);
+			fprintf(stderr, "AFTER Ratio HTTP EVENT List %lf\n", http_ratio);
+		}
+
+	 	// unsigned long removed = remove_old_active_nodes(last_packet);
+	 	// increment_total_removed_requests(removed);
+        
+	 	while(l<GC_SLEEP_SECS){ usleep(s_time); processing->running == 0 ? l=GC_SLEEP_SECS : (l+=s_time);}
+	}
+
+	return NULL;
+}
+
 int begin_process(struct args_parse *o, process_info *p){
 	processing = p;
 	options = o;
@@ -340,10 +377,10 @@ int begin_process(struct args_parse *o, process_info *p){
 	}
 
 	// //GARBAGE COLLECTOR
-	// if(options->collector){
-	// 	pthread_create(&collector, NULL, recolector_de_basura, NULL);
-	// 	//running = 1;
-	// }
+	if(1){
+		pthread_create(&processing->collector, NULL, recolector_de_basura, NULL);
+		processing->running = 1;
+	}
 
 	// //gettimeofday(&start, NULL);
 
@@ -374,9 +411,9 @@ int begin_process(struct args_parse *o, process_info *p){
 
 
 	//JOIN THREADS
-	// if(options->collector){
-	// 	pthread_join(collector, NULL);
- //  	}
+	if(1){
+		pthread_join(&processing->collector, NULL);
+  	}
 
   	if(options->interface == NULL){
   		// pthread_join(progress, NULL);
