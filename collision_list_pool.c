@@ -18,6 +18,9 @@ void clean_old_elements(){
 	long i;
 	for(i=0; i<last_collision_list; i++){
 		collision_list *cell = pool_collision_list_pointers[i];
+		if(cell == NULL){
+			fprintf(stderr, "CELL IS NULL\n");
+		}
 		long j;
 		for(j=0; j<cell->used; j++){
 			http_event *event = cell->events[j];
@@ -37,23 +40,23 @@ void clean_old_elements(){
 				// 	fprintf(stderr, "EVENT IS NULL %ld - used: %ld - flag: %d\n", j, cell->used, flag);
 				// }
 				continue;
-			}
+			}else{
+				diff_req.tv_sec = 0; diff_req.tv_nsec = 0; //REQ
+				diff_res.tv_sec = 0; diff_res.tv_nsec = 0; //RES
 
-			diff_req.tv_sec = 0; diff_req.tv_nsec = 0; //REQ
-			diff_res.tv_sec = 0; diff_res.tv_nsec = 0; //RES
+				if(event->ts_req.tv_sec != 0){
+					diff_req = tsSubtract2(processing->last_packet, event->ts_req);
+				}
 
-			if(event->ts_req.tv_sec != 0){
-				diff_req = tsSubtract2(processing->last_packet, event->ts_req);
-			}
+				if(event->ts_res.tv_sec != 0){
+					diff_res = tsSubtract2(processing->last_packet, event->ts_res);
+				}
 
-			if(event->ts_res.tv_sec != 0){
-				diff_res = tsSubtract2(processing->last_packet, event->ts_res);
-			}
-
-			if(labs(diff_req.tv_sec) > 60 || labs(diff_res.tv_sec) > 60){
-				pthread_mutex_lock(&processing->mutex);
-				remove_event_from_table(&event->key);
-				pthread_mutex_unlock(&processing->mutex);
+				if(labs(diff_req.tv_sec) > 60 || labs(diff_res.tv_sec) > 60){
+					pthread_mutex_lock(&processing->mutex);
+					remove_event_from_table(&event->key);
+					pthread_mutex_unlock(&processing->mutex);
+				}
 			}
 
 		}

@@ -348,6 +348,7 @@ void *recolector_de_basura(){
 			http_ratio = get_used_http_event_elements()/(double)HTTP_EVENT_POOL_SIZE;
 			fprintf(stderr, "AFTER Ratio Collision  List %lf\n", col_ratio);
 			fprintf(stderr, "AFTER Ratio HTTP EVENT List %lf\n", http_ratio);
+			fprintf(stderr, "AFTER Ratio HTTP EVENT per cell %lf\n", get_used_http_event_elements()/(double)get_used_collision_list_elements());
 		}
 
 	 	// unsigned long removed = remove_old_active_nodes(last_packet);
