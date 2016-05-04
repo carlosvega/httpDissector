@@ -34,7 +34,12 @@ int NDLTnext_ex(NDLTdata_t *ndlt_data, struct NDLTpkthdr **pkthdr, unsigned char
 	mi.size = 10000 + sizeof(uint32_t) * 4;
 	mi.type = 0;
 
-	WH_recv((void *)(ndlt_data->buffer), &mi);
+	int recvret = WH_recv((void *)(ndlt_data->buffer), &mi);
+	
+	if(!recvret)
+	{
+		return 0;
+	}
 
 	ts_sec = *((uint32_t *)((ndlt_data->buffer) + 0));
 	ts_usec = *((uint32_t *)((ndlt_data->buffer) + 4));

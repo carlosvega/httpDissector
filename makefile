@@ -27,7 +27,7 @@ PCAPLIB		= -lpcap
 LOW_MEMORY: CFLAGS = $(PRECFLAGS) -D LOW_MEMORY_DISSECTOR
 HPCAP: CFLAGS = $(PRECFLAGS) -D HPCAP_SUPPORT 
 
-all: httpDissector indice_traza
+all: httpDissector indice_traza httpDissector_wormhole
 
 indice_traza: main_indiceTraza.c
 	$(CFLAGS) -std=gnu99 main_indiceTraza.c NDleeTrazas.c -lpcap -o $@
