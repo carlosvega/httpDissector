@@ -75,7 +75,7 @@ void manejaPaquete(u_char *user, const struct NDLTpkthdr *header, const u_char *
         fileNumber = NDLTfileNumber(fichTraza);
         posPaquete = NDLTposThisPacket(fichTraza);
         
-        fprintf(stdout, "%llu %u %llu %ld.%09ld %ld\n", pktsLeidos, fileNumber, posPaquete, header->ts.tv_sec, header->ts.tv_nsec, NDLTpktNumber(params->fichTraza));
+        fprintf(stdout, "%llu %u %llu %ld.%09ld %lld\n", pktsLeidos, fileNumber, posPaquete, header->ts.tv_sec, header->ts.tv_nsec, NDLTpktNumber(params->fichTraza));
     }
     
     pktsLeidos++;
