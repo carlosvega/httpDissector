@@ -1,23 +1,23 @@
 
 /** @file NDleeTrazas.h
-* \brief Esta librería permite la apertura, lectura y escritura de ficheros de trazas de distintos formatos (actualmente pcap y raw). 
+* \brief Esta librería permite la apertura, lectura y escritura de ficheros de trazas de distintos formatos (actualmente pcap y raw).
 *
 * Permite la entrada tanto de un path de un fichero de trazas directamente o un path de un fichero que contiene una lista de paths de los ficheros de trazas. En este último caso el fichero puede contener paths de trazas de distintas interfaces, debiendo ser su formato de esta manera:
 * Cada interfaz estará separado por una línea en blanco. En cada interfaz los paths se separarán por un salto de línea. Por ejemplo: suponer que hay tres interfaces y cada uno de ellos tiene 2 ficheros de trazas, el fichero será así:
-*  \code   
+*  \code
 	INTERFACE1_PATHFILE1
 	INTERFACE1_PATHFILE2
-	
+
 	INTERFACE2_PATHFILE1
 	INTERFACE2_PATHFILE2
-	
+
 	INTERFACE3_PATHFILE1
 	INTERFACE3_PATHFILE2
 *  \endcode
 *  Para el caso en el que solo haya un interfaz, el fichero consistirá en una lista de paths separados por saltos de línea.
 *  \author Olga Esquiroz
 *  \version ver NDLT_VERSION
-*  
+*
 * Se puede ver un ejemplo de uso de esta librería en el siguiente fichero: \include doc/ejemplos/ejemploUso_NDLT.c
 */
 
@@ -45,19 +45,18 @@ typedef struct NDLTdata NDLTdata_t;
 typedef struct NDLTdataEscritura NDLTdataEscritura_t;
 
 struct NDLTpkthdr {
-    struct timespec ts;
-    unsigned int    caplen;
-    unsigned int   len;
+	struct timespec ts;
+	unsigned int    caplen;
+	unsigned int   len;
 };
 
-union descriptores 
-{
+union descriptores {
 	FILE 		*fh;    //file handle  (usado para abrir el fichero raw para leer o escribir la traza)
 	pcap_t 		*ph;    //pcap handle  (usado para abrir el pcap para leer la traza)
 	pcap_dumper_t 	*pdh;   //pcap dump handler (usado para abrir el pcap en escritura)
 };
 
-struct NDLTdata{
+struct NDLTdata {
 	char                path[TAM_LINE];  		// nombre del fichero de trazas, o del fichero de paths de trazas
 	FILE                *fileOfPaths;		// fichero de paths
 	int                 fileFormato;  		// NDLTFORMAT_PCAP si la traza es pcap, NDLTFORMAT_DRIV si la traza es raw
@@ -68,30 +67,30 @@ struct NDLTdata{
 	int                 contFiles;  		// contador que indica el número de fichero en el que se está, empezando en 1. (En el caso de que se pase el fichero de trazas este contador será 1 en cuanto se empiece a leer).
 	unsigned long long  bytesTotalesLeidos;     	// Numero total de bytes leidos entre todos los ficheros de la traza
 	unsigned long long  bytesTotalesFicheros;	// numero total de bytes de los ficheros
-	
+
 	unsigned long long  posThisPacket;          	// posición en bytes en el fichero actual del comienzo del paquete que se acaba de leer. Es diferente de la posición de lectura en el fichero, que sería la del siguiente paquete
 	FILE                *fileIndex;             	// Fichero con indices
 	int                 maxIndicesCreados;      	// Número máximo de indices para los que hay reservada memoria en indices
 	int                 numIndicesLeidos;       	// Cantidad de elementos que hay usados en indices
 	struct NDLTindexElement *indices;           	// Array de elementos de indice
 	int                 shouldBreakLoopFlag;    	// Lo pone a 1 NDLTbreakloop() para avisar a NDLTloop() que debe terminar
-	 unsigned long long  numPktsLeidos;          	// Numero de paquetes leidos hasta el momento en toda la traza
-	
-	int		    jumpPacketActivated;  	// Si está a 1 indica que se ha pedido saltar a un paquete en concreto. 
+	unsigned long long  numPktsLeidos;          	// Numero de paquetes leidos hasta el momento en toda la traza
+
+	int		    jumpPacketActivated;  	// Si está a 1 indica que se ha pedido saltar a un paquete en concreto.
 	unsigned long long  numPacketsDiscarded;	// número de paquetes descartados hasta el momento (tanto por paquetes descartados como por paquetes que no pasen el filtro)
 	unsigned long long  nextPacketToDiscard; 	//numero del siguiente paquete a descartar (se van leyendo del fichero de paquetes a descartar)
 	FILE 		*filePacketsToDiscard;		// handle del fichero con los paquetes a descartar (paquetes duplicados)
-	//int		errorToStdErr;			// Flag que si es 1 los errores de NDLTloop se vuelvan por stderr, y si es 0 no se vuelvan. 
+	//int		errorToStdErr;			// Flag que si es 1 los errores de NDLTloop se vuelvan por stderr, y si es 0 no se vuelvan.
 	FILE		*fileForError;			// Apuntador de fichero donde irán los errores. Por defecto está a stderr
-	
+
 	struct interfaces_t 	*interfaces; 		// array de estructuras 'struct interfaces_t' (una estructura para cada interfaz que haya en el fichero de entrada. Las interfaces vienen separadas por una línea en blanco)
 	int 			numInterfaces;		// contador de interfaces
-	
+
 	int			nextPacketActive;  //Si se ha llamado a la función NDLTnext().
 	struct NDLTpkthdr 	pkthdr_next;		//header a devolver si se llama a NDLTnext()
 	u_char			packet_next[MAX_PACKET_LEN];		//paquete a devolver si se llama a NDLTnext()
 	//unsigned int 		tamPacket;
-	
+
 };
 
 // user : datos de usuario indicados en NDLTloop()
@@ -103,7 +102,7 @@ typedef void (*packet_handler)(u_char *user, const struct NDLTpkthdr *h, const u
 /** \brief Abrir traza o lista de trazas para lectura. Comprueba que los parámetros sean correctos y crea una estructura NDLTdata_t con esos parámetros.
 * 	\param path Cadena con el path al fichero de traza o fichero con lista de paths a ficheros de trazas
 *	\param format Cadena que vale NDLTFORMAT_PCAP_STR si el/los ficheros de trazas estan en formato pcap. NDLTFORMAT_DRIV_STR si esta en el formato raw del driver 10G
-* 	\param filter Cadena con el filtro bpf a aplicar a todos los ficheros de traza. 
+* 	\param filter Cadena con el filtro bpf a aplicar a todos los ficheros de traza.
 * 	\param multi Vale 1 para indicar que path es un fichero con listas de ficheros, si vale 0 entonces path es el fichero de traza
 * 	\param errbuf Si se da un error, la funcion devuelve NULL y errbuf se rellena con un mensaje de error en cadena de texto. Se supone que errbuf tiene espacio para al menos PCAP_ERRBUF_SIZE bytes o es NULL y entonces no se rellena.
 * \return Devuelve la estructura NDLTdata_t creada o NULL en caso de error. Posibles casos de error:
@@ -125,10 +124,10 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 * - Que no se haya indicado un fichero en el que se escribirá, en el caso de escribir a fichero (displayOutput a 0)
 * - Que se haya indicado un formato de fichero de traza no soportado o erróneo.
 */
-NDLTdataEscritura_t *NDLTabrirTrazaEscritura(char *pathOutput,char *formatOutput, int displayOutput,unsigned int snaplen,char *errbuf);
+NDLTdataEscritura_t *NDLTabrirTrazaEscritura(char *pathOutput, char *formatOutput, int displayOutput, unsigned int snaplen, char *errbuf);
 
 
-/** \brief Función que abre el fichero que permite descartar paquetes a la hora de procesar. 
+/** \brief Función que abre el fichero que permite descartar paquetes a la hora de procesar.
 * 	\param trazas Estructura (NDLTdata_t *) devuelta por la función NDLTabrirTraza().
 * 	\param pathFile Cadena con el path que contiene los números de paquetes a descartas. El fichero debe estar ordenado.
 * 	\param errbuf Si se produce un error errbuf se rellena con un mensaje de error. Se supone que errbuf tiene espacio para al menos PCAP_ERRBUF_SIZE bytes.
@@ -137,7 +136,7 @@ NDLTdataEscritura_t *NDLTabrirTrazaEscritura(char *pathOutput,char *formatOutput
 * - Algún error abriendo el fichero con los paquetes a descartar.
 * - Que el fichero de descartes esté vacío.
 */
-int NDLTopenFileDiscards(NDLTdata_t *trazas,char *pathFile,char *errbuf);
+int NDLTopenFileDiscards(NDLTdata_t *trazas, char *pathFile, char *errbuf);
 
 
 /** \brief Función que indica por donde salen los mensajes de error del programa (por ejemplo de la función NDLTloop). Si no se usa la función, por defecto, los mensajes de error salen por stderr.
@@ -145,19 +144,19 @@ int NDLTopenFileDiscards(NDLTdata_t *trazas,char *pathFile,char *errbuf);
 * 	\param outputStderr  Descriptor de fichero donde irán los mensajes de error.
 * \return Devuelve 1 en caso de éxito, 0 en caso de que la estructura NDLTdata_t no exista
 */
-int setErrorOutput(NDLTdata_t *trazas,FILE *outputStderr);
+int setErrorOutput(NDLTdata_t *trazas, FILE *outputStderr);
 
 
-/** \brief Función que lee el siguiente paquete de la traza/s y devuelve éxito o error. Equivalente a pcap_next_ex. 
+/** \brief Función que lee el siguiente paquete de la traza/s y devuelve éxito o error. Equivalente a pcap_next_ex.
 *	\param trazas Estructura (NDLTdata_t *) devuelta por la función NDLTabrirTraza().
 *	\param h Estructura struct NDLTpkthdr en la que se escribirá la cabecera del siguiente paquete.
 *	\param pkt_data Donde se guardará el contenido del siguiente paquete.
 * \return Devuelve 1 si se ha leído correctamente el paquete, -1 en caso de error y -2 en caso de que se haya terminado de leer la traza, es decir, no haya más paquetes.
 */
-int NDLTnext_ex(NDLTdata_t *trazas, const struct NDLTpkthdr **h,const u_char **pkt_data);
+int NDLTnext_ex(NDLTdata_t *trazas, const struct NDLTpkthdr **h, const u_char **pkt_data);
 
 
-/** \brief Función que devuelve el siguiente paquete de la traza/s. Equivalente a pcap_next. 
+/** \brief Función que devuelve el siguiente paquete de la traza/s. Equivalente a pcap_next.
 *	\param trazas Estructura (NDLTdata_t *) devuelta por la función NDLTabrirTraza().
 *	\param h Estructura struct NDLTpkthdr en la que se escribirá la cabecera del siguiente paquete.
 * \return Devuelve el contenido del siguiente paquete o null si ya no hay más paquetes o se ha producido un error.
@@ -238,7 +237,7 @@ unsigned long long NDLTtotalBytes(NDLTdata_t *trazas);
 unsigned long long NDLTposThisPacket(NDLTdata_t *trazas);
 
 
-/** \brief Funcion para especificar el fichero de indices en caso de existir. 
+/** \brief Funcion para especificar el fichero de indices en caso de existir.
 *	\param trazas  Estructura (NDLTdata_t *) devuelta por la función NDLTabrirTraza().
 *	\param indexFilePath  Cadena con el path del fichero de índices.
 * \return Devuelve 1 si exito, 0 si error. Posibles casos de error:
@@ -251,7 +250,7 @@ unsigned long long NDLTposThisPacket(NDLTdata_t *trazas);
 int NDLTsetIndexFile(NDLTdata_t *trazas, char *indexFilePath);
 
 
-/** \brief Salta en la lectura al paquete que se le indica. Se cuentan desde el 1. 
+/** \brief Salta en la lectura al paquete que se le indica. Se cuentan desde el 1.
 *	\param trazas  Estructura (NDLTdata_t *) devuelta por la función NDLTabrirTraza().
 *	\param pktNumber  Número de paquete al que se va a saltar
 * \return Devuelve 0 si error, 1 si exito. Posibles casos de error:
@@ -268,8 +267,8 @@ int NDLTjumpToPacket(NDLTdata_t *trazas, unsigned long long pktNumber);
 void NDLTbreakloop(NDLTdata_t *trazas);
 
 
-/** \brief Función que escribe en un fichero (o salida estándar) un paquete. Equivalente a pcap_dump. 
-*	\param trazas Resultado de un NDLTabrirTrazaEscritura(), donde habrá un campo con el apuntador del fichero donde se va a guardar el paquete. 
+/** \brief Función que escribe en un fichero (o salida estándar) un paquete. Equivalente a pcap_dump.
+*	\param trazas Resultado de un NDLTabrirTrazaEscritura(), donde habrá un campo con el apuntador del fichero donde se va a guardar el paquete.
 *	\param h Datos de la cabecera del paquete que serán escritos en el fichero
 *	\param sp Datos del paquete que serán escritos en el fichero
 * \return No devuelve nada.
@@ -283,7 +282,7 @@ void NDLTdump(NDLTdataEscritura_t *trazas, const struct NDLTpkthdr *h, const u_c
 * \param program Puntero a una estructura bpf_program donde se guardará el filtro a compilar
 * \param buf String que se quiere compilar en un programa filtro.
 * \param optimize Si se realiza optimización en el resultado.
-* \param mask Máscara de ipV4 de la red en la que se capturan los paquetes. 
+* \param mask Máscara de ipV4 de la red en la que se capturan los paquetes.
 *  \return Devuelve 0 si no hay error. Posibles casos de error:
 * - Los posibles errores devueltos por pcap_compile_nopcap() de la librería pcap.
 */

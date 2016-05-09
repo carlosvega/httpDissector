@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include "worm_pcap_bridge.h"
 
-NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, char *errbuf) {
+NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, char *errbuf)
+{
 	UNUSED(path);
 	UNUSED(format);
 	UNUSED(filter);
@@ -24,7 +25,8 @@ NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, ch
 	return ndlt_data;
 }
 
-int NDLTnext_ex(NDLTdata_t *ndlt_data, struct NDLTpkthdr **pkthdr, unsigned char **pkt_data) {
+int NDLTnext_ex(NDLTdata_t *ndlt_data, struct NDLTpkthdr **pkthdr, unsigned char **pkt_data)
+{
 	uint32_t ts_sec;
 	uint32_t ts_usec;
 	uint32_t incl_len;
@@ -35,9 +37,8 @@ int NDLTnext_ex(NDLTdata_t *ndlt_data, struct NDLTpkthdr **pkthdr, unsigned char
 	mi.type = 0;
 
 	int recvret = WH_recv((void *)(ndlt_data->buffer), &mi);
-	
-	if(!recvret)
-	{
+
+	if (!recvret) {
 		return 0;
 	}
 
@@ -45,7 +46,7 @@ int NDLTnext_ex(NDLTdata_t *ndlt_data, struct NDLTpkthdr **pkthdr, unsigned char
 	ts_usec = *((uint32_t *)((ndlt_data->buffer) + 4));
 	incl_len = *((uint32_t *)((ndlt_data->buffer) + 8));
 	orig_len = *((uint32_t *)((ndlt_data->buffer) + 12));
-	
+
 	(*pkthdr)->ts.tv_sec = ts_sec;
 	(*pkthdr)->ts.tv_nsec = ts_usec * 1000;
 	(*pkthdr)->len = orig_len;
@@ -60,22 +61,27 @@ int NDLTnext_ex(NDLTdata_t *ndlt_data, struct NDLTpkthdr **pkthdr, unsigned char
 	return 1;
 }
 
-int NDLTloop(NDLTdata_t *ndlt_data, packet_handler callback, unsigned char *user) {
+int NDLTloop(NDLTdata_t *ndlt_data, packet_handler callback, unsigned char *user)
+{
 	struct NDLTpkthdr pkthdr;
 	struct NDLTpkthdr *pkthdr_ptr = &pkthdr;
 	unsigned char *bytes;
+
 	while (NDLTnext_ex(ndlt_data, &pkthdr_ptr, &bytes)) {
 		callback(user, &pkthdr, bytes);
 	}
+
 	return 1;
 }
 
-void NDLTclose(NDLTdata_t *ndlt_data) {
+void NDLTclose(NDLTdata_t *ndlt_data)
+{
 	WH_halt();
 	free(ndlt_data);
 }
 
-int NDLTopenFileDiscards(NDLTdata_t *trazas,char *pathFile,char *errbuf) {
+int NDLTopenFileDiscards(NDLTdata_t *trazas, char *pathFile, char *errbuf)
+{
 	UNUSED(trazas);
 	UNUSED(pathFile);
 	UNUSED(errbuf);
@@ -83,24 +89,28 @@ int NDLTopenFileDiscards(NDLTdata_t *trazas,char *pathFile,char *errbuf) {
 	return 1;
 }
 
-unsigned long long NDLTpktNumber(NDLTdata_t *trazas) {
+unsigned long long NDLTpktNumber(NDLTdata_t *trazas)
+{
 	return (unsigned long long) trazas->numPktsLeidos;
 }
 
-int NDLTsetIndexFile(NDLTdata_t *trazas, char *indexFilePath) {
+int NDLTsetIndexFile(NDLTdata_t *trazas, char *indexFilePath)
+{
 	UNUSED(trazas);
 	UNUSED(indexFilePath);
 	//TODO?
 	return 1;
 }
 
-FILE *NDLTfile(NDLTdata_t *trazas) {
+FILE *NDLTfile(NDLTdata_t *trazas)
+{
 	UNUSED(trazas);
 	//TODO?
 	return 0;
 }
 
-int NDLTjumpToPacket(NDLTdata_t *trazas, unsigned long long pktNumber) {
+int NDLTjumpToPacket(NDLTdata_t *trazas, unsigned long long pktNumber)
+{
 	UNUSED(trazas);
 	UNUSED(pktNumber);
 	//TODO?

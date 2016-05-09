@@ -21,3 +21,4 @@ scripts/
 *.exe
 *.out
 *.app
+*.orig
