@@ -363,10 +363,14 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 		return 1;
 	}
 
-	if(pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)){
+	if(pkthdr->caplen < (size_ethernet + pktinfo->size_ip)){
 		
 		// ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)\n");
 		
+		return 1;
+	}
+
+	if(pktinfo->ip->ip_p != IPPROTO_TCP){ //CHECK FOR TCP
 		return 1;
 	}
 
@@ -378,7 +382,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 
 	pktinfo->tcp->th_seq = ntohl(pktinfo->tcp->th_seq);
  	pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
-      
+    
     if (pktinfo->size_tcp < 20) {
 	    return 1;
     }
