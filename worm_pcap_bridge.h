@@ -34,7 +34,7 @@ struct NDLTdata {
 	int end_of_file;
 	int wait_read_counter;
 	char *pcapFilterString; // cadena con filtro pcap a aplicar
-	struct bpf_program  filtroPcapCompilado; // filtro compilado
+	struct bpf_program  *filtroPcapCompilado; // filtro compilado
 	int contFiles;
 	size_t bytesTotalesLeidos;
 	size_t bytesTotalesFicheros;
@@ -55,5 +55,8 @@ unsigned long long NDLTpktNumber(NDLTdata_t *trazas);
 int NDLTsetIndexFile(NDLTdata_t *trazas, char *indexFilePath);
 FILE *NDLTfile(NDLTdata_t *trazas);
 int NDLTjumpToPacket(NDLTdata_t *trazas, unsigned long long pktNumber);
+int NDLTcompile(int snaplen_arg, int linktype_arg, struct bpf_program *program, const char *buf, int optimize, bpf_u_int32 mask);
+int NDLTfilter(struct bpf_program *fp, const struct NDLTpkthdr *h, const u_char *pkt);
+void NDLTfreecode(struct bpf_program *fp);
 
 #endif

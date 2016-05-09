@@ -5,19 +5,38 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <pcap.h>
+
 #include "worm_pcap_bridge.h"
+
+#define CAPLEN 		65535
 
 NDLTdata_t *NDLTabrirTraza(char *path, char *format, char *filter, int multi, char *errbuf)
 {
 	UNUSED(path);
 	UNUSED(format);
-	UNUSED(filter);
 	UNUSED(multi);
 	UNUSED(errbuf);
-	NDLTdata_t *ndlt_data = malloc(sizeof(NDLTdata_t));
+	NDLTdata_t *ndlt_data = calloc(sizeof(NDLTdata_t), 1);
 	ndlt_data->bytesTotalesLeidos = 0;
 	ndlt_data->bytesTotalesFicheros = 0;
 	ndlt_data->numPktsLeidos = 0;
+
+	if (filter) {
+		ndlt_data->filtroPcapCompilado = calloc(sizeof(struct bpf_program), 1);
+		if (!ndlt_data->filtroPcapCompilado) {
+			return 0;
+		}
+		if (NDLTcompile(CAPLEN, DLT_EN10MB, ndlt_data->filtroPcapCompilado, filter, 1, 0)) {
+			if (errbuf) {
+				sprintf(errbuf, "Error: no se pudo compilar el filtro %s", filter);
+			}
+
+			return 0;
+		}
+	} else {
+		ndlt_data->filtroPcapCompilado = 0;
+	}
 
 	int st = WH_init();
 	assert(st == 0);
@@ -68,7 +87,13 @@ int NDLTloop(NDLTdata_t *ndlt_data, packet_handler callback, unsigned char *user
 	unsigned char *bytes;
 
 	while (NDLTnext_ex(ndlt_data, &pkthdr_ptr, &bytes)) {
-		callback(user, &pkthdr, bytes);
+		if (ndlt_data->filtroPcapCompilado) {
+			if (NDLTfilter(ndlt_data->filtroPcapCompilado, &pkthdr, bytes)) {
+				callback(user, &pkthdr, bytes);
+			}
+		} else {
+			callback(user, &pkthdr, bytes);
+		}
 	}
 
 	return 1;
@@ -77,6 +102,7 @@ int NDLTloop(NDLTdata_t *ndlt_data, packet_handler callback, unsigned char *user
 void NDLTclose(NDLTdata_t *ndlt_data)
 {
 	WH_halt();
+	NDLTfreecode(ndlt_data->filtroPcapCompilado);
 	free(ndlt_data);
 }
 
@@ -115,4 +141,37 @@ int NDLTjumpToPacket(NDLTdata_t *trazas, unsigned long long pktNumber)
 	UNUSED(pktNumber);
 	//TODO?
 	return 1;
+}
+
+/*
+ * Función que compila un filtro BPF. Es un wrapper para pcap_compile_nopcap. Tiene unos requerimientos especiales (el resto de parámetros, igual que en pcap_compile). Se usa para poder filtrar por 'n' filtros, ya que NDLTloop solo permite filtrar por uno solo:
+ *
+ * - snaplen: si es una captura en RAW, hay que saber qué snaplen se ha puesto y meterlo a mano.
+ * - linktype: lo mismo. Se pueden utilizar los de PCAP (DLT_<algo>). Ej: DLT_EN10MB para ethernet.
+ *
+ *  Devuelve 0 si no hay error.
+ */
+int NDLTcompile(int snaplen_arg, int linktype_arg, struct bpf_program *program, const char *buf, int optimize, bpf_u_int32 mask)
+{
+	return pcap_compile_nopcap(snaplen_arg, linktype_arg, program, (char *)buf, optimize, mask);
+}
+
+// Dado un paquete, se aplica el filtro BPF. Devuelve 0 si el paquete no pasa el filtro y distinto de 0 en caso contrario.
+int NDLTfilter(struct bpf_program *fp, const struct NDLTpkthdr *h, const u_char *pkt)
+{
+	struct bpf_insn *fcode = fp->bf_insns;
+
+	if (fcode != NULL) {
+		return (bpf_filter(fcode, (u_char *)pkt, h->len, h->caplen));
+
+	} else {
+		return (0);
+	}
+}
+
+// Wrapper para pcap_freecode. Libera memoria de un filtro BPF.
+void NDLTfreecode(struct bpf_program *fp)
+{
+	pcap_freecode(fp);
+	return;
 }
