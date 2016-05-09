@@ -9,9 +9,10 @@ static struct timespec timespec_start;
 struct timespec last_index_entry;
 int first = 1;
 
-void write_to_index_with_ts(long int position, struct timespec ts){
+void write_to_index_with_ts(long int position, struct timespec ts)
+{
 
-	if(first == 1){
+	if (first == 1) {
 		fprintf(index_file, "%ld %ld\n", (long) ts.tv_sec, position);
 		last_index_entry = ts;
 		first = 0;
@@ -19,14 +20,15 @@ void write_to_index_with_ts(long int position, struct timespec ts){
 
 	timespec_start = timeval_to_timespec(start);
 
-	struct timespec elapsed = tsSubtract (ts, last_index_entry);
+	struct timespec elapsed = tsSubtract(ts, last_index_entry);
 
-	if(elapsed.tv_sec >= INTERVAL){
+	if (elapsed.tv_sec >= INTERVAL) {
 		fprintf(index_file, "%ld %ld\n", (long) ts.tv_sec, position);
 		last_index_entry = ts;
 	}
 }
 
-void write_to_index(long int position){
+void write_to_index(long int position)
+{
 	write_to_index_with_ts(position, last_packet);
 }

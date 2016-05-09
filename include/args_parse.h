@@ -8,9 +8,9 @@
 
 #define ARGS_PARSE_ERRBUF 64
 
-typedef enum {OR=0, AND, OVERWRITE} filter_mode;
+typedef enum {OR = 0, AND, OVERWRITE} filter_mode;
 
-struct args_parse{
+struct args_parse {
 	char errbuf[ARGS_PARSE_ERRBUF];
 	short skip;
 	short raw;

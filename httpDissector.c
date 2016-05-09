@@ -36,7 +36,7 @@ struct args_parse options;
 struct timespec last_packet;
 struct timespec first_packet = {0};
 
-struct rusage* memory = NULL;
+struct rusage *memory = NULL;
 
 char format[8] = {0};
 
@@ -60,21 +60,22 @@ void print_info(long elapsed);
 int main_process(char *format, char *filename);
 unsigned long remove_old_active_nodes(struct timespec last_packet);
 
-void sigintHandler(int sig){
+void sigintHandler(int sig)
+{
 	signal(SIGINT, SIG_DFL);
 	struct timeval end;
 	gettimeofday(&end, NULL);
 
 	fprintf(stderr, "\n\nSkipping, wait...\n");
-	
+
 	//ºremove_old_active_nodes(last_packet);
 	running = 0;
-	
-	if(options.interface == NULL && progress_bar){
+
+	if (options.interface == NULL && progress_bar) {
 		pthread_join(progress, NULL);
 	}
-	
-	if(options.sorted){
+
+	if (options.sorted) {
 		freePrintElementList();
 	}
 
@@ -82,19 +83,21 @@ void sigintHandler(int sig){
 
 	print_info(elapsed);
 
-	if(options.output != NULL){
+	if (options.output != NULL) {
 		fclose(output);
 	}
 
-	if(options.gcoutput != NULL){
+	if (options.gcoutput != NULL) {
 		fclose(gcoutput);
 	}
 
-	if(files_path != NULL){
-		int i=0;
-		for(i=0; i<nFiles; i++){
+	if (files_path != NULL) {
+		int i = 0;
+
+		for (i = 0; i < nFiles; i++) {
 			FREE(files_path[i]);
 		}
+
 		FREE(files_path);
 		files_path = NULL;
 	}
@@ -102,71 +105,79 @@ void sigintHandler(int sig){
 	// FREE(filter);
 	// FREE(pktinfo);
 	// http_free_packet(&http);
-	if(options.interface == NULL){
+	if (options.interface == NULL) {
 		// freeConnectionPool();
-		// freeRequestPool();	
+		// freeRequestPool();
 		// freeNodelPool();
 	}
 
-	if(options.index!=NULL){
+	if (options.index != NULL) {
 		FREE(intervals);
 	}
-	
+
 	// err_mqueue_close();
 	FREE(session_table);
-	
+
 	exit(0);
 }
 
 
-unsigned long remove_old_active_nodes(struct timespec last_packet){
+unsigned long remove_old_active_nodes(struct timespec last_packet)
+{
 
 	unsigned long removed = 0;
 	uint32_t processed = active_session_list_size;
 
 	ERR_MSG("remove_old_active_nodes\n");
 
-	if(active_session_list_size == 0){
+	if (active_session_list_size == 0) {
 		return removed;
 	}
 
 	node_l *last = list_get_last_node(&active_session_list);
 
 	struct timespec diff;
-	while(processed>0){
-		if(last == NULL){
+
+	while (processed > 0) {
+		if (last == NULL) {
 			return removed;
 		}
 
 		node_l *n = last;
 		last = last->prev;
 
-		connection *conn = (connection*) n->data;
+		connection *conn = (connection *) n->data;
 		conn->active_node = n;
 		diff = tsSubtract(last_packet, conn->last_ts);
-		if(diff.tv_sec > 60){
+
+		if (diff.tv_sec > 60) {
 			cleanUpConnection(conn, gcoutput);
 			uint32_t index = getIndexFromConnection(conn);
 			node_l *list = session_table[index].list;
 			node_l *conexion_node = NULL;
-			if(list == NULL){
+
+			if (list == NULL) {
 				// fprintf(stderr, "list == NULL\n");
 				removeActiveConnexion(conn);
-			}else if((conexion_node = list_search(list, n, compareConnection))==NULL){				
+
+			} else if ((conexion_node = list_search(list, n, compareConnection)) == NULL) {
 				// fprintf(stderr, "conexion_node == NULL %"PRIu32" %s\n", index, session_table[index].list == NULL? "NULL": "!NULL");
-				if(session_table[index].list != NULL && session_table[index].list->data != NULL){
+				if (session_table[index].list != NULL && session_table[index].list->data != NULL) {
 					conn->active_node = n;
 					conexion_node = session_table[index].list;
 					removeConnexion(conn, conexion_node, index);
-				}else{
-					removeActiveConnexion(conn);	
+
+				} else {
+					removeActiveConnexion(conn);
 				}
-			}else{
+
+			} else {
 				removeConnexion(conn, conexion_node, index);
 			}
+
 			removed++;
 		}
-		
+
 		processed--;
 
 	}
@@ -174,64 +185,81 @@ unsigned long remove_old_active_nodes(struct timespec last_packet){
 	return removed;
 }
 
-void *recolector_de_basura(){ 
+void *recolector_de_basura()
+{
 
-	if (options.verbose){
+	if (options.verbose) {
 		ERR_MSG("DEBUG/ COLLECTOR INITIALIZED\n");
 	}
 
-	short l=0;
+	short l = 0;
+
 	//60 sleeps of 1 second, just to be able to end the thread properly
-	while(l<GC_SLEEP_SECS){ sleep(1); running == 0 ? l=GC_SLEEP_SECS : l++;}
-	while(running){
+	while (l < GC_SLEEP_SECS) {
+		sleep(1);
+		running == 0 ? l = GC_SLEEP_SECS : l++;
+	}
+
+	while (running) {
 		pthread_mutex_lock(&mutex);
-		l=0;
-	 	if(options.log){
-	 		syslog (LOG_NOTICE, " \n");
-			syslog (LOG_NOTICE, "Elements in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
+		l = 0;
+
+		if (options.log) {
+			syslog(LOG_NOTICE, " \n");
+			syslog(LOG_NOTICE, "Elements in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
 		}
-        if (options.verbose)
-        {
-            ERR_MSG("DEBUG/ ==============================\n");
-            ERR_MSG("DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
-        }
-	 	unsigned long removed = remove_old_active_nodes(last_packet);
-	 	increment_total_removed_requests(removed);
-        if (options.verbose)
-        {
-            ERR_MSG("DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
-            ERR_MSG("DEBUG/ ==============================\n\n");
-        }
-        if(options.log){
-			syslog (LOG_NOTICE, "Elements in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
+
+		if (options.verbose) {
+			ERR_MSG("DEBUG/ ==============================\n");
+			ERR_MSG("DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
 		}
+
+		unsigned long removed = remove_old_active_nodes(last_packet);
+		increment_total_removed_requests(removed);
+
+		if (options.verbose) {
+			ERR_MSG("DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
+			ERR_MSG("DEBUG/ ==============================\n\n");
+		}
+
+		if (options.log) {
+			syslog(LOG_NOTICE, "Elements in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
+		}
+
 		pthread_mutex_unlock(&mutex);
-	 	while(l<GC_SLEEP_SECS){ sleep(1); running == 0 ? l=GC_SLEEP_SECS : l++;}
+
+		while (l < GC_SLEEP_SECS) {
+			sleep(1);
+			running == 0 ? l = GC_SLEEP_SECS : l++;
+		}
 	}
 
 	return NULL;
 }
 
-double hash_table_usage(){
+double hash_table_usage()
+{
 	// return resized_session_table ? ((double) active_session_list_size) / ((long double) BIG_MAX_FLOWS_TABLE_SIZE) : ((double) active_session_list_size) / ((long double) MAX_FLOWS_TABLE_SIZE);
 	return ((double) active_session_list_size) / ((long double) MAX_FLOWS_TABLE_SIZE);
 }
 
-unsigned long hash_table_collisions(){
+unsigned long hash_table_collisions()
+{
 	uint32_t processed = active_session_list_size;
 	unsigned long counter = 0;
 	node_l *last = list_get_last_node(&active_session_list);
-	
-	while (processed>0){
-		if(last == NULL){
+
+	while (processed > 0) {
+		if (last == NULL) {
 			return counter;
 		}
 
 		node_l *n = last;
 		last = last->prev;
-		connection *conn = (connection*) n->data;
+		connection *conn = (connection *) n->data;
 		uint32_t index = getIndexFromConnection(conn);
-		if(session_table[index].n > 1){
+
+		if (session_table[index].n > 1) {
 			counter += session_table[index].n - 1;
 		}
 
@@ -241,208 +269,228 @@ unsigned long hash_table_collisions(){
 	return counter;
 }
 
-double hash_table_collisions_ratio(unsigned long collisions){
+double hash_table_collisions_ratio(unsigned long collisions)
+{
 	return ((long double) collisions) / ((long double) active_session_list_size + collisions);
 }
 
 void loadBar(unsigned long long x, unsigned long long n, unsigned long long r, int w)
 {
- 
-	if(r<=0){
+
+	if (r <= 0) {
 		return;
 	}
 
-  	struct timeval aux_exec;
-  	struct timeval elapsed;
+	struct timeval aux_exec;
 
-  	// Only update r times.
-    if ( x % (n/r) != 0 ) return;
- 
-    // Calculuate the ratio of complete-to-incomplete.
-    float ratio = x/(float)n;
-    int   c     = ratio * w;
- 
-    // Show the percentage complete. 
-    fprintf(stderr, "%3.0d%% [", ((int)(ratio*100)));
+	struct timeval elapsed;
 
-    int i=0;
-
-    // Show the load bar.
-    for (i=0; i<c; i++)
-       fprintf(stderr, "=");
- 
-    for (i=c; i<w; i++)
-       fprintf(stderr, " ");
-
-   	fprintf(stderr, "]");
-
-   	gettimeofday(&aux_exec, NULL);  
-  	timersub(&aux_exec, &start, &elapsed);
-  	
-  	if(options.files){
-  		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\tFile: (%d/%d)", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ndldata->contFiles, nFiles);
-  	}else{
-		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\t", (elapsed.tv_sec/86400), (elapsed.tv_sec/3600)%60, (elapsed.tv_sec/60)%60, (elapsed.tv_sec)%60, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024));
+	// Only update r times.
+	if (x % (n / r) != 0) {
+		return;
 	}
 
-	#ifdef __linux__
-		fprintf(stderr, "\n");
-	#endif
+	// Calculuate the ratio of complete-to-incomplete.
+	float ratio = x / (float)n;
+	int   c     = ratio * w;
 
-	if(options.log){
+	// Show the percentage complete.
+	fprintf(stderr, "%3.0d%% [", ((int)(ratio * 100)));
+
+	int i = 0;
+
+	// Show the load bar.
+	for (i = 0; i < c; i++) {
+		fprintf(stderr, "=");
+	}
+
+	for (i = c; i < w; i++) {
+		fprintf(stderr, " ");
+	}
+
+	fprintf(stderr, "]");
+
+	gettimeofday(&aux_exec, NULL);
+	timersub(&aux_exec, &start, &elapsed);
+
+	if (options.files) {
+		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\tFile: (%d/%d)", (elapsed.tv_sec / 86400), (elapsed.tv_sec / 3600) % 60, (elapsed.tv_sec / 60) % 60, (elapsed.tv_sec) % 60, elapsed.tv_sec == 0 ? 0 : x / (elapsed.tv_sec * 1024 * 1024), ndldata->contFiles, nFiles);
+
+	} else {
+		fprintf(stderr, " Elapsed Time: (%ld %.2ld:%.2ld:%.2ld)\tRead Speed: %lld MB/s\t", (elapsed.tv_sec / 86400), (elapsed.tv_sec / 3600) % 60, (elapsed.tv_sec / 60) % 60, (elapsed.tv_sec) % 60, elapsed.tv_sec == 0 ? 0 : x / (elapsed.tv_sec * 1024 * 1024));
+	}
+
+#ifdef __linux__
+	fprintf(stderr, "\n");
+#endif
+
+	if (options.log) {
 		pthread_mutex_lock(&mutex);
-		syslog (LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x/(elapsed.tv_sec*1024*1024), ((int)(ratio*100)));
+		syslog(LOG_NOTICE, "SPEED: %ld secs @ %lld MB/s PROGRESS: %3.0d%%", elapsed.tv_sec, elapsed.tv_sec == 0 ? 0 : x / (elapsed.tv_sec * 1024 * 1024), ((int)(ratio * 100)));
 		unsigned long collisions = hash_table_collisions();
-		syslog (LOG_NOTICE, "HASH_USAGE: %u %f%% COLLISIONS: %ld COLLISIONS_RATIO: %f%%", active_session_list_size, hash_table_usage()*100, collisions, hash_table_collisions_ratio(collisions)*100);
-		syslog (LOG_NOTICE, "POOL USAGE: node_pool: %f%% connections_pool: %f%% requests_pool: %f%%", pool_nodes_used_ratio()*100, pool_connections_used_ratio()*100, pool_requests_used_ratio()*100);
-		syslog (LOG_NOTICE, "TRANSACTIONS: %llu REQUESTS: %llu RESPONSES: %llu", get_transactions(), get_total_requests(), get_total_responses());
+		syslog(LOG_NOTICE, "HASH_USAGE: %u %f%% COLLISIONS: %ld COLLISIONS_RATIO: %f%%", active_session_list_size, hash_table_usage() * 100, collisions, hash_table_collisions_ratio(collisions) * 100);
+		syslog(LOG_NOTICE, "POOL USAGE: node_pool: %f%% connections_pool: %f%% requests_pool: %f%%", pool_nodes_used_ratio() * 100, pool_connections_used_ratio() * 100, pool_requests_used_ratio() * 100);
+		syslog(LOG_NOTICE, "TRANSACTIONS: %llu REQUESTS: %llu RESPONSES: %llu", get_transactions(), get_total_requests(), get_total_responses());
 
 		// syslog(LOG_NOTICE, "G.REQ: %lld (%lld) ACTIVE_REQ: %lld ACTIVE_CONNEXIONS: %"PRIu32" (%lld) G.RESP: %"PRIu32"", getGottenRequests(), get_total_requests(), get_active_requests(), active_session_list_size, get_total_connexions(), getGottenResponses());
-    	getrusage(RUSAGE_SELF, memory);
-		if(errno == EFAULT){
-		    syslog (LOG_NOTICE, "MEM Error: EFAULT\n");
-		}else if(errno == EINVAL){
-		    syslog (LOG_NOTICE, "MEM Error: EINVAL\n");
-		}else{
-			syslog (LOG_NOTICE, "MEM %ld %ld", elapsed.tv_sec, memory->ru_maxrss);
+		getrusage(RUSAGE_SELF, memory);
+
+		if (errno == EFAULT) {
+			syslog(LOG_NOTICE, "MEM Error: EFAULT\n");
+
+		} else if (errno == EINVAL) {
+			syslog(LOG_NOTICE, "MEM Error: EINVAL\n");
+
+		} else {
+			syslog(LOG_NOTICE, "MEM %ld %ld", elapsed.tv_sec, memory->ru_maxrss);
 		}
+
 		pthread_mutex_unlock(&mutex);
 	}
 
-    // ANSI Control codes to go back to the
-    // previous line and clear it.
-    fprintf(stderr, "\033[F");
-    fprintf(stderr, "\r");
-    //fflush(stderr);
+	// ANSI Control codes to go back to the
+	// previous line and clear it.
+	fprintf(stderr, "\033[F");
+	fprintf(stderr, "\r");
+	//fflush(stderr);
 }
 
-void *barra_de_progreso(){
-  
-  static long sleeptime = 2000000;
+void *barra_de_progreso()
+{
 
-  if(options.log){
+	static long sleeptime = 2000000;
+
+	if (options.log) {
 		sleeptime = 5000000;
-  }
+	}
 
-  	while(running){
-  		usleep(10000);
-  		if(options.index != NULL){
+	while (running) {
+		usleep(10000);
+
+		if (options.index != NULL) {
 			loadBar(ftello(NDLTfile(ndldata)), ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
-  		}else{
-  			loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
-  		}
-  		usleep(sleeptime);
-  	}
-	
+
+		} else {
+			loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+		}
+
+		usleep(sleeptime);
+	}
+
 	return NULL;
 }
 
-int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo){
+int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_info *pktinfo)
+{
 
 	// ERR_MSG("DEBUG/ begining parse_packet().\n");
 	size_t size_ethernet = SIZE_ETHERNET;
 
 	memset(pktinfo->url, 0, URL_SIZE);
-	pktinfo->ethernet = (struct sniff_ethernet*)(packet);
+	pktinfo->ethernet = (struct sniff_ethernet *)(packet);
+
 	//VLAN
-	if (pktinfo->ethernet->ether_type == 0x81){
-		size_ethernet += 4;	
+	if (pktinfo->ethernet->ether_type == 0x81) {
+		size_ethernet += 4;
 	}
-	
+
 	// if (pktinfo->ethernet->ether_type == ){
 
 	// }
 
-	pktinfo->ip = (struct sniff_ip*)(packet + size_ethernet);
-	pktinfo->size_ip = IP_HL(pktinfo->ip)*4;
+	pktinfo->ip = (struct sniff_ip *)(packet + size_ethernet);
+	pktinfo->size_ip = IP_HL(pktinfo->ip) * 4;
 
 	if (pktinfo->size_ip < 20) {
-		
+
 		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_ip < 20\n");
-		
+
 		return 1;
 	}
 
-	if(pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)){
-		
+	if (pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)) {
+
 		// ERR_MSG("DEBUG/ finish parse_packet(). pkthdr->caplen < (size_ethernet + pktinfo->size_ip + 20)\n");
-		
+
 		return 1;
 	}
 
-	pktinfo->tcp = (struct sniff_tcp*)(packet + size_ethernet + pktinfo->size_ip);
-	pktinfo->size_tcp = TH_OFF(pktinfo->tcp)*4;
+	pktinfo->tcp = (struct sniff_tcp *)(packet + size_ethernet + pktinfo->size_ip);
+	pktinfo->size_tcp = TH_OFF(pktinfo->tcp) * 4;
 
 	pktinfo->port_src = ntohs(pktinfo->tcp->th_sport);       /* source port */
 	pktinfo->port_dst = ntohs(pktinfo->tcp->th_dport);       /* destination port */
 
 	pktinfo->tcp->th_seq = ntohl(pktinfo->tcp->th_seq);
- 	pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
-      
-    if (pktinfo->size_tcp < 20) {
-	    return 1;
-    }
+	pktinfo->tcp->th_ack = ntohl(pktinfo->tcp->th_ack);
 
-    pktinfo->payload = (u_char *)(packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
-    pktinfo->size_payload = pkthdr->caplen - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
-    pktinfo->ts.tv_sec = pkthdr->ts.tv_sec;
-    pktinfo->ts.tv_nsec = pkthdr->ts.tv_nsec;
-	
-  	if(http_parse_packet(pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip->ip_src, pktinfo->ip->ip_dst) == -1){
- 		http_clean_up(&http);
+	if (pktinfo->size_tcp < 20) {
+		return 1;
+	}
+
+	pktinfo->payload = (u_char *)(packet + size_ethernet + pktinfo->size_ip + pktinfo->size_tcp);
+	pktinfo->size_payload = pkthdr->caplen - size_ethernet - pktinfo->size_ip - pktinfo->size_tcp;
+	pktinfo->ts.tv_sec = pkthdr->ts.tv_sec;
+	pktinfo->ts.tv_nsec = pkthdr->ts.tv_nsec;
+
+	if (http_parse_packet(pktinfo->payload, (int) pktinfo->size_payload, &http, pktinfo->ip->ip_src, pktinfo->ip->ip_dst) == -1) {
+		http_clean_up(&http);
 		// ERR_MSG("DEBUG/ finish parse_packet(). http_parse_packet returned -1\n");
- 		return 1;
- 	}
+		return 1;
+	}
 
-    if(pktinfo->size_payload <= 0){
-    	pktinfo->request = -1;
-    	http_clean_up(&http);
+	if (pktinfo->size_payload <= 0) {
+		pktinfo->request = -1;
+		http_clean_up(&http);
 		// ERR_MSG("DEBUG/ finish parse_packet(). pktinfo->size_payload <= 0\n");
-    	return 1;
-    }
+		return 1;
+	}
 
-    pktinfo->op = http_get_op(http);
-	if(pktinfo->op == RESPONSE){
+	pktinfo->op = http_get_op(http);
+
+	if (pktinfo->op == RESPONSE) {
 		pktinfo->request = 0;
 		pktinfo->responseCode = http_get_response_code(http);
 		strncpy(pktinfo->response_msg, http_get_response_msg(http), RESP_MSG_SIZE);
 		pktinfo->response_msg[RESP_MSG_SIZE - 1] = 0;
-	}else if(http_is_request(pktinfo->op)){
-		char * host = http_get_host(http);
-		char * agent = http_get_agent(http);
-		char * uri = http_get_uri(http);
-		
+
+	} else if (http_is_request(pktinfo->op)) {
+		char *host = http_get_host(http);
+		char *agent = http_get_agent(http);
+		char *uri = http_get_uri(http);
+
 		strcpy(pktinfo->agent, agent);
 		strcpy(pktinfo->host, host);
 		strcpy(pktinfo->url, uri);
-		
 
-		if(options.url != NULL){
-			if(boyermoore_search(pktinfo->url, options.url) == NULL){
+
+		if (options.url != NULL) {
+			if (boyermoore_search(pktinfo->url, options.url) == NULL) {
 				http_clean_up(&http);
-				
+
 				// ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search url returned NULL\n");
-				
+
 				return 1;
 			}
 		}
 
-		if(options.host != NULL){
-			if(boyermoore_search(pktinfo->host, options.host) == NULL){
+		if (options.host != NULL) {
+			if (boyermoore_search(pktinfo->host, options.host) == NULL) {
 				http_clean_up(&http);
-				
+
 				// ERR_MSG("DEBUG/ finish parse_packet(). boyermoore_search host returned NULL\n");
-				
+
 				return 1;
 			}
 		}
 
 		pktinfo->request = 1;
-	}else{
+
+	} else {
 		pktinfo->request = -1;
 	}
 
-	
+
 	// ERR_MSG("DEBUG/ calling http_clean_up().\n");
 
 	http_clean_up(&http);
@@ -452,26 +500,31 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr, packet_i
 	return 0;
 }
 
-void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet){
+void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char *packet)
+{
 
 	static unsigned long current_interval = 0;
 	static bool in_interval = false;
 	static interval i;
 
 	//PROCESSING A NEW INTERVAL
-	if(!in_interval && current_interval < interval_ctr){
+	if (!in_interval && current_interval < interval_ctr) {
 		i = intervals[current_interval];
-		if(NDLTjumpToPacket(ndldata, i.start_packet) == 0){
+
+		if (NDLTjumpToPacket(ndldata, i.start_packet) == 0) {
 			//ERR
 			fprintf(stderr, "ERROR JUMPING IN FILE %llu\n", i.start_packet);
 			exit(1);
 		}
+
 		in_interval = true;
-	}else{
-		if(pkthdr->ts.tv_sec > i.end_ts){
+
+	} else {
+		if (pkthdr->ts.tv_sec > i.end_ts) {
 			in_interval = false;
 			current_interval++;
-		}else{
+
+		} else {
 			callback(useless, pkthdr, packet);
 		}
 	}
@@ -479,21 +532,22 @@ void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_ch
 	return;
 }
 
-u_int64_t pkts,bytes;
-u_int32_t last_sec=0;
+u_int64_t pkts, bytes;
+u_int32_t last_sec = 0;
 u_int32_t nn_packets = 0;
 #define PAYLOAD_AUX_SIZE 1800
 u_char *payload_aux = NULL;
 
-void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
+void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg)
+{
 	struct NDLTpkthdr pkthdr2;
 	pkthdr2.caplen = header->caplen;
 	pkthdr2.len = header->len;
 	pkthdr2.ts.tv_sec = header->ts.tv_sec;
 	pkthdr2.ts.tv_nsec = header->ts.tv_usec * 1000;
 
- 	memset(payload_aux, 0, PAYLOAD_AUX_SIZE);
- 	memcpy(payload_aux, payload, PAYLOAD_AUX_SIZE > pkthdr2.caplen ? pkthdr2.caplen : PAYLOAD_AUX_SIZE);
+	memset(payload_aux, 0, PAYLOAD_AUX_SIZE);
+	memcpy(payload_aux, payload, PAYLOAD_AUX_SIZE > pkthdr2.caplen ? pkthdr2.caplen : PAYLOAD_AUX_SIZE);
 
 	callback(arg, &pkthdr2, payload_aux);
 
@@ -501,7 +555,8 @@ void hpcap_callback(u_int8_t *payload, struct pcap_pkthdr *header, void *arg){
 
 }
 
-void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet){
+void online_callback(u_char *useless, const struct pcap_pkthdr *pkthdr, const u_char *packet)
+{
 
 	struct NDLTpkthdr pkthdr2;
 	pkthdr2.caplen = pkthdr->caplen;
@@ -515,68 +570,68 @@ void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_
 
 }
 
-void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet)
+void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char *packet)
 {
 
 	//LOCK
 	pthread_mutex_lock(&mutex);
 
-	if( unlikely((getGottenRequests() / ((float) REQUEST_POOL)) > 0.6 )){
+	if (unlikely((getGottenRequests() / ((float) REQUEST_POOL)) > 0.6)) {
 		if (unlikely(options.verbose)) {
-	        fprintf(stderr, "DEBUG/ ==============================\n");
-	        fprintf(stderr, "DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
+			fprintf(stderr, "DEBUG/ ==============================\n");
+			fprintf(stderr, "DEBUG/ Elements active in table hash before removing entries: %"PRIu32"\n", active_session_list_size);
 		}
 
 		unsigned long removed = remove_old_active_nodes(last_packet);
 		increment_total_removed_requests(removed);
 
-		if (unlikely(options.verbose)){
-		    fprintf(stderr, "DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
-		    fprintf(stderr, "DEBUG/ ==============================\n\n");
+		if (unlikely(options.verbose)) {
+			fprintf(stderr, "DEBUG/ Elements active in table hash after removing entries: %"PRIu32" Removed: %ld\n", active_session_list_size, removed);
+			fprintf(stderr, "DEBUG/ ==============================\n\n");
 		}
-    }
+	}
 
-	if(first_packet.tv_sec == 0){
+	if (first_packet.tv_sec == 0) {
 		first_packet = pkthdr->ts;
 		fprintf(stderr, "First Packet. Caplen: %"PRIu32", Len: %"PRIu32"\n", pkthdr->caplen, pkthdr->len);
 
 	}
 
-	if(pkthdr->caplen > max_caplen){
+	if (pkthdr->caplen > max_caplen) {
 		max_caplen = pkthdr->caplen;
 	}
 
-	if(pkthdr->len > max_len){
+	if (pkthdr->len > max_len) {
 		max_len = pkthdr->len;
 	}
 
 	last_packet = pkthdr->ts;
 	packets++;
 
-	if(packets % options.skip != 0){
+	if (packets % options.skip != 0) {
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
-	
+
 	memset(pktinfo, 0, sizeof(packet_info));
- 
-  	int ret = parse_packet(packet, pkthdr, pktinfo);
 
-	if(ret){
+	int ret = parse_packet(packet, pkthdr, pktinfo);
+
+	if (ret) {
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
 
-	if(pktinfo->request == -1){ //NI GET NI RESPONSE
+	if (pktinfo->request == -1) { //NI GET NI RESPONSE
 		pthread_mutex_unlock(&mutex);
 		return;
 	}
 
-	if(insertPacket(pktinfo) != 0){
+	if (insertPacket(pktinfo) != 0) {
 		decrement_inserts();
 	}
-	 
-    increment_inserts();
+
+	increment_inserts();
 
 	pthread_mutex_unlock(&mutex);
 }
@@ -587,11 +642,13 @@ uint32_t *variance_data = NULL;
 int variance_packets = 0;
 
 
-int indexCompareFunction(const void *a, const void *b){
-	return ( *(uint32_t*)a - *(uint32_t*)b);
+int indexCompareFunction(const void *a, const void *b)
+{
+	return (*(uint32_t *)a - * (uint32_t *)b);
 }
 
-void reset(){
+void reset()
+{
 	freeNodelPool();
 	freeConnectionPool();
 	freeRequestPool();
@@ -615,25 +672,26 @@ void reset(){
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 
 	// if(resized_session_table){
-	// 	session_table = (collision_list*) calloc(BIG_MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
+	// 	session_table = (collision_list*) calloc(BIG_MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));
 	// }else{
-	session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
+	session_table = (collision_list *) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));
 	// }
 }
 
 
 ///////END ADDED
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[])
+{
 
-	#ifdef LOW_MEMORY_DISSECTOR
+#ifdef LOW_MEMORY_DISSECTOR
 	fprintf(stderr, "httpDissector: %s LOW MEMORY MODE\n", version);
-	#endif
-	#ifndef LOW_MEMORY_DISSECTOR
+#endif
+#ifndef LOW_MEMORY_DISSECTOR
 	fprintf(stderr, "httpDissector: %s\n", version);
-	#endif
-	
-	//GET 
+#endif
+
+	//GET
 	//POST
 	//HEAD
 	//PUT
@@ -655,13 +713,15 @@ int main(int argc, char *argv[]){
 		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450))");
 
 	options = parse_args(argc, argv);
-	if(options.err == -3){
+
+	if (options.err == -3) {
 		how_to_use(argv[0]);
 		FREE(filter);
 		filter = NULL;
 		return 0;
 	}
-	if(options.err < 0){
+
+	if (options.err < 0) {
 		fprintf(stderr, "\nError: %s\n", options.errbuf);
 		how_to_use(argv[0]);
 		FREE(filter);
@@ -669,28 +729,29 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 
-	if(options.version){
+	if (options.version) {
 		fprintf(stderr, "%s\n", version);
 		return 0;
 	}
 
-	if(options.raw == 1){
+	if (options.raw == 1) {
 		strcpy(format, NDLTFORMAT_DRIV_STR);
-	}else{
+
+	} else {
 		strcpy(format, NDLTFORMAT_PCAP_STR);
 	}
 
-	if(options.filter != NULL){
-		switch (options.filter_mode){
-			case OR:
-				filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 6)*sizeof(char));
-				strcat(filter, " or ");
-				strcat(filter, options.filter);
-				break;
-			case AND:
-				{
+	if (options.filter != NULL) {
+		switch (options.filter_mode) {
+		case OR:
+			filter = (char *) realloc(filter, (strlen(filter) + strlen(options.filter) + 6) * sizeof(char));
+			strcat(filter, " or ");
+			strcat(filter, options.filter);
+			break;
+
+		case AND: {
 				char *filter_aux = (char *) calloc((strlen(filter) + strlen(options.filter) + 6), sizeof(char));
-				
+
 				strcat(filter_aux, options.filter);
 				strcat(filter_aux, " and ");
 				strcat(filter_aux, filter);
@@ -698,16 +759,17 @@ int main(int argc, char *argv[]){
 				char *aux = filter;
 				filter = filter_aux;
 				free(aux);
-				}
-				break;
-			case OVERWRITE:
-				free(filter);
-				filter = strdup(options.filter);
-				break;
+			}
+			break;
+
+		case OVERWRITE:
+			free(filter);
+			filter = strdup(options.filter);
+			break;
 		}
 	}
 
-	if(options.debug != 0){
+	if (options.debug != 0) {
 		fprintf(stderr, "DEBUG/ Activated\n");
 		fprintf(stderr, "DEBUG/ RAW: %s\n", options.raw ? "true" : "false");
 		fprintf(stderr, "DEBUG/ Files: %s\n", options.files ? "true" : "false");
@@ -725,25 +787,28 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "\n");
 	}
 
-	if(options.output != NULL){
-		if(options.binary){
+	if (options.output != NULL) {
+		if (options.binary) {
 			output = fopen(options.output, "wb");
-		}else{
-			output = fopen(options.output, "w");	
+
+		} else {
+			output = fopen(options.output, "w");
 		}
-		
-		if(output == NULL){
+
+		if (output == NULL) {
 			fprintf(stderr, "ERROR TRYING TO OPEN THE OUTPUT FILE\n");
 			FREE(filter);
 			return -2;
 		}
-	}else{
+
+	} else {
 		output = stdout;
 	}
 
-	if(options.gcoutput != NULL){
+	if (options.gcoutput != NULL) {
 		gcoutput = fopen(options.gcoutput, "w");
-		if(output == NULL){
+
+		if (output == NULL) {
 			fprintf(stderr, "ERROR TRYING TO OPEN THE GC-OUTPUT FILE\n");
 			FREE(filter);
 			return -8;
@@ -759,16 +824,17 @@ int main(int argc, char *argv[]){
 	// 	}
 	// }
 
-	if(options.files){
+	if (options.files) {
 		files_path = parse_list_of_files(options.input, &nFiles);
-		if(files_path == NULL){
+
+		if (files_path == NULL) {
 			fprintf(stderr, "Failure parsing list of files\n");
 			return -1;
 		}
 	}
 
 	//INICIALIZO TABLA
-	session_table = (collision_list*) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));	
+	session_table = (collision_list *) calloc(MAX_FLOWS_TABLE_SIZE, sizeof(collision_list));
 
 
 	//HTTP
@@ -784,17 +850,18 @@ int main(int argc, char *argv[]){
 	pktinfo = (packet_info *) calloc(sizeof(packet_info), 1);
 
 	//PAYLOAD_AUX
-	payload_aux = (u_char *) malloc(sizeof(u_char)*PAYLOAD_AUX_SIZE);
-	
+	payload_aux = (u_char *) malloc(sizeof(u_char) * PAYLOAD_AUX_SIZE);
+
 	//SORTED PRINT LIST
-	if(options.sorted){
+	if (options.sorted) {
 		initPrintElementList();
 	}
 
 	//USING INDEX FILE
-	if(options.index != NULL && !options.files){
+	if (options.index != NULL && !options.files) {
 		intervals = read_index(options.index, options.input, &interval_ctr);
-		if(interval_ctr == 0){
+
+		if (interval_ctr == 0) {
 			fprintf(stderr, "\nFile not big enough to use indices.\n\n");
 			options.index = NULL;
 		}
@@ -802,24 +869,26 @@ int main(int argc, char *argv[]){
 
 	main_process(format, options.input);
 
-	if(options.output != NULL){
+	if (options.output != NULL) {
 		fclose(output);
 	}
 
-	if(options.gcoutput != NULL){
+	if (options.gcoutput != NULL) {
 		fclose(gcoutput);
 	}
 
-	if(files_path != NULL){
-		int i=0;
-		for(i=0; i<nFiles; i++){
+	if (files_path != NULL) {
+		int i = 0;
+
+		for (i = 0; i < nFiles; i++) {
 			FREE(files_path[i]);
 		}
+
 		FREE(files_path);
 		files_path = NULL;
 	}
 
-	if(options.index!=NULL){
+	if (options.index != NULL) {
 		FREE(intervals);
 	}
 
@@ -833,59 +902,63 @@ int main(int argc, char *argv[]){
 }
 
 
-int main_process(char *format, char *filename){
+int main_process(char *format, char *filename)
+{
 
 	global_filename = filename;
 	struct bpf_program fp;
 
-	if(options.log){
-		
-		if(options.interface != NULL){
+	if (options.log) {
+
+		if (options.interface != NULL) {
 			options.log = 0;
-		}else{
-			setlogmask (LOG_UPTO (LOG_DEBUG));
-     		openlog ("httpDissector", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
-	    	syslog (LOG_NOTICE, "Log started by process: %d", getpid());
-	    	syslog (LOG_NOTICE, "Reading file: %s", filename);
-	    	syslog (LOG_NOTICE, "SPEED secs\tspeed");
-	    	syslog (LOG_NOTICE, "MEM secs memory (kb)");
-	    	memory = malloc(sizeof(struct rusage));
-    	}
+
+		} else {
+			setlogmask(LOG_UPTO(LOG_DEBUG));
+			openlog("httpDissector", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+			syslog(LOG_NOTICE, "Log started by process: %d", getpid());
+			syslog(LOG_NOTICE, "Reading file: %s", filename);
+			syslog(LOG_NOTICE, "SPEED secs\tspeed");
+			syslog(LOG_NOTICE, "MEM secs memory (kb)");
+			memory = malloc(sizeof(struct rusage));
+		}
 	}
 
 	char errbuf[PCAP_ERRBUF_SIZE] = {0};
-	
-	if(options.hpcap != -1){
-		#ifdef HPCAP_SUPPORT
+
+	if (options.hpcap != -1) {
+#ifdef HPCAP_SUPPORT
 		hpcap_packet_online_loop(options.hpcap, options.hpcap_ifindex, options.hpcap_qindex, hpcap_callback, NULL);
 		exit(-1);
-		#endif
-		#ifndef HPCAP_SUPPORT
+#endif
+#ifndef HPCAP_SUPPORT
 		fprintf(stderr, "NO HPCAP SUPPORT IN THIS COMPILED VERSION. PLEASE, RECOMPILE WITH make httpDissectorHPCAP.\n");
 		exit(-2);
-		#endif
-	}else if(options.interface == NULL){
-		
+#endif
+
+	} else if (options.interface == NULL) {
+
 		ERR_MSG("DEBUG/ Before calling NDLTabrirTraza()\n");
 
-	  	if(options.files){
+		if (options.files) {
 			ndldata = NDLTabrirTraza(filename, format, filter, 1, errbuf);
-		}else{
+
+		} else {
 			ndldata = NDLTabrirTraza(filename, format, filter, 0, errbuf);
 		}
 
-		if(ndldata == NULL){
+		if (ndldata == NULL) {
 			fprintf(stderr, "NULL WHILE OPENING NDL FILE: %s\n", errbuf);
-			fprintf(stderr, "File: %s\tRAW flag = %s\n", options.input, options.raw == 0? "false" : "true");
+			fprintf(stderr, "File: %s\tRAW flag = %s\n", options.input, options.raw == 0 ? "false" : "true");
 			return -1;
 		}
 
-		if(options.raw != 1 && !options.files){
+		if (options.raw != 1 && !options.files) {
 			fprintf(stderr, "Snapshot length: %d\n", pcap_snapshot(ndldata->traceFile.ph));
 		}
 
-		if(options.discards!=NULL){
-			if(!NDLTopenFileDiscards(ndldata, options.discards, errbuf)){
+		if (options.discards != NULL) {
+			if (!NDLTopenFileDiscards(ndldata, options.discards, errbuf)) {
 				fprintf(stderr, "ERROR WHILE OPENING DISCARDS FILE (%s): %s\n", options.discards, errbuf);
 				return -1;
 			}
@@ -893,27 +966,28 @@ int main_process(char *format, char *filename){
 
 
 		ERR_MSG("DEBUG/ After calling NDLTabrirTraza()\n");
-		
-	}else{ //READ FROM INTERFACE
+
+	} else { //READ FROM INTERFACE
 
 		ERR_MSG("DEBUG/ calling pcap_open_live()\n");
-		
+
 		handle = pcap_open_live(options.interface, SNAPLEN, PROMISC, to_MS, errbuf);
-		if(handle == NULL){
+
+		if (handle == NULL) {
 			fprintf(stderr, "Couldn't open device %s: %s\n", options.interface, errbuf);
-		 	return -2;
+			return -2;
 		}
 
 		ERR_MSG("DEBUG/ calling pcap_compile()\n");
 
-		if(pcap_compile(handle, &fp, filter, 1, 0) == -1){
+		if (pcap_compile(handle, &fp, filter, 1, 0) == -1) {
 			fprintf(stderr, "Couldn't parse filter, %s\n|%s|", pcap_geterr(handle), filter);
 			return -3;
 		}
 
 		ERR_MSG("DEBUG/ calling pcap_setfilter()\n");
 
-		if(pcap_setfilter(handle, &fp) == -1){
+		if (pcap_setfilter(handle, &fp) == -1) {
 			fprintf(stderr, "Couldn't install filter, %s\n", pcap_geterr(handle));
 			return -4;
 		}
@@ -921,22 +995,22 @@ int main_process(char *format, char *filename){
 
 	ERR_MSG("DEBUG/ Creating hash table\n");
 
-   	//creamos los hilos
+	//creamos los hilos
 
 	ERR_MSG("DEBUG/ Creating collector thread\n");
 
 	//RECOLECTOR
-	if(options.collector){
+	if (options.collector) {
 		pthread_create(&collector, NULL, recolector_de_basura, NULL);
 	}
-	
+
 	gettimeofday(&start, NULL);
 	running = 1;
 
 	ERR_MSG("DEBUG/ Creating progress_bar thread\n");
 
 	//BARRA DE PROGRESO
-	if(options.interface == NULL && progress_bar){
+	if (options.interface == NULL && progress_bar) {
 		pthread_create(&progress, NULL, barra_de_progreso, NULL);
 	}
 
@@ -947,26 +1021,31 @@ int main_process(char *format, char *filename){
 	ERR_MSG("DEBUG/ before loop\n");
 	ERR_MSG("DEBUG/ ===============\n");
 
-	if(options.interface == NULL){
+	if (options.interface == NULL) {
 		int ret = 0;
-		if(options.index != NULL && !options.files){
+
+		if (options.index != NULL && !options.files) {
 			ret = NDLTsetIndexFile(ndldata, options.index);
-			if(ret != 1){
+
+			if (ret != 1) {
 				fprintf(stderr, "ERROR LOADING INDEX FILE IN NDleeTrazas\n");
 				exit(-1);
 			}
+
 			ret = NDLTloop(ndldata, index_callback, NULL);
-		}else{
+
+		} else {
 			ret = NDLTloop(ndldata, callback, NULL);
 		}
 
-		if(ret != 1){
+		if (ret != 1) {
 			sigintHandler(1);
 		}
-		
-	}else{
+
+	} else {
 		pcap_loop(handle, -1, online_callback, NULL);
 	}
+
 	gettimeofday(&end, NULL);
 	remove_old_active_nodes(last_packet);
 
@@ -977,27 +1056,30 @@ int main_process(char *format, char *filename){
 
 	ERR_MSG("DEBUG/ closing collector\n");
 
-	if(options.collector){
+	if (options.collector) {
 		pthread_join(collector, NULL);
-  	}
+	}
 
-  	ERR_MSG("DEBUG/ calling remove_old_active_nodes\n");
+	ERR_MSG("DEBUG/ calling remove_old_active_nodes\n");
 
 	ERR_MSG("DEBUG/ closing progress_bar\n");
 
 	total_packets_in_file = NDLTpktNumber(ndldata);
 
-  	if(options.interface == NULL && progress_bar){
-  		pthread_join(progress, NULL);
-  		if(options.index != NULL){
-			loadBar(ftello(NDLTfile(ndldata)), ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
-  		}else{
-  			loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
-  		}
-  		NDLTclose(ndldata);
-  	}
+	if (options.interface == NULL && progress_bar) {
+		pthread_join(progress, NULL);
 
-  	if(options.sorted){
+		if (options.index != NULL) {
+			loadBar(ftello(NDLTfile(ndldata)), ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+
+		} else {
+			loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
+		}
+
+		NDLTclose(ndldata);
+	}
+
+	if (options.sorted) {
 		freePrintElementList();
 	}
 
@@ -1007,30 +1089,32 @@ int main_process(char *format, char *filename){
 	return 0;
 }
 
-void print_info(long elapsed){
-	
-	setlocale(LC_ALL, "en_US"); 
+void print_info(long elapsed)
+{
+
+	setlocale(LC_ALL, "en_US");
 
 	setvbuf(stderr, NULL, _IONBF, 0);
 
-	if(options.interface){
+	if (options.interface) {
 		struct pcap_stat ps;
- 		pcap_stats(handle, &ps);
+		pcap_stats(handle, &ps);
 		fprintf(stderr, "\nPCAP STATS: recv: %u; drop: %u; ifdrop: %u", ps.ps_recv, ps.ps_drop, ps.ps_ifdrop);
 	}
-	
-	fprintf(stderr, "\n\nFile: %s \nTotal packets in file: %'ld (Processed packets: %'ld)\n", global_filename == NULL? options.interface : global_filename, total_packets_in_file, packets);
-	
-	if(elapsed != 0){
+
+	fprintf(stderr, "\n\nFile: %s \nTotal packets in file: %'ld (Processed packets: %'ld)\n", global_filename == NULL ? options.interface : global_filename, total_packets_in_file, packets);
+
+	if (elapsed != 0) {
 		// fprintf(stderr, "Speed: %.3Lf Packets/sec (%.3Lf)\n", packets == 0 ? 0 : ((long double)packets)/elapsed, total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file)/elapsed);
-		fprintf(stderr, "Speed: %'.3Lf Packets/sec (%'.3Lf Processed Packets/sec)\n", total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file)/elapsed, packets == 0 ? 0 : ((long double)packets)/elapsed);
-		if(options.log){
-			syslog (LOG_NOTICE, "Speed: %'.3Lf Packets/sec (%'.3Lf Processed Packets/sec)\n", total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file)/elapsed, packets == 0 ? 0 : ((long double)packets)/elapsed);
+		fprintf(stderr, "Speed: %'.3Lf Packets/sec (%'.3Lf Processed Packets/sec)\n", total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file) / elapsed, packets == 0 ? 0 : ((long double)packets) / elapsed);
+
+		if (options.log) {
+			syslog(LOG_NOTICE, "Speed: %'.3Lf Packets/sec (%'.3Lf Processed Packets/sec)\n", total_packets_in_file == 0 ? 0 : ((long double)total_packets_in_file) / elapsed, packets == 0 ? 0 : ((long double)packets) / elapsed);
 		}
-	}	
+	}
 
 	fprintf(stderr, "\nTotal Responses: %lld\n", get_total_responses());
-	fprintf(stderr, "Responses without request: %f%% (%lld)\n", get_responses_without_request_ratio(), get_total_responses()-get_transactions());
+	fprintf(stderr, "Responses without request: %f%% (%lld)\n", get_responses_without_request_ratio(), get_total_responses() - get_transactions());
 	fprintf(stderr, "Responses out of order: %lld\n", get_total_out_of_order());
 
 	fprintf(stderr, "\nREQUEST STATS %s\n", options.noRtx ? "(RTx removed)" : "");
@@ -1045,14 +1129,16 @@ void print_info(long elapsed){
 	fprintf(stderr, "TRACE: %lld\n\n", get_trace_requests());
 
 	fprintf(stderr, "Total Requests: %lld\n", get_total_requests());
-	if(options.noRtx){
+
+	if (options.noRtx) {
 		fprintf(stderr, "\nTotal Transactions: %lld with a %f%% of Rtx (%lld)\n", get_transactions(), get_rtx_ratio(), get_total_rtx());
-	}else{
+
+	} else {
 		fprintf(stderr, "\nTotal Transactions: %lld\n", get_transactions());
 	}
-	
-	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_requests()-get_transactions());
-	
+
+	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n\n", get_requests_without_response_lost_ratio(), get_total_requests() - get_transactions());
+
 	fprintf(stderr, "Max. hash table usage: %"PRIu32"\n", max_active_session_list_size);
 
 	fprintf(stderr, "Packets from %ld.%09ld to %ld.%09ld\n", first_packet.tv_sec, first_packet.tv_nsec, last_packet.tv_sec, last_packet.tv_nsec);

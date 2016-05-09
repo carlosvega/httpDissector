@@ -19,13 +19,13 @@ struct timespec timeval_to_timespec(struct timeval ts);
 void increment_total_requests();
 unsigned long long get_total_requests();
 void print_backtrace(char *err);
-struct  timespec  tsSubtract (struct  timespec  t1, struct  timespec  t2);
-struct  timespec  tsAdd (struct  timespec  time1, struct  timespec  time2);
-double  tsFloat (struct  timespec  time);
+struct  timespec  tsSubtract(struct  timespec  t1, struct  timespec  t2);
+struct  timespec  tsAdd(struct  timespec  time1, struct  timespec  time2);
+double  tsFloat(struct  timespec  time);
 const char *boyermoore_search(const char *haystack, const char *needle);
 char *timeval_to_char(struct timespec ts);
 char *hash_key(const packet_info *pktinfo);
-char ** parse_list_of_files(char *filename, unsigned int *n_files);
-int  tsCompare (struct  timespec  time1, struct  timespec  time2);
+char **parse_list_of_files(char *filename, unsigned int *n_files);
+int  tsCompare(struct  timespec  time1, struct  timespec  time2);
 
 #endif
