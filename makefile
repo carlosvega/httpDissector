@@ -81,8 +81,8 @@ httpDissector_packetFeeder: httpDissector.c sampling_index.o counters.o index.o 
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
 httpDissector_wormhole: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o worm_pcap_bridge.c args_parse.o hpcap_utils.o
-	$(CFLAGS)  -I../../../include -c httpDissector.c -o httpDissector.o -D LOW_MEMORY_DISSECTOR
-	$(CFLAGS) -I../../../include  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS) -L../../../lib -lworm -D LOW_MEMORY_DISSECTOR
+	$(CFLAGS) -I../../../include -I../hptimelib/include -c httpDissector.c -o httpDissector.o -D LOW_MEMORY_DISSECTOR
+	$(CFLAGS) -I../../../include -I../hptimelib/include $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS) -L../../../lib -lworm -D LOW_MEMORY_DISSECTOR ../hptimelib/lib/hptl.a
 NDleeTrazas.o: NDleeTrazas.c
 	$(CFLAGS) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
