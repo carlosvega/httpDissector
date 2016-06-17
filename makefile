@@ -1,14 +1,14 @@
 HPCAPDIR=HPCAP4
 PACKETFEEDERDIR=../packet_feeder_shrmem
 
-CC = clang
+CC = gcc
 
 ifeq (, $(shell which clang))
 $(warning CLANG NOT FOUND, SWITCHING TO GCC)
 CC = gcc
 endif
 
-PRECFLAGS = $(CC) -Wall -D_GNU_SOURCE -Iinclude/ 
+PRECFLAGS = $(CC) -Wall -mtune=native -march=native -Ofast -D_GNU_SOURCE -Iinclude/ 
 CFLAGS = $(PRECFLAGS)
 LDFLAGS = -lm -lpthread -lpcap
 
@@ -86,10 +86,10 @@ HPCAP: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_p
 	@echo "INFO: COMPILING HPCAP VERSION..."
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $(HPCAP_DIR) $^ -o httpDissector $(PCAPLIB) $(HPCAPFLAGS) $(LDFLAGS)
-httpDissector_packetFeeder: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o ../packet_feeder_shrmem/packet_feeder_NDLT.o args_parse.o hpcap_utils.o lib/libmgmon.c ../packet_feeder_shrmem/packet_buffers.o
+httpDissector_packetFeeder: httpDissector.c tools.o http.o alist.o hash_table.o collision_list_pool.o http_event_pool.o process_packet.o ../packet_feeder_shrmem/packet_feeder_NDLT.o args_parse.o hpcap_utils.o lib/libmgmon.c ../packet_feeder_shrmem/packet_buffers.o
 	$(MAKE) -C $(PACKETFEEDERDIR)
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
-	$(CFLAGS)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
+	$(CFLAGS)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS) -lrt -lmgmon -lhpcap
 NDleeTrazas.o: NDleeTrazas.c
 	$(CFLAGS) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
