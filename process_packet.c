@@ -328,32 +328,42 @@ void *recolector_de_basura(){
 
 	long s_time = 10000;
 	long l=0;
+
+	struct timespec previous_to_last_packet_ts = {0};
+	u_int32_t previous_number_of_packets = 0;
+
 	//60 sleeps of 1 second, just to be able to end the thread properly
 	while(l<GC_SLEEP_SECS){ usleep(s_time); processing->running == 0 ? l=GC_SLEEP_SECS : (l+=s_time);}
 	while(processing->running){
-		
 		l=0;
-	 	
-		float col_ratio  = get_used_collision_list_elements()/(double)COLLISION_LIST_POOL_SIZE;
-		float http_ratio = get_used_http_event_elements()/(double)HTTP_EVENT_POOL_SIZE;
-		// fprintf(stderr, "Ratio Collision  List %lf\n", col_ratio);
-		// fprintf(stderr, "Ratio HTTP EVENT List %lf\n", http_ratio);
-		// fprintf(stderr, "Ratio HTTP EVENT per cell %lf\n", get_used_http_event_elements()/(double)get_used_collision_list_elements() );
+		if(!(previous_number_of_packets == processing->packets && previous_to_last_packet_ts.tv_sec == processing->last_packet.tv_sec)){
+		 	
+			float col_ratio  = get_used_collision_list_elements()/(double)COLLISION_LIST_POOL_SIZE;
+			float http_ratio = get_used_http_event_elements()/(double)HTTP_EVENT_POOL_SIZE;
+			// fprintf(stderr, "Ratio Collision  List %lf\n", col_ratio);
+			// fprintf(stderr, "Ratio HTTP EVENT List %lf\n", http_ratio);
+			// fprintf(stderr, "Ratio HTTP EVENT per cell %lf\n", get_used_http_event_elements()/(double)get_used_collision_list_elements() );
 
-		if(col_ratio > 0.5 || http_ratio > 0.5){
-			
-			clean_old_elements();
+			if(col_ratio > 0.5 || http_ratio > 0.5){
+				
+				clean_old_elements();
 
-			col_ratio  = get_used_collision_list_elements()/(double)COLLISION_LIST_POOL_SIZE;
-			http_ratio = get_used_http_event_elements()/(double)HTTP_EVENT_POOL_SIZE;
-			fprintf(stderr, "AFTER Ratio Collision  List %lf\n", col_ratio);
-			fprintf(stderr, "AFTER Ratio HTTP EVENT List %lf\n", http_ratio);
-			fprintf(stderr, "AFTER Ratio HTTP EVENT per cell %lf\n", get_used_http_event_elements()/(double)get_used_collision_list_elements());
+				col_ratio  = get_used_collision_list_elements()/(double)COLLISION_LIST_POOL_SIZE;
+				http_ratio = get_used_http_event_elements()/(double)HTTP_EVENT_POOL_SIZE;
+				// fprintf(stderr, "AFTER Ratio Collision  List %lf\n", col_ratio);
+				// fprintf(stderr, "AFTER Ratio HTTP EVENT List %lf\n", http_ratio);
+				// fprintf(stderr, "AFTER Ratio HTTP EVENT per cell %lf\n", get_used_http_event_elements()/(double)get_used_collision_list_elements());
+			}
+
+		 	// unsigned long removed = remove_old_active_nodes(last_packet);
+		 	// increment_total_removed_requests(removed);
+	        
+			previous_to_last_packet_ts.tv_sec = processing->last_packet.tv_sec;
+			previous_to_last_packet_ts.tv_nsec = processing->last_packet.tv_nsec;
+			previous_number_of_packets = processing->packets;
+
 		}
 
-	 	// unsigned long removed = remove_old_active_nodes(last_packet);
-	 	// increment_total_removed_requests(removed);
-        
 	 	while(l<GC_SLEEP_SECS){ usleep(s_time); processing->running == 0 ? l=GC_SLEEP_SECS : (l+=s_time);}
 	}
 
@@ -413,7 +423,7 @@ int begin_process(struct args_parse *o, process_info *p){
 
 
 	//JOIN THREADS
-	if(1){
+	if(0){
 		pthread_join(&processing->collector, NULL);
   	}
 
