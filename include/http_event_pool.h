@@ -7,7 +7,7 @@
 
 #include "dissector_structs.h"
 
-#define HTTP_EVENT_POOL_SIZE 600000
+#define HTTP_EVENT_POOL_SIZE 2000000
 
 //TODO: ALLOW MULTIPLE POOLS
 
