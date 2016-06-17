@@ -7,7 +7,7 @@
 
 #include "dissector_structs.h"
 
-#define COLLISION_LIST_POOL_SIZE 500000
+#define COLLISION_LIST_POOL_SIZE 2000000
 
 //TODO: ALLOW MULTIPLE POOLS
 
