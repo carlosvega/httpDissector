@@ -75,7 +75,7 @@ hpcap_utils.o: hpcap_utils.c
 	$(CFLAGS) -c $^ -o $@ 
 prueba_hpcap: prueba_hpcap.c hpcap_utils.o lib/libmgmon.c
 	$(CFLAGS) $(LIB_DIR) -o $@ $^ -lhpcap -lpcap -lm -lpthread
-httpDissector: httpDissector.c hash_table.o collision_list_pool.o http_event_pool.o process_packet.o alist.o tools.o http.o NDleeTrazas.o args_parse.o hpcap_utils.o
+httpDissector: httpDissector.c hash_table.o collision_list_pool.o counters.o http_event_pool.o process_packet.o alist.o tools.o http.o NDleeTrazas.o args_parse.o hpcap_utils.o
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $^ -o $@ $(PCAPLIB) $(LDFLAGS)
 LOW_MEMORY: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
