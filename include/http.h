@@ -18,9 +18,9 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 typedef enum {HEAD = 0, GET, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH, RESPONSE, ERR} http_op;
 
-typedef struct _internal_http_packet * http_packet;
+typedef struct _internal_http_packet *http_packet;
 
-http_op http_which_method(u_char * tcp_payload);
+http_op http_which_method(u_char *tcp_payload);
 int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, struct in_addr ip_src, struct in_addr ip_dst);
 
 int http_is_request(http_op h);

@@ -1,7 +1,7 @@
 #include "http.h"
 #include <stdio.h>
 #include <regex.h>
-// #include <pcre.h> 
+// #include <pcre.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@ extern struct args_parse options;
 
 // char aux_str[MAX_PAYLOAD_STRING];
 
-struct _internal_http_packet{
+struct _internal_http_packet {
 	http_header *headers;
 	char *data;
 	http_op op;
@@ -39,168 +39,212 @@ regex_t hostname_regex;
 // u_char u_cadena[CADENA_SIZE];
 char cadena_aux[CADENA_SIZE];
 
-http_header *http_get_headers(http_packet http){
+http_header *http_get_headers(http_packet http)
+{
 
-	if(http == NULL || http->headers == NULL){
+	if (http == NULL || http->headers == NULL) {
 		return NULL;
 	}
-	
+
 	return http->headers;
 }
 
-int http_is_request(http_op h){
-	switch(h){
-		case HEAD:
-			return 1;
-		case GET:
-			return 1;
-		case POST:
-			return 1;
-		case PUT:
-			return 1;
-		case DELETE:
-			return 1;
-		case TRACE:
-			return 1;
-		case OPTIONS:
-			return 1;
-		case CONNECT:
-			return 1;
-		case PATCH:
-			return 1;
-		case RESPONSE:
-			return 0;
-		default:
-			return 0;
+int http_is_request(http_op h)
+{
+	switch (h) {
+	case HEAD:
+		return 1;
+
+	case GET:
+		return 1;
+
+	case POST:
+		return 1;
+
+	case PUT:
+		return 1;
+
+	case DELETE:
+		return 1;
+
+	case TRACE:
+		return 1;
+
+	case OPTIONS:
+		return 1;
+
+	case CONNECT:
+		return 1;
+
+	case PATCH:
+		return 1;
+
+	case RESPONSE:
+		return 0;
+
+	default:
+		return 0;
 	}
 }
 
-char *http_get_data(http_packet http){
-	if(!http || !http->data){
+char *http_get_data(http_packet http)
+{
+	if (!http || !http->data) {
 		return NULL;
 	}
 
 	return http->data;
 }
 
-http_op http_get_op(http_packet http){
-	if(!http){
+http_op http_get_op(http_packet http)
+{
+	if (!http) {
 		return 0;
 	}
 
 	return http->op;
 }
 
-char *http_get_method(http_packet http){
-	if(!http || !http->method){
+char *http_get_method(http_packet http)
+{
+	if (!http || !http->method) {
 		return NULL;
 	}
 
 	return http->method;
 }
 
-char *http_op_to_char(http_op h){
-	switch(h){
-		case HEAD:
-			return "HEAD";
-		case GET:
-			return "GET";
-		case POST:
-			return "POST";
-		case PUT:
-			return "PUT";
-		case DELETE:
-			return "DELETE";
-		case TRACE:
-			return "TRACE";
-		case OPTIONS:
-			return "OPTIONS";
-		case CONNECT:
-			return "CONNECT";
-		case PATCH:
-			return "PATCH";
-		case RESPONSE:
-			return "RESPONSE";
-		default:
-			return "ERR";
+char *http_op_to_char(http_op h)
+{
+	switch (h) {
+	case HEAD:
+		return "HEAD";
+
+	case GET:
+		return "GET";
+
+	case POST:
+		return "POST";
+
+	case PUT:
+		return "PUT";
+
+	case DELETE:
+		return "DELETE";
+
+	case TRACE:
+		return "TRACE";
+
+	case OPTIONS:
+		return "OPTIONS";
+
+	case CONNECT:
+		return "CONNECT";
+
+	case PATCH:
+		return "PATCH";
+
+	case RESPONSE:
+		return "RESPONSE";
+
+	default:
+		return "ERR";
 	}
 }
 
-char *http_get_version(http_packet http){
-	if(!http || !http->version){
+char *http_get_version(http_packet http)
+{
+	if (!http || !http->version) {
 		return NULL;
 	}
 
 	return http->version;
 }
 
-char *http_get_uri(http_packet http){
-	if(!http || !http->uri){
+char *http_get_uri(http_packet http)
+{
+	if (!http || !http->uri) {
 		return NULL;
 	}
 
 	return http->uri;
 }
 
-char *http_get_host(http_packet http){
-	if(!http || !http->host){
+char *http_get_host(http_packet http)
+{
+	if (!http || !http->host) {
 		return NULL;
 	}
 
 	return http->host;
 }
 
-char *http_get_agent(http_packet http){
-	if(!http || !http->agent){
+char *http_get_agent(http_packet http)
+{
+	if (!http || !http->agent) {
 		return NULL;
 	}
 
 	return http->agent;
 }
 
-int http_get_response_code(http_packet http){
-	if(!http){
+int http_get_response_code(http_packet http)
+{
+	if (!http) {
 		return -1;
 	}
 
 	return http->response_code;
 }
 
-char *http_get_response_msg(http_packet http){
-	if(!http || !http->response_msg){
+char *http_get_response_msg(http_packet http)
+{
+	if (!http || !http->response_msg) {
 		return NULL;
 	}
 
 	return http->response_msg;
 }
 
-http_op http_which_method(u_char * tcp_payload){
-	
-	if(tcp_payload == NULL) return ERR;
-	
+http_op http_which_method(u_char *tcp_payload)
+{
+
+	if (tcp_payload == NULL) {
+		return ERR;
+	}
+
 	char method[16] = {0};
 
 	memcpy(method, tcp_payload, 8);
 
-	if(strncmp("GET ", method, 4) == 0){
+	if (strncmp("GET ", method, 4) == 0) {
 		return GET;
-	}else if(strncmp("HEAD ", method, 5) == 0){
+
+	} else if (strncmp("HEAD ", method, 5) == 0) {
 		return HEAD;
-	}else if(strncmp("POST ", method, 5) == 0){
+
+	} else if (strncmp("POST ", method, 5) == 0) {
 		return POST;
-	}else if(strncmp("PUT ", method, 4) == 0){
+
+	} else if (strncmp("PUT ", method, 4) == 0) {
 		return PUT;
-	}else if(strncmp("DELETE ", method, 7) == 0){
+
+	} else if (strncmp("DELETE ", method, 7) == 0) {
 		return DELETE;
-	}else if(strncmp("TRACE ", method, 6) == 0){
+
+	} else if (strncmp("TRACE ", method, 6) == 0) {
 		return TRACE;
-	}else if(strncmp("OPTIONS ", method, 8) == 0){
+
+	} else if (strncmp("OPTIONS ", method, 8) == 0) {
 		return OPTIONS;
-	}else if(strncmp("CONNECT ", method, 8) == 0){
+
+	} else if (strncmp("CONNECT ", method, 8) == 0) {
 		return CONNECT;
-	}else if(strncmp("PATCH ", method, 6) == 0){
+
+	} else if (strncmp("PATCH ", method, 6) == 0) {
 		return PATCH;
-	}else if(strncmp("HTTP/", method, 5) == 0){
+
+	} else if (strncmp("HTTP/", method, 5) == 0) {
 		return RESPONSE;
 	}
 
@@ -208,12 +252,13 @@ http_op http_which_method(u_char * tcp_payload){
 	return ERR;
 }
 
-int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, struct in_addr ip_src, struct in_addr ip_dst){
+int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, struct in_addr ip_src, struct in_addr ip_dst)
+{
 
-	if(length <= 0 || http_t == NULL || tcp_payload == NULL){
+	if (length <= 0 || http_t == NULL || tcp_payload == NULL) {
 		return -1;
 	}
-	
+
 	// if(http_alloc(http_t) == -1){
 	// 	return -1;
 	// }
@@ -225,10 +270,10 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 	http->data = NULL;
 	http->op = http_which_method(tcp_payload);
 
-	if(http->op == ERR){
+	if (http->op == ERR) {
 		return -1;
 	}
-	
+
 	// memset(u_cadena, 0, CADENA_SIZE);
 
 	// memcpy(u_cadena, tcp_payload, MIN(CADENA_SIZE, length));
@@ -239,49 +284,53 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 	cadena[MIN(CADENA_SIZE, length) - 1] = 0;
 
 	http->has_host = 0;
-	if(http->op != RESPONSE){ //REQUEST
+
+	if (http->op != RESPONSE) { //REQUEST
 		sscanf(cadena, "%32s %2048s %32s\r\n", http->method, http->uri, http->version);
 		char *host = get_host_from_headers(cadena);
 
-		if(host == NULL){
+		if (host == NULL) {
 			http->has_host = 0;
 			inet_ntop(AF_INET, &ip_dst, http->host, 16);
-		}else{
+
+		} else {
 			strcpy(http->host, host);
 			http->has_host = 1;
 		}
 
-		if(options.agent){
+		if (options.agent) {
 			char *agent = get_user_agent_from_headers(cadena);
 
-			if(agent == NULL){
+			if (agent == NULL) {
 				http->has_agent = 0;
 				strcpy(http->agent, "no agent");
-			}else{
+
+			} else {
 				strcpy(http->agent, agent);
 				http->has_agent = 1;
 			}
 		}
-		
-	}else{ //RESPONSE
+
+	} else { //RESPONSE
 		char *i = strstr(cadena, "\r\n");
 		short ret = 0;
-		if(i!=NULL){
-			cadena[i-cadena] = 0;
+
+		if (i != NULL) {
+			cadena[i - cadena] = 0;
 		}
-		
+
 		ret = sscanf(cadena, "%32s %d %[^\r\n]\r\n", http->version, &http->response_code, http->response_msg);
 
-		if(ret < 2){
+		if (ret < 2) {
 			http->response_code = -1;
 		}
 
 		// char *hdr = strstr(cadena, "\r\n");
-		// if(hdr == NULL){ 
+		// if(hdr == NULL){
 		// 	// FREE(cadena);
 		// 	return -1;
 		// }
-		
+
 		// char *data = strstr(cadena, "\r\n\r\n");
 		// if(data == NULL){
 		// 	no_data = 1;
@@ -292,7 +341,7 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 		// if(no_data == 0){
 		// 	data+=2; //Jump \r\n, THE HEADERS MUST END WITH \r\n
 		// }
-		
+
 		// hdr+=2; //Jump \r\n
 		// memset(aux_hdr, 0, MAX_PAYLOAD_STRING);
 		// // aux_hdr = (char*) calloc(((data-hdr)+1),sizeof(char));
@@ -302,132 +351,144 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 		// // }
 
 		// memcpy(aux_hdr, hdr, data-hdr);
-		
+
 		// if(no_data == 0 && *data == '\r')
 		// 	data+=2;	//Jump \r\n of the empty line
 
-		// NO NECESITAMOS LAS CABECERAS AUN		
+		// NO NECESITAMOS LAS CABECERAS AUN
 		// http->headers = (http_header *) calloc(sizeof(http_header), 1);
 		// if(http->headers == NULL){
 		// 	FREE(aux_hdr);
 		// 	// FREE(cadena);
 		// 	return -1;
 		// }
-		
-		 
+
+
 		// if(getLines(aux_hdr, http->headers) == -1){
 		// 	FREE(aux_hdr);
 		// 	FREE(cadena);
 		// 	return -1;
 		// }
-		
-		
+
+
 		// FREE(aux_hdr);
 
 		// if(no_data == 0){
-			//Copy HTTP data
-			// http->data = strdup(data);
-			// if(http->data == NULL){
-			// 	return -1;
-			// }
+		//Copy HTTP data
+		// http->data = strdup(data);
+		// if(http->data == NULL){
+		// 	return -1;
+		// }
 		// }
 	}
 
 	// FREE(cadena);
 	return 0;
-} 
-
-int http_parse_headers(http_packet *http_t, char *cadena, int length){
-	struct _internal_http_packet *http = *http_t;
-
-		int ret = 0;
-		int no_data = 0;
-		char *aux_hdr = NULL;
-
-		char *hdr = strstr(cadena, "\r\n");
-		if(hdr == NULL){ 
-			return -3;
-		}
-		
-		char *data = strstr(cadena, "\r\n\r\n");
-		if(data == NULL){
-			no_data = 1;
-			data = cadena+length+1;
-		}
-
-		//Copy HTTP headers
-		if(no_data == 0){
-			data+=2; //Jump \r\n, THE HEADERS MUST END WITH \r\n
-		}
-		
-		hdr+=2; //Jump \r\n
-		aux_hdr = (char*) calloc(((data-hdr)+1),sizeof(char));
-		if(aux_hdr == NULL){
-			return -4;
-		}
-
-		memcpy(aux_hdr, hdr, data-hdr);
-		
-		if(no_data == 0 && *data == '\r')
-			data+=2;	//Jump \r\n of the empty line
-
-		http->headers = (http_header *) calloc(sizeof(http_header), 1);
-		if(http->headers == NULL){
-			FREE(aux_hdr);
-			return -5;
-		}
-		
-		ret = getLines(aux_hdr, http->headers);
-		
-		FREE(aux_hdr);
-		return ret;
 }
 
-char *get_user_agent_from_headers(char *cadena){
+int http_parse_headers(http_packet *http_t, char *cadena, int length)
+{
+	struct _internal_http_packet *http = *http_t;
+
+	int ret = 0;
+	int no_data = 0;
+	char *aux_hdr = NULL;
+
+	char *hdr = strstr(cadena, "\r\n");
+
+	if (hdr == NULL) {
+		return -3;
+	}
+
+	char *data = strstr(cadena, "\r\n\r\n");
+
+	if (data == NULL) {
+		no_data = 1;
+		data = cadena + length + 1;
+	}
+
+	//Copy HTTP headers
+	if (no_data == 0) {
+		data += 2; //Jump \r\n, THE HEADERS MUST END WITH \r\n
+	}
+
+	hdr += 2; //Jump \r\n
+	aux_hdr = (char *) calloc(((data - hdr) + 1), sizeof(char));
+
+	if (aux_hdr == NULL) {
+		return -4;
+	}
+
+	memcpy(aux_hdr, hdr, data - hdr);
+
+	if (no_data == 0 && *data == '\r') {
+		data += 2;    //Jump \r\n of the empty line
+	}
+
+	http->headers = (http_header *) calloc(sizeof(http_header), 1);
+
+	if (http->headers == NULL) {
+		FREE(aux_hdr);
+		return -5;
+	}
+
+	ret = getLines(aux_hdr, http->headers);
+
+	FREE(aux_hdr);
+	return ret;
+}
+
+char *get_user_agent_from_headers(char *cadena)
+{
 
 
 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
-	
+
 	char *host_1 = strstr(cadena, "User-Agent");
-	if(host_1 != NULL){		
-		int ret = sscanf (host_1, "User-Agent: %s\r\n", cadena_aux);
-		
-	    if( ret == 1 ){
-	        return cadena_aux;
-	    }
-	    else{
-	        return NULL;
-	    }
-	}else{
+
+	if (host_1 != NULL) {
+		int ret = sscanf(host_1, "User-Agent: %s\r\n", cadena_aux);
+
+		if (ret == 1) {
+			return cadena_aux;
+
+		} else {
+			return NULL;
+		}
+
+	} else {
 		return NULL;
 	}
 
 	return cadena_aux;
 }
 
-char *get_host_from_headers(char *cadena){
+char *get_host_from_headers(char *cadena)
+{
 
 	int reti, ret;
 
 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
 	char *host_1 = strstr(cadena, "Host");
 
-	if(unlikely(host_1 != NULL)){		
-		
-		ret = sscanf (host_1, "Host: %s\r\n", cadena_aux);
+	if (unlikely(host_1 != NULL)) {
 
-		if(likely(ret == 1)){
-			if(likely(options.fqdn == 0)){
+		ret = sscanf(host_1, "Host: %s\r\n", cadena_aux);
+
+		if (likely(ret == 1)) {
+			if (likely(options.fqdn == 0)) {
 				return cadena_aux;
-			} else if (options.fqdn == 1){
+
+			} else if (options.fqdn == 1) {
 				reti = regexec(&hostname_regex, cadena_aux, 0, NULL, 0);
-			    if( !reti ){
-			        return cadena_aux;
-			    }
+
+				if (!reti) {
+					return cadena_aux;
+				}
 			}
-		} 
+		}
 	}
-	
+
 	return NULL;
 }
 
@@ -437,13 +498,13 @@ char *get_host_from_headers(char *cadena){
 
 // 	memset(cadena_aux, 0, CADENA_AUX_SIZE);
 // 	char *host_1 = strstr(cadena, "Host");
-// 	if(host_1 != NULL){		
+// 	if(host_1 != NULL){
 // 		sscanf (host_1, "Host: %s\r\n", cadena_aux);
 
 // 		reti = pcre_exec(hostname_regex, pcreExtra, cadena_aux, strlen(cadena_aux), 0, 0, NULL, 0);
 // 		if(reti < 0){
 // 			switch(reti) {
-// 		      case PCRE_ERROR_NOMATCH      : //printf("String did not match the pattern (%s)\n", cadena_aux);        
+// 		      case PCRE_ERROR_NOMATCH      : //printf("String did not match the pattern (%s)\n", cadena_aux);
 // 		      break;
 // 		      case PCRE_ERROR_NULL         : printf("Something was null\n");                      break;
 // 		      case PCRE_ERROR_BADOPTION    : printf("A bad option was passed\n");                 break;
@@ -464,38 +525,46 @@ char *get_host_from_headers(char *cadena){
 // 	return cadena_aux;
 // }
 
-void http_print_headers(http_packet *http_t){
+void http_print_headers(http_packet *http_t)
+{
 
 
-	if(http_t == NULL){
-		 return;
+	if (http_t == NULL) {
+		return;
 	}
 
 	struct _internal_http_packet *http = *http_t;
-	if(http == NULL){
+
+	if (http == NULL) {
 		return;
 	}
-	
-	if(http->headers == NULL){
+
+	if (http->headers == NULL) {
 		return;
 	}
 
 	list_node *ls = http->headers->fields;
-	while(ls != NULL){
+
+	while (ls != NULL) {
 		fprintf(stdout, "%s: %s\n", ls->key, ls->value);
 		ls = ls->next;
 	}
-	
+
 	return;
 }
 
-int http_clean_up(http_packet *http_t){
+int http_clean_up(http_packet *http_t)
+{
 
-	if(http_t == 0) return -1;
+	if (http_t == 0) {
+		return -1;
+	}
 
 	struct _internal_http_packet *http = *http_t;
-	if(http == 0)
+
+	if (http == 0) {
 		return -1;
+	}
 
 	FREE(http->data);
 
@@ -514,34 +583,40 @@ int http_clean_up(http_packet *http_t){
 	return 0;
 }
 
-int http_alloc(http_packet *http_t){
-	
+int http_alloc(http_packet *http_t)
+{
+
 	/* Compile regular expression */
 	// const char *pcreErrorStr;
 	// int pcreErrorOffset;
 	// hostname_regex = pcre_compile("([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", 0, &pcreErrorStr, &pcreErrorOffset, NULL);
 	// if(hostname_regex == NULL) {
- //    	printf("ERROR: Could not compile '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
- //    	exit(1);
- //  	}
- //  	pcreExtra = pcre_study(hostname_regex, 0, &pcreErrorStr);
- //  	if(pcreErrorStr != NULL) {
- //    	printf("ERROR: Could not study '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
- //    	exit(1);
- //  	}
+//    	printf("ERROR: Could not compile '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
+//    	exit(1);
+//  	}
+//  	pcreExtra = pcre_study(hostname_regex, 0, &pcreErrorStr);
+//  	if(pcreErrorStr != NULL) {
+//    	printf("ERROR: Could not study '%s': %s\n", "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", pcreErrorStr);
+//    	exit(1);
+//  	}
 
 	/* Compile regular expression */
 	int reti = regcomp(&hostname_regex, "([a-zA-Z0-9\\.\\-]+\\.[a-zA-Z0-9\\.\\-]+[\\.]*[a-zA-Z0-9\\.\\-]+)", REG_EXTENDED);
-    if( reti ){ fprintf(stderr, "Could not compile regex\n"); exit(1); }
+
+	if (reti) {
+		fprintf(stderr, "Could not compile regex\n");
+		exit(1);
+	}
 
 
 	struct _internal_http_packet *http;
-	
+
 	http = (struct _internal_http_packet *) malloc(sizeof(* http));
-	if(http == NULL){
+
+	if (http == NULL) {
 		return -1;
 	}
-	
+
 	http->data = NULL;
 
 	memset(http, 0, sizeof(*http));
@@ -550,35 +625,40 @@ int http_alloc(http_packet *http_t){
 	return 0;
 }
 
-void http_free_packet(http_packet *http_t){
-	
+void http_free_packet(http_packet *http_t)
+{
+
 	/* Free compiled regular expression if you want to use the regex_t again */
 	// pcre_free(hostname_regex);
- //    if(pcreExtra != NULL)
- //    	pcre_free(pcreExtra);
+//    if(pcreExtra != NULL)
+//    	pcre_free(pcreExtra);
 
 	/* Free compiled regular expression if you want to use the regex_t again */
-    regfree(&hostname_regex);
+	regfree(&hostname_regex);
 
-	if(http_t == NULL || *http_t == NULL) return;
+	if (http_t == NULL || *http_t == NULL) {
+		return;
+	}
 
 	struct _internal_http_packet *http = *http_t;
-	if(http == NULL)
+
+	if (http == NULL) {
 		return;
+	}
 
 	FREE(http->data);
 
-	if(http->headers != NULL){
+	if (http->headers != NULL) {
 		http_free_header(http->headers);
 		FREE(http->headers);
 	}
 
-	if(http_t != NULL){
-		if(*http_t != NULL){
+	if (http_t != NULL) {
+		if (*http_t != NULL) {
 			FREE(http);
 		}
 	}
-		
+
 	http = NULL;
 	*http_t = NULL;
 

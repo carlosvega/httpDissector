@@ -64,11 +64,11 @@ void list_prepend_node(node_l **, node_l *);
 void list_append_node(node_l **list, node_l  *node);
 void list_unlink(node_l **, node_l *);
 node_l *list_pop_first_node(node_l **);
-node_l * list_search(node_l *first, node_l *node_to_find, int cmp(void *, void *));
+node_l *list_search(node_l *first, node_l *node_to_find, int cmp(void *, void *));
 
 void allocNodelPool(void);
 void getNodel(void);
-void releaseNodel(node_l* f);
+void releaseNodel(node_l *f);
 void freeNodelPool(void);
 
 void alternativeFreeNodePool(void);

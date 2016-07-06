@@ -8,8 +8,8 @@
 
 uint32_t getGottenResponses();
 void allocResponsePool(void);
-response * getResponse(void);
-void releaseResponse(response * f);
+response *getResponse(void);
+void releaseResponse(response *f);
 void freeResponsePool(void);
 node_l *response_search(node_l **list, tcp_seq seq, int *number);
 void fillResponse(packet_info *packet, response *res);

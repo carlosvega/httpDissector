@@ -49,8 +49,8 @@
 
 
 typedef struct {
-  int n;
-  node_l *list;
+	int n;
+	node_l *list;
 } colisiones;
 
 static unsigned long packets = 0;
@@ -61,8 +61,8 @@ unsigned int nFiles = 0;
 
 // void funcionLiberacion(gpointer data);
 // void print_foreach (gpointer key, gpointer value, gpointer user_data);
-void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet);
-void online_callback(u_char *useless, const struct pcap_pkthdr* pkthdr, const u_char* packet);
-void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* packet);
+void index_callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char *packet);
+void online_callback(u_char *useless, const struct pcap_pkthdr *pkthdr, const u_char *packet);
+void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char *packet);
 
 #endif

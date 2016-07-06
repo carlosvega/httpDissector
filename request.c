@@ -4,60 +4,64 @@ node_l static_node;
 
 node_l *nodel_aux;
 
-node_l *request_pool_free=NULL;
-node_l *request_pool_used=NULL;
+node_l *request_pool_free = NULL;
+node_l *request_pool_used = NULL;
 unsigned long long gottenRequests = 0;
 request *requests;
 
-float pool_requests_used_ratio(){
-    return list_size(&request_pool_used) / ((float) REQUEST_POOL);
+float pool_requests_used_ratio()
+{
+	return list_size(&request_pool_used) / ((float) REQUEST_POOL);
 }
 
-unsigned long long getGottenRequests(){
+unsigned long long getGottenRequests()
+{
 	return gottenRequests;
 }
 
 void allocRequestPool(void)
 {
-	size_t i=0;
-	node_l *n=NULL;
-	requests=calloc(REQUEST_POOL,sizeof(request));
-	
-	if(requests == NULL){
+	size_t i = 0;
+	node_l *n = NULL;
+	requests = calloc(REQUEST_POOL, sizeof(request));
+
+	if (requests == NULL) {
 		fprintf(stderr, "Execute the program on a host with enought memory. REQUEST_POOL: %d\n", REQUEST_POOL);
 	}
 
-	assert(requests!=NULL);
-	for(i=0;i<REQUEST_POOL;i++)
-	{
-		n=list_alloc_node(requests+i);
-		list_prepend_node(&request_pool_free,n);
+	assert(requests != NULL);
+
+	for (i = 0; i < REQUEST_POOL; i++) {
+		n = list_alloc_node(requests + i);
+		list_prepend_node(&request_pool_free, n);
 	}
 
 }
 
-request * getRequest(void)
+request *getRequest(void)
 {
 
 	//Obtiene nodo del pool con el hashvalue nuevo
-	node_l *n=list_pop_first_node(&request_pool_free);
+	node_l *n = list_pop_first_node(&request_pool_free);
 
-	if(request_pool_free==NULL)
-	{	fprintf(stderr, "pool request vacio\n");
+	if (request_pool_free == NULL) {
+		fprintf(stderr, "pool request vacio\n");
 		exit(-1);
 	}
+
 	//Lo mete en el pool de usados
-	list_prepend_node(&request_pool_used,n);
+	list_prepend_node(&request_pool_used, n);
 
 	memset(n->data, 0, sizeof(request));				//Resetear request
 
 	gottenRequests++;
 
-	return  (n->data); //retorna el hashvalue
-	
+	return (n->data);  //retorna el hashvalue
+
 }
 
-node_l *request_search(node_l *first, tcp_seq seq, int *number){
+node_l *request_search(node_l *first, tcp_seq seq, int *number)
+{
 
 	node_l *n, *prev = NULL;
 	*number = 0;
@@ -65,19 +69,20 @@ node_l *request_search(node_l *first, tcp_seq seq, int *number){
 	//primero de la lista
 	n = first;
 
-	while(n!= NULL && n!=prev) {
-		__builtin_prefetch (n->next);
+	while (n != NULL && n != prev) {
+		__builtin_prefetch(n->next);
 		request *req = (request *) n->data;
-		
-		if(req->ack == seq){
+
+		if (req->ack == seq) {
 			return n;
 		}
-		
+
 		*number += 1;
 
 		prev = n;
 		n = n->next;
-		if(n==first){
+
+		if (n == first) {
 			break;
 		}
 	}
@@ -86,29 +91,28 @@ node_l *request_search(node_l *first, tcp_seq seq, int *number){
 
 }
 
-void releaseRequest(request * f)
+void releaseRequest(request *f)
 {
 	//Coge el primer nodo de la lista de usados
-	node_l *n=list_pop_first_node(&request_pool_used);
+	node_l *n = list_pop_first_node(&request_pool_used);
 	//Le asigna la peticion que vamos a liberar
-	n->data=(void*)f;
+	n->data = (void *)f;
 	//La mete en la lista de libres y mas tarde cuando se reuse se resetearan los datos
-	list_prepend_node(&request_pool_free,n);
+	list_prepend_node(&request_pool_free, n);
 	gottenRequests--;
 }
 
 void freeRequestPool(void)
 {
-	node_l *n=NULL;
-	while(request_pool_free!=NULL)
-	{
-		n=list_pop_first_node(&request_pool_free);
+	node_l *n = NULL;
+
+	while (request_pool_free != NULL) {
+		n = list_pop_first_node(&request_pool_free);
 		FREE(n);
 	}
 
-	while(request_pool_used!=NULL)
-	{
-		n=list_pop_first_node(&request_pool_used);
+	while (request_pool_used != NULL) {
+		n = list_pop_first_node(&request_pool_used);
 		FREE(n);
 	}
 
@@ -116,7 +120,8 @@ void freeRequestPool(void)
 	FREE(requests);
 }
 
-void copyRequest(request *req_old, request *req_new){
+void copyRequest(request *req_old, request *req_new)
+{
 	strncpy(req_new->url, req_old->url, URL_SIZE);
 	strncpy(req_new->host, req_old->host, HOST_SIZE);
 	strncpy(req_new->agent, req_old->agent, AGENT_SIZE);
@@ -128,7 +133,8 @@ void copyRequest(request *req_old, request *req_new){
 	return;
 }
 
-void fillRequest(packet_info *packet, request *req){
+void fillRequest(packet_info *packet, request *req)
+{
 	strncpy(req->url, packet->url, URL_SIZE);
 	strncpy(req->host, packet->host, HOST_SIZE);
 	strncpy(req->agent, packet->agent, AGENT_SIZE);

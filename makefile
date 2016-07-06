@@ -1,14 +1,14 @@
 HPCAPDIR=HPCAP4
 PACKETFEEDERDIR=../packet_feeder_shrmem
 
-CC = clang
+CC = gcc #clang
 
 ifeq (, $(shell which clang))
 $(warning CLANG NOT FOUND, SWITCHING TO GCC)
 CC = gcc
 endif
 
-PRECFLAGS = $(CC) -Wall -D_GNU_SOURCE -Iinclude/ 
+PRECFLAGS = $(CC) -O3 -Wall -D_GNU_SOURCE -Iinclude/ 
 CFLAGS = $(PRECFLAGS)
 LDFLAGS = -lm -lpthread -lpcap
 
@@ -27,7 +27,7 @@ PCAPLIB		= -lpcap
 LOW_MEMORY: CFLAGS = $(PRECFLAGS) -D LOW_MEMORY_DISSECTOR
 HPCAP: CFLAGS = $(PRECFLAGS) -D HPCAP_SUPPORT 
 
-all: httpDissector indice_traza
+all: httpDissector indice_traza #httpDissector_wormhole
 
 indice_traza: main_indiceTraza.c
 	$(CFLAGS) -std=gnu99 main_indiceTraza.c NDleeTrazas.c -lpcap -o $@
@@ -80,6 +80,9 @@ httpDissector_packetFeeder: httpDissector.c sampling_index.o counters.o index.o 
 	$(MAKE) -C $(PACKETFEEDERDIR)
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS)
+httpDissector_wormhole: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o worm_pcap_bridge.c args_parse.o hpcap_utils.o  ../../../lib/libworm.so 
+	$(CFLAGS) -I../../../include -I../hptimelib/include -c httpDissector.c -o httpDissector.o -D LOW_MEMORY_DISSECTOR
+	$(CFLAGS) -I../../../include -I../hptimelib/include $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS) -L../../../lib -lworm -D LOW_MEMORY_DISSECTOR ../hptimelib/lib/hptl.a
 NDleeTrazas.o: NDleeTrazas.c
 	$(CFLAGS) -std=gnu99 -c NDleeTrazas.c -o NDleeTrazas.o
 args_parse.o: args_parse.c
