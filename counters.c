@@ -12,6 +12,7 @@ static unsigned long long delete_requests = 0;
 static unsigned long long options_requests = 0;
 static unsigned long long connect_requests = 0;
 static unsigned long long patch_requests = 0;
+static unsigned long long err_requests = 0;
 
 static unsigned long long active_requests = 0;
 static unsigned long long total_connexions = 0;
@@ -291,6 +292,15 @@ unsigned long long get_post_requests(){
 	return post_requests;
 }
 
+//err
+void increment_err_requests(){
+	err_requests++;
+}
+
+unsigned long long get_err_requests(){
+	return err_requests;
+}
+
 void decrement_request_counter(http_op h){
 	switch(h){
         case HEAD:
@@ -319,6 +329,9 @@ void decrement_request_counter(http_op h){
             return;
         case PATCH:
             patch_requests--;
+            return;
+        case ERR:
+            err_requests--;
             return;
         default:
             return;
@@ -353,6 +366,9 @@ void increment_request_counter(http_op h){
             return;
         case PATCH:
             increment_patch_requests();
+            return;
+        case ERR:
+            increment_err_requests();
             return;
         default:
             return;
