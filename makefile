@@ -78,6 +78,9 @@ prueba_hpcap: prueba_hpcap.c hpcap_utils.o lib/libmgmon.c
 httpDissector: httpDissector.c hash_table.o collision_list_pool.o counters.o http_event_pool.o process_packet.o alist.o tools.o http.o NDleeTrazas.o args_parse.o hpcap_utils.o
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
 	$(CFLAGS)  $^ -o $@ $(PCAPLIB) $(LDFLAGS)
+httpDissector_wormhole: httpDissector.c hash_table.o collision_list_pool.o http_event_pool.o process_packet.o alist.o tools.o http.o args_parse.o hpcap_utils.o worm_pcap_bridge.c
+	$(CFLAGS)  -I../../../include -c httpDissector.c -o httpDissector.o
+	$(CFLAGS) -I../../../include  $(LIB_DIR) $^ -o $@ $(PCAPLIB) $(LDFLAGS) -L../../../lib -lworm
 LOW_MEMORY: httpDissector.c sampling_index.o counters.o index.o connection.o sorted_print.o list.o request.o response.o tools.o http.o alist.o NDleeTrazas.o args_parse.o hpcap_utils.o
 	@echo "WARNING: COMPILING LOW_MEMORY VERSION. The size of the pools are reduced. This could lead to an expected behaviour."
 	$(CFLAGS)  -c httpDissector.c -o httpDissector.o
