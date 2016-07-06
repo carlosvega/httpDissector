@@ -4,6 +4,12 @@ process_info *processing = NULL;
 struct args_parse *options = NULL;
 http_event *aux_event = NULL;
 
+unsigned long THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT = 0;
+unsigned long THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT  = 0;
+unsigned long get_event_from_table_error = 0;
+unsigned long op_equal_to_err = 0;
+
+
 void set_filter(){
 
 	//GET 
@@ -174,6 +180,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 		key.port_src = pktinfo.port_dst;
 		key.ack_seq  =  pktinfo.tcp->th_seq; //RESPONSE STORES THE SEQ
     }else if(op == ERR){ //ERR
+    	op_equal_to_err+=1;
     	return -1;
 	}else{ //REQUEST
 		key.ip_src   = pktinfo.ip->ip_src.s_addr; 
@@ -186,6 +193,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 	//GET HTTP EVENT
 	http_event *event = get_event_from_table(&key);
 	if(event == NULL){
+		get_event_from_table_error+=1;
 		return -1; //ERROR
 	}
 
@@ -198,32 +206,69 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 		event->key.ack_seq  = key.ack_seq ;
 	}
 
+	//NO REQUEST FOUND BUT LETS ADD THE RESPONSE AND SEE IF THE REQUEST ARRIVES
 	if(op == RESPONSE && event->status == EMPTY){ //RESPONSE WITHOUT REQUEST
 		// remove_event_from_table(&event->key);
+		// return 1;
+	}
+	//THERE IS A RESPONSE ALREADY ON THE EVENT
+	// => GET COLLISION & ADD RESPONSE TO ANOTHER EVENT
+	else if(op == RESPONSE && event->status == WAITING_REQUEST){ //BOTH ARE RESPONSES (duplicate response??)
+		//¿¿¿¿¿This could happen for 100 Continue responses which usually have another 200 Response afterwards????
+		//But not 
+		// event = create_collision_on_table(&key); //GET NEW EVENT
+		THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT+=1;
+		
+		http_event aux_event;
+		memcpy(&aux_event.key, &key, sizeof(hash_key));
+		aux_event.ts_res.tv_sec  = pkthdr->ts.tv_sec;
+		aux_event.ts_res.tv_nsec = pkthdr->ts.tv_nsec;
+
+		http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, &aux_event, op);
+		print_http_event(&aux_event, options->output_file);
+		increment_total_responses();
+
+		memset(&aux_event, 0, sizeof(http_event));
 		return 1;
+	}
+	//THERE IS A REQUEST ALREADY ON THE EVENT
+	// => GET COLLISION & ADD REQUEST TO ANOTHER EVENT
+	else if(http_is_request(op) && event->status == WAITING_RESPONSE){ //BOTH ARE REQUESTS (duplicate request??)
+		//There is no known cases of this except duplicates or retransmissions
+		// event = create_collision_on_table(&key); //GET NEW EVENT
+		THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT+=1;
+
+		http_event aux_event;
+		memcpy(&aux_event.key, &key, sizeof(hash_key));
+		aux_event.ts_req.tv_sec  = pkthdr->ts.tv_sec;
+		aux_event.ts_req.tv_nsec = pkthdr->ts.tv_nsec;
+		
+		http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, &aux_event, op);
+		print_http_event(&aux_event, options->output_file);
+		increment_request_counter(op);
+		increment_total_requests();
+
+		memset(&aux_event, 0, sizeof(http_event));
+		return 2;
 	}
 
 	// http_status old_status = (*event)->status;
-
-	if(http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, event, op) == -1){
+	int ret = http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, event, op);
+	if(ret == -1){ //RETURNS -1 in case of op == ERR
 		//TODO: CHECK WHAT TO DO WITH THE EVENT
-		// fprintf(stderr, "http_fill_event2 ERROR !\n");
-		remove_event_from_table(&event->key);
+		if(event->status==EMPTY){
+			remove_event_from_table(&event->key);
+		}
 		return -1; //ERROR
 	}
 
 	if(op != RESPONSE){ //REQUEST
 		event->ts_req.tv_sec  = pkthdr->ts.tv_sec;
 		event->ts_req.tv_nsec = pkthdr->ts.tv_nsec;
-	}else{ //RESPONSE
-		event->ts_res.tv_sec  = pkthdr->ts.tv_sec;
-		event->ts_res.tv_nsec = pkthdr->ts.tv_nsec;
-	}
 
-	//DISCARD IF URL/HOST FILTERS DO NOT APPLY
-	//THIS APPLIES WETHER THE TRANSACTION IS COMPLETED 
-	//OR THE REQUEST IS WAITING A RESPONSE.
-	if(op != RESPONSE){
+		//DISCARD IF URL/HOST FILTERS DO NOT APPLY
+		//THIS APPLIES WETHER THE TRANSACTION IS COMPLETED 
+		//OR THE REQUEST IS WAITING A RESPONSE.
 		if(options->url != NULL){
 			if(boyermoore_search(event->url, options->url) == NULL){
 				//TODO: WHAT TO DO WITH THE EVENT?
@@ -239,14 +284,33 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 				return 0;
 			}
 		}
+
+		increment_request_counter(op);
+		increment_total_requests();
+	}else{ //RESPONSE
+		event->ts_res.tv_sec  = pkthdr->ts.tv_sec;
+		event->ts_res.tv_nsec = pkthdr->ts.tv_nsec;
+		increment_total_responses();
 	}
+
 
 	if(event->status == TRANSACTION_COMPLETE){
 		//IPS TO PRETTY PRINT NUMBER VECTOR
         print_http_event(event, options->output_file);
-		//TODO: PRINT INFORMATION
-		//DELETE EVENT AFTER PRINT
-		remove_event_from_table(&event->key);
+        increment_transactions();
+		
+		if(event->response_code != 100){
+			//DELETE EVENT AFTER PRINT
+			remove_event_from_table(&event->key);
+		}else{
+			//If 100 Continue, then do not delete the event and wait for the 200 OK response which comes afterwards
+        	//Clear the response fields
+        	event->response_code = 0;
+        	memset(event->response_msg, 0, RESP_MSG_SIZE);
+        	event->ts_res.tv_sec  = 0;
+			event->ts_res.tv_nsec = 0;
+        	event->status = WAITING_RESPONSE;
+		}
 	}
 
 	//TODO:
@@ -288,7 +352,7 @@ void callback(u_char *useless, const struct NDLTpkthdr *pkthdr, const u_char* pa
 	//LAST TS
 	processing->last_packet = pkthdr->ts;
 	processing->packets++;
-  	int ret = parse_packet(packet, pkthdr); 
+  	parse_packet(packet, pkthdr); 
   	//1 => OK; 0 => filtered out; -1 => ERR
 
   	//TODO, UPDATE STATS AND COUNTERS
@@ -374,7 +438,7 @@ int begin_process(struct args_parse *o, process_info *p){
 	processing = p;
 	options = o;
 	aux_event = (http_event *) calloc(sizeof(http_event), 1);
-
+	reset_counters();
 	set_filter();
 
 	//READ FROM FILE OR FILES
@@ -423,15 +487,42 @@ int begin_process(struct args_parse *o, process_info *p){
 
 
 	//JOIN THREADS
-	if(0){
-		pthread_join(&processing->collector, NULL);
-  	}
+	// if(0){
+	// 	pthread_join(&processing->collector, NULL);
+ //  	}
 
   	if(options->interface == NULL){
   		// pthread_join(progress, NULL);
   		// loadBar(ndldata->bytesTotalesLeidos, ndldata->bytesTotalesFicheros, ndldata->bytesTotalesFicheros, 40);
   		NDLTclose(processing->ndldata);
   	}
+
+  	fprintf(stderr, "Processed Packets: %"PRIu32"\n", processing->packets);
+  	fprintf(stderr, "\nTotal Responses: %lld\n", get_total_responses());
+  	fprintf(stderr, "Total Requests: %lld\n", get_total_requests());
+
+  	fprintf(stderr, "\nRequests without response: %f%% (%lld)\n", get_requests_without_response_lost_ratio(), get_total_requests()-get_transactions());
+    fprintf(stderr, "Responses without request: %f%% (%lld)\n", get_responses_without_request_ratio(), get_total_responses()-get_transactions());
+    // fprintf(stderr, "Responses out of order: %lld\n", get_total_out_of_order());
+
+  	fprintf(stderr, "\nREQUEST STATS\n");
+    fprintf(stderr, "GET: %lld\n", get_get_requests());
+    fprintf(stderr, "POST: %lld\n", get_post_requests());
+    fprintf(stderr, "HEAD: %lld\n", get_head_requests());
+    fprintf(stderr, "PATCH: %lld\n", get_patch_requests());
+    fprintf(stderr, "PUT: %lld\n", get_put_requests());
+    fprintf(stderr, "DELETE: %lld\n", get_delete_requests());
+    fprintf(stderr, "OPTIONS: %lld\n", get_options_requests());
+    fprintf(stderr, "CONNECT: %lld\n", get_connect_requests());
+    fprintf(stderr, "TRACE: %lld\n", get_trace_requests());
+    fprintf(stderr, "No Method: %lld\n\n", get_err_requests());
+
+    fprintf(stderr, "\nTotal Transactions: %lld\n", get_transactions());
+
+    fprintf(stderr, "THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT: %ld\n", THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT);
+    fprintf(stderr, "THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT: %ld\n", THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT);
+    fprintf(stderr, "op_equal_to_err: %ld\n", op_equal_to_err);
+    fprintf(stderr, "get_event_from_table_error: %ld\n", get_event_from_table_error);
 
  	// long elapsed = end.tv_sec - start.tv_sec;
 	// print_info(elapsed);
