@@ -115,6 +115,11 @@ void increment_post_requests();
 
 unsigned long long get_post_requests();
 
+
+//err
+void increment_err_requests();
+unsigned long long get_err_requests();
+
 void decrement_request_counter(http_op h);
 void increment_request_counter(http_op h);
 

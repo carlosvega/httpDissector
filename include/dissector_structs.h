@@ -37,9 +37,9 @@
 #define EVENT_TABLE_SIZE 67108864// 2^26 // 4194304 //2^22
 #define COLLISION_SIZE 5//134217728/EVENT_TABLE_SIZE //2^27 / 2^25 = 4 
 
-#define GC_SLEEP_SECS 500000
+#define GC_SLEEP_SECS 1000000
 
-typedef enum {HEAD = 0, GET, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH, RESPONSE, ERR} http_op;
+typedef enum {ERR = 0, HEAD, GET, POST, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH, RESPONSE} http_op;
 
 typedef struct {
   NDLTdata_t *ndldata;
@@ -81,7 +81,7 @@ typedef struct {
   http_status status; //EMPTY, WAITING_REQUEST, WAITING_RESPONSE, TRANSACTION_COMPLETE
   struct timespec ts_req;
   struct timespec ts_res;
-  struct timespec created_at;
+  // struct timespec created_at;
   http_op method;
   unsigned long parent;
 } http_event;

@@ -45,11 +45,7 @@
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
-
-
-static unsigned long packets = 0;
 struct timeval start;
-static int running = 0;
 NDLTdata_t *ndldata = NULL;
 unsigned int nFiles = 0;
 

@@ -4,7 +4,10 @@
 #include "args_parse.h"
 #include "http.h"
 #include "hash_table.h"
+#include "http_event_pool.h"
+#include "collision_list_pool.h"
 #include "tools.h"
+#include "counters.h"
 
 #define SNAPLEN 65535
 #define PROMISC 1

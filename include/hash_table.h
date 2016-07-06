@@ -11,6 +11,7 @@ void free_event_table();
 void alloc_event_table();
 int remove_event_from_table(hash_key *key);
 http_event* get_event_from_table(hash_key *key);
+http_event* create_collision_on_table(hash_key *key);
 
 
 
