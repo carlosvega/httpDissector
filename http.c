@@ -196,7 +196,6 @@ http_op http_which_method(u_char * tcp_payload){
 		return RESPONSE;
 	}
 
-
 	return ERR;
 }
 
@@ -299,24 +298,6 @@ int http_fill_event(u_char *tcp_payload, int length, http_event *event, http_op 
 	//TODO
 	//Hacer que compruebe que esta esperando, tener cuidado con las copias secundarias
 	//Comprobar si la transaccion estaria completa y cambiar la variable convenientemente
-
-	if(op==RESPONSE && event->status == WAITING_REQUEST){ //BOTH ARE RESPONSES
-		// fprintf(stderr, "DUPLICATE RESPONSE\n");
-		// print_http_event(event, stdout);
-		// char *cadena = (char *) tcp_payload;
-		// cadena[MIN(CADENA_SIZE, length) - 1] = 0;
-		// fprintf(stderr, "CADENA %s", cadena);
-		return -1; //ERROR
-	}
-
-	if(http_is_request(op) && event->status == WAITING_RESPONSE){ //BOTH ARE REQUESTS
-		// fprintf(stderr, "DUPLICATE REQUEST\n");
-		// print_http_event(event, stdout);
-		// char *cadena = (char *) tcp_payload;
-		// cadena[MIN(CADENA_SIZE, length) - 1] = 0;
-		// fprintf(stderr, "CADENA %s", cadena);
-		return -1; //ERROR
-	}
 
 	if(op == ERR){
 		fprintf(stderr, "OP ERR\n");
