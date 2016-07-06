@@ -98,7 +98,7 @@ int main(int argc, char *argv[]){
 
 	process_info *processing = (process_info*) calloc(1, sizeof(process_info)); //STORES INFO OF THE CURRENT PROCESS
 	pthread_mutex_init(&processing->mutex, NULL);
-	int ret = begin_process(&options, processing);
+	begin_process(&options, processing);
 	//TODO CHECK RET
 
 	//CLOSE FILES
@@ -130,6 +130,8 @@ int main(int argc, char *argv[]){
 	//FREE PROCESS INFO
 	fprintf(stderr, "FREEING PROCESSING\n");
 	FREE(processing);
+
+	return 0;
 }
 
 
