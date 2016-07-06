@@ -111,15 +111,13 @@ http_event* get_event_from_table(hash_key *key){
 		//IF NO CELL, GET ONE
 		cell = pop_collision_list();
 		event_table[index] = cell;
-		collision_list *cell2 = event_table[index];
-		// fprintf(stderr, "pop cell ! used: %d i: %lu - %"PRIu32" - p: %p \n", cell2->used, cell2->a, index, cell);
 		if(cell->used != 0){
-			fprintf(stderr, "DISTINTO DE CERO !!!!!!!\n");
+			fprintf(stderr, "THIS MUST NOT HAPPEN !!!!!!!\n"); //REMOVE AFTER CHECKING EVERYTHING IS STABLE
 		}
 	}
 	
 	long i;
-	struct timespec diff_req = {0}, diff_res = {0};
+	// struct timespec diff_req = {0}, diff_res = {0};
 	for(i=0; i<COLLISION_SIZE; i++){
 		// if(cell->events[i]!=0){ //NON EMPTY ELEMENT
 		// 	//CHECK IF HAS TO BE REMOVED (gc will do for us in future) 
@@ -148,11 +146,6 @@ http_event* get_event_from_table(hash_key *key){
 		// }
 
 		//TODO: RECOLECTOR DE BASURA QUE RECORRA LA LISTA DE ACTIVOS DEL POOL DE COLISIONES
-		//Y UNA MEDIA DEL TIEMPO CON UNA VENTANA DE 10 PAQUETES PARA SABER EN QUE MOMENTO
-		//ESTAS
-		//SINO: MARCAR CADA PAQUETE CON EL SEGUNDO Y BORRAR LOS QUE LLEVEN MAS DE X SEGUNDOS
-		//EN MEMORIA (MALO, PUEDE VARIAR CON LA VELOCIDAD DE PROCESAMIENTO)
-		//HABRIA QUE ADAPTARLO A LA VELOCIDAD DE PROCESADO
 		//IMPRIMIR EVENTOS ZOMBIES Y VER QUE LES PASA, SI TIENEN PAREJA O NO
 
 		if(cell->events[i] == 0){ //EMPTY ELEMENT OF THE LIST
@@ -229,10 +222,54 @@ http_event* get_event_from_table(hash_key *key){
   	gettimeofday(&aux_exec, NULL);  
   	timersub(&aux_exec, &processing->start, &elapsed);
   	if(cell->used >= COLLISION_SIZE-1){
-		fprintf(stderr, "EVENT LIST OF THE CELL IS FULL ! - index %"PRIu32" (u %d) - ELEMENTS: %"PRIu32" PACKETS: %ld ELAPSED: %ld PPS: %ld USED_COL_POOL: %ld\n", index, cell->used, elements, processing->packets, elapsed.tv_sec, elapsed.tv_sec > 0 ? processing->packets/elapsed.tv_sec : 0, get_used_collision_list_elements());
+		fprintf(stderr, "EVENT LIST OF THE CELL IS FULL ! - index %"PRIu32" (u %d) - ELEMENTS: %"PRIu32" PACKETS: %"PRIu32" ELAPSED: %ld PPS: %ld USED_COL_POOL: %ld\n", index, cell->used, elements, processing->packets, elapsed.tv_sec, elapsed.tv_sec > 0 ? processing->packets/elapsed.tv_sec : 0, get_used_collision_list_elements());
   	}else{
   		fprintf(stderr, "NULL WITHOUT FULL LIST OF THE CELL\n");
 	}
 
 	return NULL;
+}
+
+//ANOTHER EVENT IS SUPPOSED TO EXIST WITH THE SAME KEY
+http_event* create_collision_on_table(hash_key *key){
+	//CALC INDEX IN TABLE
+	uint32_t index = calc_index(key);
+
+	collision_list *cell = event_table[index];
+
+	//CELL NOT USED
+	if(cell == 0 || cell == NULL){ //NULL
+		return NULL; 
+	}
+
+	//LOOP THROUGH COLLISIONS IN CELL
+	int i;
+	for(i=0; i<COLLISION_SIZE; i++){
+		if(cell->events[i]!=0){ //NON EMPTY ELEMENT OF THE LIST
+			http_event *event = cell->events[i];
+			if(comp_hash_key(&event->key, key) == 1){ //FOUND IT, GET NEXT !
+				if(i==COLLISION_SIZE-1){ //NO SPACE AVAILABLE
+					return NULL;
+				}
+
+				if(cell->events[i+1]==0){ //EMPTY ELEMENT AFTERWARDS
+					cell->events[i+1] = pop_http_event(); //TAKE ELEMENT FROM POOL
+					cell->used+=1;
+					elements++;
+
+					http_event* event = cell->events[i+1];
+					event->status = EMPTY;
+					event->key.ip_src   = key->ip_src;   
+					event->key.ip_dst   = key->ip_dst;   
+					event->key.port_src = key->port_src; 
+					event->key.port_dst = key->port_dst; 
+					event->key.ack_seq  = key->ack_seq; 
+
+					return cell->events[i+1]; //RETURN ELEMENT
+				}
+			}
+		}
+	}
+
+	return NULL; //EVENT DOES NOT EXIST 
 }
