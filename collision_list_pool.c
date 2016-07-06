@@ -7,6 +7,7 @@ collision_list  **tmp_collision_list = NULL; //USED TO SWAP ELEMENTS
 unsigned long last_collision_list = -1; //POSITION OF THE LAST ELEMENT POPED
 
 extern process_info *processing;
+extern struct args_parse *options;
 
 unsigned long get_used_collision_list_elements(){
 	return last_collision_list;
@@ -52,8 +53,11 @@ void clean_old_elements(){
 					diff_res = tsSubtract2(processing->last_packet, event->ts_res);
 				}
 
-				if(labs(diff_req.tv_sec) > 60 || labs(diff_res.tv_sec) > 60){
+				if(labs(diff_req.tv_sec) > 120 || labs(diff_res.tv_sec) > 120){
 					pthread_mutex_lock(&processing->mutex);
+					if(event->status != EMPTY){
+						print_http_event(event, options->output_file);
+					}
 					remove_event_from_table(&event->key);
 					pthread_mutex_unlock(&processing->mutex);
 				}
