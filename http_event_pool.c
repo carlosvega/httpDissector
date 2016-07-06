@@ -67,8 +67,10 @@ void push_http_event(http_event *element){
  	//	    0   1   2   3   4
 	//
 
-	//Get parents (pointer) location 
-	unsigned long element_position = element->parent; memset(&element, 0, sizeof(element)); //CLEAN element
+	//Get parents (pointer) location  
+	unsigned long element_position = element->parent; 
+	memset(element, 0, sizeof(http_event)); 
+	memset(&element, 0, sizeof(element)); //CLEAN element //CORREGIR. ESTO PONE element a 0x0 no borra *element
 	unsigned long last_position    = last_http_event;
 
 	//Get childrens
