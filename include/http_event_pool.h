@@ -10,7 +10,7 @@
 #define HTTP_EVENT_POOL_SIZE 2000000
 
 //TODO: ALLOW MULTIPLE POOLS
-
+unsigned long get_used_http_event_elements();
 void free_http_event_pool();
 void alloc_http_event_pool();
 http_event* pop_http_event();
