@@ -217,7 +217,57 @@ http_op http_which_method(u_char *tcp_payload)
 
 	memcpy(method, tcp_payload, 8);
 
-	if (strncmp("GET ", method, 4) == 0) {
+	switch(method[0]){
+		case 'G':
+			//GET
+			if(strncmp("ET ", method+1, 3) == 0){
+				return GET;
+			}
+			break;
+		case 'H':
+			//HTTP or HEAD
+			if(strncmp("TTP/", method+1, 4) == 0){
+				return RESPONSE;
+			}
+			if(strncmp("EAD ", method+1, 4) == 0){
+				return HEAD;
+			}
+			break;
+		case 'C':
+			//CONNECT
+			if(strncmp("ONNECT ", method+1, 7) == 0){
+				return CONNECT;
+			}
+			break;
+		case 'P':
+			//POST, PUT or PATCH
+			if(strncmp("OST ", method+1, 4) == 0){
+				return POST;
+			}
+			if(strncmp("UT ", method+1, 3) == 0){
+				return PUT;
+			}
+			if(strncmp("ATCH ", method+1, 5) == 0){
+				return PATCH;
+			}
+			break;
+		case 'D':
+			//DELETE
+			if(strncmp("ELETE ", method+1, 6) == 0){
+				return DELETE;
+			}
+			break;
+		case 'O':
+			//OPTIONS
+			if(strncmp("PTIONS ", method+1, 7) == 0){
+				return OPTIONS;
+			}
+			break;
+		default:
+			return ERR;
+	}
+
+	/*if (strncmp("GET ", method, 4) == 0) {
 		return GET;
 
 	} else if (strncmp("HEAD ", method, 5) == 0) {
@@ -246,7 +296,7 @@ http_op http_which_method(u_char *tcp_payload)
 
 	} else if (strncmp("HTTP/", method, 5) == 0) {
 		return RESPONSE;
-	}
+	}*/
 
 
 	return ERR;
