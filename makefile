@@ -8,7 +8,7 @@ $(warning CLANG NOT FOUND, SWITCHING TO GCC)
 CC = gcc
 endif
 
-PRECFLAGS = $(CC) -Wall -mtune=native -march=native -Ofast -D_GNU_SOURCE -Iinclude/ 
+PRECFLAGS = $(CC) -Wall -mtune=native -march=native -O3 -D_GNU_SOURCE -Iinclude/ 
 CFLAGS = $(PRECFLAGS)
 LDFLAGS = -lm -lpthread -lpcap
 
