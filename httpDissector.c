@@ -1,5 +1,5 @@
 #include "httpDissector.h"
-char version[32] = "Version 3b";
+char version[32] = "Version 3.1b";
 
 struct args_parse check_args(int argc, char *argv[]){
 	struct args_parse options = parse_args(argc, argv);
@@ -21,25 +21,7 @@ struct args_parse check_args(int argc, char *argv[]){
 		fprintf(stderr, "%s\n", version);
 		exit(0);
 	}
-
-	if(options.debug != 0){
-		fprintf(stderr, "DEBUG/ Activated\n");
-		fprintf(stderr, "DEBUG/ RAW: %s\n", options.raw ? "true" : "false");
-		fprintf(stderr, "DEBUG/ Files: %s\n", options.files ? "true" : "false");
-		fprintf(stderr, "DEBUG/ Log: %s\n", options.log ? "true" : "false");
-		fprintf(stderr, "DEBUG/ Input File: %s\n", options.input);
-		fprintf(stderr, "DEBUG/ Output File: %s\n", options.output ? options.output : "STDOUT");
-		fprintf(stderr, "DEBUG/ Version: %s\n", version);
-		fprintf(stderr, "DEBUG/ Verbose: %s\n", options.verbose ? "true" : "false");
-		fprintf(stderr, "DEBUG/ Interface: %s\n", options.interface ? options.interface : "false");
-		fprintf(stderr, "DEBUG/ TwoLines: %s\n", options.twolines ? "true" : "false");
-		fprintf(stderr, "DEBUG/ RRD: %s\n", options.rrd ? "true" : "false");
-		fprintf(stderr, "DEBUG/ Debug: %d\n", options.debug);
-		fprintf(stderr, "DEBUG/ Index: %s\n", options.index);
-		fprintf(stderr, "DEBUG/ Filter: %s\n", options.filter == NULL ? "NO FILTER" : options.filter );
-		fprintf(stderr, "\n");
-	}
-
+	
 	if(options.raw == 1){
 		strcpy(options.format, NDLTFORMAT_DRIV_STR);
 	}else{
@@ -78,23 +60,22 @@ struct args_parse check_args(int argc, char *argv[]){
 }
 
 int main(int argc, char *argv[]){
-	fprintf(stderr, "SIZE OF HTTP EVENT: %lu\n", sizeof(http_event));
-	fprintf(stderr, "SIZE OF HTTP EVENT POINTER: %lu\n", sizeof(http_event*));
-	fprintf(stderr, "SIZE OF HTTP CELL: %lu\n", sizeof(collision_list));
-	fprintf(stderr, "SIZE OF HTTP CELL POINTER: %lu\n", sizeof(collision_list*));
-	fprintf(stderr, "MAIN!\n");
 	struct args_parse options = check_args(argc, argv);
 
+	fprintf(stderr, "Size of the HTTP event: %lu\n", sizeof(http_event));
+	fprintf(stderr, "Size of HTTP Cell: %lu\n", sizeof(collision_list));
+
 	//ALLOC STUFF
-	//ALLOC POOL
-	fprintf(stderr, "ALLOC COLLISION LIST POOL!\n");
+	fprintf(stderr, "Collision list pool allocation...\n");
 	alloc_collision_list_pool();
-	fprintf(stderr, "ALLOC HTTP EVENT POOL!\n");
+	
+	fprintf(stderr, "HTTP event pool allocation...\n");
 	alloc_http_event_pool();
-	//ALLOC TABLE
-	fprintf(stderr, "ALLOC TABLE!\n");
+	
+	fprintf(stderr, "Hash table allocation...\n");
 	alloc_event_table();
-	fprintf(stderr, "END ALLOCS!\n");
+
+	fprintf(stderr, "Memory Allocation finished.\n");
 
 	process_info *processing = (process_info*) calloc(1, sizeof(process_info)); //STORES INFO OF THE CURRENT PROCESS
 	pthread_mutex_init(&processing->mutex, NULL);
@@ -110,7 +91,7 @@ int main(int argc, char *argv[]){
 		fclose(options.gcoutput_file);
 	}
 
-	fprintf(stderr, "FREE FILES PATH\n");
+	fprintf(stderr, "Freeing resources...\n");
 	if(options.files_path != NULL){
 		int i=0;
 		for(i=0; i<nFiles; i++){
@@ -121,14 +102,8 @@ int main(int argc, char *argv[]){
 	}
 
 	//FREE RESOURCES
-	//FREE POOL
-	fprintf(stderr, "FREEING EVENT POOL\n");
 	// free_http_event_pool();
-	//FREE TABLE
-	fprintf(stderr, "FREEING EVENT TABLE\n");
-	// free_event_table();
-	//FREE PROCESS INFO
-	fprintf(stderr, "FREEING PROCESSING\n");
+	// free_event_table();;
 	FREE(processing);
 
 	return 0;
