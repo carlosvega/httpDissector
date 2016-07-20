@@ -217,12 +217,13 @@ http_event* get_event_from_table(hash_key *key){
 	// 	}
 	// }
 
-	struct timeval aux_exec;
-  	struct timeval elapsed;
-  	gettimeofday(&aux_exec, NULL);  
-  	timersub(&aux_exec, &processing->start, &elapsed);
+	//struct timeval aux_exec;
+  	//struct timeval elapsed;
+  	//gettimeofday(&aux_exec, NULL);  
+  	//timersub(&aux_exec, &processing->start, &elapsed);
   	if(cell->used >= COLLISION_SIZE-1){
-		fprintf(stderr, "EVENT LIST OF THE CELL IS FULL ! - index %"PRIu32" (u %d) - ELEMENTS: %"PRIu32" PACKETS: %"PRIu32" ELAPSED: %ld PPS: %ld USED_COL_POOL: %ld\n", index, cell->used, elements, processing->packets, elapsed.tv_sec, elapsed.tv_sec > 0 ? processing->packets/elapsed.tv_sec : 0, get_used_collision_list_elements());
+		fprintf(stderr, "EVENT LIST OF THE CELL IS FULL ! - index %"PRIu32" (u %d) - ELEMENTS: %"PRIu32" PACKETS: %"PRIu32"\n", index, cell->used, elements, processing->packets);
+//		fprintf(stderr, "EVENT LIST OF THE CELL IS FULL ! - index %"PRIu32" (u %d) - ELEMENTS: %"PRIu32" PACKETS: %"PRIu32" ELAPSED: %ld PPS: %ld USED_COL_POOL: %ld\n", index, cell->used, elements, processing->packets, elapsed.tv_sec, elapsed.tv_sec > 0 ? processing->packets/elapsed.tv_sec : 0, get_used_collision_list_elements());
   	}else{
   		fprintf(stderr, "NULL WITHOUT FULL LIST OF THE CELL\n");
 	}
