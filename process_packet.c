@@ -33,6 +33,7 @@ void set_filter(){
 		or (tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x434f4e4e && tcp[((tcp[12:1] & 0xf0) >> 2) + 4:4] = 0x45435420) \
 		or tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x48545450))");
 
+	char *f_aux = NULL;
 	if(options->filter != NULL){
 		switch (options->filter_mode){
 			case OR:
@@ -41,27 +42,21 @@ void set_filter(){
 				strcat(f, options->filter);
 				break;
 			case AND:
-				{
-				char *aux = (char *) calloc((strlen(f) + strlen(options->filter) + 6), sizeof(char));
+				f_aux = (char *) calloc((strlen(f) + strlen(options->filter) + 6), sizeof(char));
 				
-				strcat(aux, options->filter);
-				strcat(aux, " and ");
-				strcat(aux, f);
-
-				aux = f;
-				f = aux;
-				free(aux);
-				}
+				strcat(f_aux, options->filter);
+				strcat(f_aux, " and ");
+				strcat(f_aux, f);
 				break;
 			case OVERWRITE:
-				free(f);
-				f = strdup(options->filter);
+				f_aux = strdup(options->filter);
 				break;
 		}
-		free(options->filter);
+		free(f);
+		options->filter = f_aux;
+	}else{
+		options->filter = f;
 	}
-
-	options->filter = f;
 
 	return;
 }
