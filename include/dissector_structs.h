@@ -84,6 +84,7 @@ typedef struct {
   // struct timespec created_at;
   http_op method;
   unsigned long parent;
+  unsigned int response_packet_size;
 } http_event;
 
 typedef struct {
