@@ -114,23 +114,12 @@ int set_read_from_files(){
 hash_key last_key = {0};
 int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 
-	// if(last_key.ip_src != 0){
-	// 	http_event **pre_event = get_event_from_table(&last_key);
-	// 	unsigned char ip_client[4] = {0};
- //        unsigned char ip_server[4] = {0};
- //        *(unsigned int *) ip_client = (*pre_event)->key.ip_src;
- //        *(unsigned int *) ip_server = (*pre_event)->key.ip_dst;
-	// 	fprintf(options->output_file, "PRE_EVENT: %d.%d.%d.%d|%i|%d.%d.%d.%d|%i|%ld.%09ld|%ld.%09ld|%.*s|%d|%s|%s|%s|%s\n", 
- //                ip_client[0], ip_client[1], ip_client[2], ip_client[3], 
- //                (*pre_event)->key.port_src, ip_server[0], ip_server[1], ip_server[2], ip_server[3], 
- //                (*pre_event)->key.port_dst, (*pre_event)->ts_req.tv_sec, (*pre_event)->ts_req.tv_nsec, (*pre_event)->ts_res.tv_sec, (*pre_event)->ts_res.tv_nsec, 
- //                RESP_MSG_SIZE, (*pre_event)->response_msg, (*pre_event)->response_code, http_op_to_char((*pre_event)->method), (*pre_event)->agent, (*pre_event)->host, (*pre_event)->url);  
-	// }
-
 	packet_info pktinfo;
 	size_t size_ethernet = SIZE_ETHERNET;
-	memset(pktinfo.url, 0, URL_SIZE);
+
+	memset(pktinfo.url, 0, URL_SIZE); //RESET AUX VARIABLE
 	pktinfo.ethernet = (struct sniff_ethernet*)(packet);
+
 	//VLAN
 	if (pktinfo.ethernet->ether_type == 0x81){
 		size_ethernet += 4;	
@@ -160,6 +149,8 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 	    return -1;
     }
 
+    //END OF PACKET HEADER CHECKS
+
     pktinfo.payload = (u_char *)(packet + size_ethernet + pktinfo.size_ip + pktinfo.size_tcp);
     pktinfo.size_payload = pkthdr->caplen - size_ethernet - pktinfo.size_ip - pktinfo.size_tcp;
     pktinfo.ts.tv_sec = pkthdr->ts.tv_sec;
@@ -185,66 +176,63 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 		key.ack_seq  = pktinfo.tcp->th_ack; //REQUEST STORES THE ACK
 	}
 
-	//GET HTTP EVENT
+	//GET HTTP EVENT FROM TABLE
 	http_event *event = get_event_from_table(&key);
 	if(event == NULL){
 		get_event_from_table_error+=1;
 		return -1; //ERROR
 	}
 
-	//FILL IF EMPTY
-	if(event->status == EMPTY){
-		event->key.ip_src   = key.ip_src  ;
-		event->key.ip_dst   = key.ip_dst  ;
-		event->key.port_src = key.port_src;
-		event->key.port_dst = key.port_dst;
-		event->key.ack_seq  = key.ack_seq ;
-	}
+	//RESPONSE
 
-	//NO REQUEST FOUND BUT LETS ADD THE RESPONSE AND SEE IF THE REQUEST ARRIVES
-	if(op == RESPONSE && event->status == EMPTY){ //RESPONSE WITHOUT REQUEST
-		// remove_event_from_table(&event->key);
-		// return 1;
-	}
-	//THERE IS A RESPONSE ALREADY ON THE EVENT
-	// => GET COLLISION & ADD RESPONSE TO ANOTHER EVENT
-	else if(op == RESPONSE && event->status == WAITING_REQUEST){ //BOTH ARE RESPONSES (duplicate response??)
-		//¿¿¿¿¿This could happen for 100 Continue responses which usually have another 200 Response afterwards????
-		//But not 
-		// event = create_collision_on_table(&key); //GET NEW EVENT
-		THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT+=1;
+	if(op == RESPONSE){
+		//STORE RESPONSE PACKET SIZE (used in 100 Continue Response cases)
+		event->response_packet_size =  pktinfo.size_payload;
+
+		//NO CORRESPONDING REQUEST FOUND BUT LETS ADD THE RESPONSE AND SEE IF THE REQUEST ARRIVES
+		if(event->status == WAITING_REQUEST){ //THERE IS A RESPONSE ALREADY ON THE EVENT
+			//BOTH ARE RESPONSES (duplicate response??)
+			//¿¿¿¿¿This could happen for 100 Continue responses which usually have another 200 Response afterwards????
+			THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT+=1;
 		
-		http_event aux_event;
-		memcpy(&aux_event.key, &key, sizeof(hash_key));
-		aux_event.ts_res.tv_sec  = pkthdr->ts.tv_sec;
-		aux_event.ts_res.tv_nsec = pkthdr->ts.tv_nsec;
+			http_event aux_event;
+			memcpy(&aux_event.key, &key, sizeof(hash_key));
+			aux_event.ts_res.tv_sec  = pkthdr->ts.tv_sec;
+			aux_event.ts_res.tv_nsec = pkthdr->ts.tv_nsec;
 
-		http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, &aux_event, op);
-		print_http_event(&aux_event, options->output_file);
-		increment_total_responses();
+			//PRINT THE ARRIVING EVENT USING AN AUX EVENT
+			http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, &aux_event, op);
+			print_http_event(&aux_event, options->output_file);
+			increment_total_responses();
 
-		memset(&aux_event, 0, sizeof(http_event));
-		return 1;
-	}
-	//THERE IS A REQUEST ALREADY ON THE EVENT
-	// => GET COLLISION & ADD REQUEST TO ANOTHER EVENT
-	else if(http_is_request(op) && event->status == WAITING_RESPONSE){ //BOTH ARE REQUESTS (duplicate request??)
-		//There is no known cases of this except duplicates or retransmissions
-		// event = create_collision_on_table(&key); //GET NEW EVENT
-		THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT+=1;
+			memset(&aux_event, 0, sizeof(http_event));
+			return 1;
+		}
+		//else{ 
+			//MEANS event->status == EMPTY //NO CORRESPONDING REQUEST FOUND BUT LETS ADD THE RESPONSE AND SEE IF THE REQUEST ARRIVES
+			//DO NOTHING
+		//}
 
-		http_event aux_event;
-		memcpy(&aux_event.key, &key, sizeof(hash_key));
-		aux_event.ts_req.tv_sec  = pkthdr->ts.tv_sec;
-		aux_event.ts_req.tv_nsec = pkthdr->ts.tv_nsec;
-		
-		http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, &aux_event, op);
-		print_http_event(&aux_event, options->output_file);
-		increment_request_counter(op);
-		increment_total_requests();
+	//REQUEST
+	}else if(http_is_request(op)){ //REQUEST
+		if(event->status == WAITING_RESPONSE){ // BOTH ARE REQUESTS (duplicate request??)
+			//There is no known cases of this except duplicates or retransmissions
+			THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT+=1;
 
-		memset(&aux_event, 0, sizeof(http_event));
-		return 2;
+			http_event aux_event;
+			memcpy(&aux_event.key, &key, sizeof(hash_key));
+			aux_event.ts_req.tv_sec  = pkthdr->ts.tv_sec;
+			aux_event.ts_req.tv_nsec = pkthdr->ts.tv_nsec;
+			
+			//PRINT THE ARRIVING EVENT USING AN AUX EVENT
+			http_fill_event(pktinfo.payload, (int) pktinfo.size_payload, &aux_event, op);
+			print_http_event(&aux_event, options->output_file);
+			increment_request_counter(op);
+			increment_total_requests();
+
+			memset(&aux_event, 0, sizeof(http_event));
+			return 2;
+		}
 	}
 
 	// http_status old_status = (*event)->status;
@@ -262,7 +250,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 		event->ts_req.tv_nsec = pkthdr->ts.tv_nsec;
 
 		//DISCARD IF URL/HOST FILTERS DO NOT APPLY
-		//THIS APPLIES WETHER THE TRANSACTION IS COMPLETED 
+		//THIS APPLIES WHETHER THE TRANSACTION IS COMPLETED 
 		//OR THE REQUEST IS WAITING A RESPONSE.
 		if(options->url != NULL){
 			if(boyermoore_search(event->url, options->url) == NULL){
@@ -285,19 +273,16 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 	}else{ //RESPONSE
 		event->ts_res.tv_sec  = pkthdr->ts.tv_sec;
 		event->ts_res.tv_nsec = pkthdr->ts.tv_nsec;
+		event->response_packet_size = pktinfo.size_payload;
 		increment_total_responses();
 	}
-
 
 	if(event->status == TRANSACTION_COMPLETE){
 		//IPS TO PRETTY PRINT NUMBER VECTOR
         print_http_event(event, options->output_file);
         increment_transactions();
 		
-		if(event->response_code != 100){
-			//DELETE EVENT AFTER PRINT
-			remove_event_from_table(&event->key);
-		}else{
+		if(event->response_code == 100){
 			//If 100 Continue, then do not delete the event and wait for the 200 OK response which comes afterwards
         	//Clear the response fields
         	event->response_code = 0;
@@ -305,21 +290,48 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
         	event->ts_res.tv_sec  = 0;
 			event->ts_res.tv_nsec = 0;
         	event->status = WAITING_RESPONSE;
+
+        	//UPDATE HASH KEY
+        	hash_key new_key;
+        	new_key.ip_src   = event->key.ip_src  ;
+			new_key.ip_dst   = event->key.ip_dst  ;
+			new_key.port_src = event->key.port_src;
+			new_key.port_dst = event->key.port_dst;
+			new_key.ack_seq  = event->key.ack_seq + event->response_packet_size; //REQUEST STORES THE ACK
+
+        	//ADD NEW EVENT
+        	//GET HTTP EVENT
+			http_event *new_event = get_event_from_table(&new_key);
+			if(new_event == NULL){
+				get_event_from_table_error+=1;
+				return -1; //ERROR
+			}
+
+			new_event->method = event->method;
+			new_event->ts_req.tv_sec = event->ts_req.tv_sec;
+			new_event->ts_req.tv_nsec = event->ts_req.tv_nsec;
+			memcpy(new_event->url, event->url, URL_SIZE);
+			memcpy(new_event->host, event->host, HOST_SIZE);
+			memcpy(new_event->agent, event->agent, AGENT_SIZE);
+
+			increment_request_counter(event->method);
+			increment_total_requests();
+
+			//FILL IF EMPTY
+			if(new_event->status == EMPTY){	
+				new_event->status 		= WAITING_RESPONSE;
+			}else if(new_event->status == WAITING_REQUEST){
+				new_event->status = TRANSACTION_COMPLETE;
+				print_http_event(new_event, options->output_file);
+				increment_transactions();
+				remove_event_from_table(&new_event->key);
+			}	
 		}
+
+		remove_event_from_table(&event->key);
 	}
 
-	//TODO:
-	// el modulo http debe ser quien rellene el evento para evitar copias secundarias
-	// comprobar lo que esta esperando
-	// si al acabar el proceso la transaccion esta completa
-	// imprimir los datos y eliminarla del pool
-
-	// last_key.ip_src   = key.ip_src  ;
-	// last_key.ip_dst   = key.ip_dst  ;
-	// last_key.port_src = key.port_src;
-	// last_key.port_dst = key.port_dst;
-	// last_key.ack_seq  = key.ack_seq ;
-
+	
 	return 1;
 }
 
