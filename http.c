@@ -674,7 +674,7 @@ int http_alloc(http_packet *http_t){
 
 	struct _internal_http_packet *http;
 	
-	http = (struct _internal_http_packet *) malloc(sizeof(* http));
+	http = (struct _internal_http_packet *) calloc(1, sizeof(* http));
 	if(http == NULL){
 		return -1;
 	}
