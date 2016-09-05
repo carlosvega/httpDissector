@@ -304,6 +304,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 			http_event *new_event = get_event_from_table(&new_key);
 			if(new_event == NULL){
 				get_event_from_table_error+=1;
+				memset(&new_event, 0, sizeof(http_event));
 				return -1; //ERROR
 			}
 
@@ -325,7 +326,8 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 				print_http_event(new_event, options->output_file);
 				increment_transactions();
 				remove_event_from_table(&new_event->key);
-			}	
+			}
+			memset(&new_event, 0, sizeof(http_event));
 		}
 
 		remove_event_from_table(&event->key);
