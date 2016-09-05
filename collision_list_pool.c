@@ -76,8 +76,8 @@ void free_collision_list_pool(){
 
 void alloc_collision_list_pool(){
 	//ALLOC
-	pool_collision_list_pointers = (collision_list **) malloc(COLLISION_LIST_POOL_SIZE * sizeof(collision_list*));
-	pool_collision_list_objects = (collision_list *) malloc(COLLISION_LIST_POOL_SIZE * sizeof(collision_list));
+	pool_collision_list_pointers = (collision_list **) calloc(COLLISION_LIST_POOL_SIZE, sizeof(collision_list*));
+	pool_collision_list_objects = (collision_list *) calloc(COLLISION_LIST_POOL_SIZE, sizeof(collision_list));
 	//ALLOC TEMP VARIABLE FOR SWAP
 	tmp_collision_list = (collision_list**) calloc(1, sizeof(collision_list*));
 	//INIT
