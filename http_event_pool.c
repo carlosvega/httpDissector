@@ -18,8 +18,8 @@ void free_http_event_pool(){
 
 void alloc_http_event_pool(){
 	//ALLOC
-	pool_http_event_pointers = (http_event**) malloc(HTTP_EVENT_POOL_SIZE * sizeof(http_event*));
-	pool_http_event_objects  = (http_event*) malloc(HTTP_EVENT_POOL_SIZE * sizeof(http_event));
+	pool_http_event_pointers = (http_event**) calloc(HTTP_EVENT_POOL_SIZE, sizeof(http_event*));
+	pool_http_event_objects  = (http_event*) calloc(HTTP_EVENT_POOL_SIZE, sizeof(http_event));
 	//ALLOC TEMP VARIABLE FOR SWAP
 	tmp_http_event = (http_event*) calloc(1, sizeof(http_event));
 	//INIT 
