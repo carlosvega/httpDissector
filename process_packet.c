@@ -195,7 +195,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 			//¿¿¿¿¿This could happen for 100 Continue responses which usually have another 200 Response afterwards????
 			THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT+=1;
 		
-			http_event aux_event;
+			http_event aux_event = {0}; 
 			memcpy(&aux_event.key, &key, sizeof(hash_key));
 			aux_event.ts_res.tv_sec  = pkthdr->ts.tv_sec;
 			aux_event.ts_res.tv_nsec = pkthdr->ts.tv_nsec;
@@ -219,7 +219,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 			//There is no known cases of this except duplicates or retransmissions
 			THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT+=1;
 
-			http_event aux_event;
+			http_event aux_event = {0};
 			memcpy(&aux_event.key, &key, sizeof(hash_key));
 			aux_event.ts_req.tv_sec  = pkthdr->ts.tv_sec;
 			aux_event.ts_req.tv_nsec = pkthdr->ts.tv_nsec;
@@ -304,7 +304,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 			http_event *new_event = get_event_from_table(&new_key);
 			if(new_event == NULL){
 				get_event_from_table_error+=1;
-				memset(&new_event, 0, sizeof(http_event));
 				return -1; //ERROR
 			}
 
@@ -327,7 +326,6 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr){
 				increment_transactions();
 				remove_event_from_table(&new_event->key);
 			}
-			memset(&new_event, 0, sizeof(http_event));
 		}
 
 		remove_event_from_table(&event->key);
