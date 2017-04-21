@@ -9,8 +9,8 @@ CC = gcc
 endif
 
 PRECFLAGS = $(CC) -Wall -mtune=native -march=native -O3 -D_GNU_SOURCE -Iinclude/ 
-CFLAGS = $(PRECFLAGS)
-LDFLAGS = -lm -lpthread -lpcap
+CFLAGS = $(PRECFLAGS)  -flto
+LDFLAGS = -lm -lpthread -lpcap  -flto
 
 OS := $(shell uname -s)
 ifeq ($(OS),Linux)

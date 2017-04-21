@@ -211,7 +211,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr)
 			//¿¿¿¿¿This could happen for 100 Continue responses which usually have another 200 Response afterwards????
 			THERE_IS_A_RESPONSE_ALREADY_ON_THE_EVENT += 1;
 
-			http_event aux_event = {0};
+			http_event aux_event = {{0}};
 			memcpy(&aux_event.key, &key, sizeof(hash_key));
 			aux_event.ts_res.tv_sec  = pkthdr->ts.tv_sec;
 			aux_event.ts_res.tv_nsec = pkthdr->ts.tv_nsec;
@@ -237,7 +237,7 @@ int parse_packet(const u_char *packet, const struct NDLTpkthdr *pkthdr)
 			//There is no known cases of this except duplicates or retransmissions
 			THERE_IS_A_REQUEST_ALREADY_ON_THE_EVENT += 1;
 
-			http_event aux_event = {0};
+			http_event aux_event = {{0}};
 			memcpy(&aux_event.key, &key, sizeof(hash_key));
 			aux_event.ts_req.tv_sec  = pkthdr->ts.tv_sec;
 			aux_event.ts_req.tv_nsec = pkthdr->ts.tv_nsec;
@@ -529,7 +529,7 @@ int begin_process(struct args_parse *o, process_info *p)
 
 	gettimeofday(&end, NULL);
 
-	long elapsed = end.tv_sec - processing->start.tv_sec;
+	//long elapsed = end.tv_sec - processing->start.tv_sec;
 
 	// gettimeofday(&end, NULL);
 	// remove_old_active_nodes(last_packet);
