@@ -5,7 +5,7 @@
 #include "alist.h"
 #include "args_parse.h"
 
-extern struct args_parse options;
+extern struct args_parse *options;
 
 #define FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
 
@@ -124,19 +124,19 @@ void http_free_header(http_header *http_hdr)
 		return;
 	}
 
-	if (options.debug > 1) {
+	if (options->debug > 1) {
 		fprintf(stderr, "3.1, ");
 	}
 
 	FREE(http_hdr->original);
 
-	if (options.debug > 1) {
+	if (options->debug > 1) {
 		fprintf(stderr, "3.2, ");
 	}
 
 	free_list(http_hdr->fields);
 
-	if (options.debug > 1) {
+	if (options->debug > 1) {
 		fprintf(stderr, "3.3");
 	}
 
@@ -150,19 +150,19 @@ void free_list(list_node *list)
 		return;
 	}
 
-	if (options.debug > 2) {
+	if (options->debug > 2) {
 		fprintf(stderr, "3.2.1, ");
 	}
 
 	FREE(list->key);
 
-	if (options.debug > 2) {
+	if (options->debug > 2) {
 		fprintf(stderr, "3.2.2, ");
 	}
 
 	FREE(list->value);
 
-	if (options.debug > 2) {
+	if (options->debug > 2) {
 		fprintf(stderr, "3.2.3, ");
 	}
 
@@ -170,13 +170,13 @@ void free_list(list_node *list)
 
 	free_list(list->next);
 
-	if (options.debug > 2) {
+	if (options->debug > 2) {
 		fprintf(stderr, "3.2.4, ");
 	}
 
 	FREE(list);
 
-	if (options.debug > 2) {
+	if (options->debug > 2) {
 		fprintf(stderr, "3.2.5, ");
 	}
 
