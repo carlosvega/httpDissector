@@ -369,7 +369,7 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 				strcpy(http->agent, "no agent");
 
 			} else {
-				strcpy(http->agent, agent);
+				strncpy(http->agent, agent, AGENT_SIZE);
 				http->has_agent = 1;
 			}
 		}
@@ -469,7 +469,7 @@ int http_fill_event(u_char *tcp_payload, int length, http_event *event, http_op 
 				strcpy(event->agent, "no agent");
 
 			} else {
-				strcpy(event->agent, agent);
+				strncpy(event->agent, agent, AGENT_SIZE);
 			}
 		}
 
@@ -531,7 +531,7 @@ int http_parse_packet_with_op(u_char *tcp_payload, int length, http_packet *http
 				strcpy(http->agent, "no agent");
 
 			} else {
-				strcpy(http->agent, agent);
+				strncpy(http->agent, agent, AGENT_SIZE);
 				http->has_agent = 1;
 			}
 		}
