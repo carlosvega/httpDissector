@@ -389,7 +389,7 @@ int http_fill_event(u_char *tcp_payload, int length, http_event *event, http_op 
 		if(host == NULL){
 			inet_ntop(AF_INET, &event->key.ip_dst, event->host, 16);
 		}else{
-			strcpy(event->host, host);
+			strncpy(event->host, host, HOST_SIZE);
 		}
 
 		if(options->agent){
@@ -397,7 +397,7 @@ int http_fill_event(u_char *tcp_payload, int length, http_event *event, http_op 
 			if(agent == NULL){
 				strcpy(event->agent, "no agent");
 			}else{
-				strcpy(event->agent, agent);
+				strncpy(event->agent, agent, AGENT_SIZE);
 			}
 		}
 
