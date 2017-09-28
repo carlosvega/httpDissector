@@ -344,7 +344,7 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 			inet_ntop(AF_INET, &ip_dst, http->host, 16);
 
 		} else {
-			strcpy(http->host, host);
+			strncpy(http->host, host, HOST_SIZE);
 			http->has_host = 1;
 		}
 
@@ -356,7 +356,7 @@ int http_parse_packet(u_char *tcp_payload, int length, http_packet *http_t, stru
 				strcpy(http->agent, "no agent");
 
 			} else {
-				strcpy(http->agent, agent);
+				strncpy(http->agent, agent, AGENT_SIZE);
 				http->has_agent = 1;
 			}
 		}
