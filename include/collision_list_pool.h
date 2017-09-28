@@ -12,7 +12,7 @@
 
 //TODO: ALLOW MULTIPLE POOLS
 void clean_old_elements();
-unsigned long get_used_collision_list_elements();
+long get_used_collision_list_elements();
 void free_collision_list_pool();
 void alloc_collision_list_pool();
 collision_list* pop_collision_list();

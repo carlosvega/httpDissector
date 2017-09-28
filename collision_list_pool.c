@@ -4,12 +4,12 @@
 collision_list **pool_collision_list_pointers = NULL;
 collision_list  *pool_collision_list_objects  = NULL;
 collision_list  **tmp_collision_list = NULL; //USED TO SWAP ELEMENTS
-unsigned long last_collision_list = -1; //POSITION OF THE LAST ELEMENT POPED
+long last_collision_list = -1; //POSITION OF THE LAST ELEMENT POPED
 
 extern process_info *processing;
 extern struct args_parse *options;
 
-unsigned long get_used_collision_list_elements(){
+long get_used_collision_list_elements(){
 	return last_collision_list;
 }
 
@@ -17,10 +17,10 @@ void clean_old_elements(){
 	struct timespec diff_req = {0}, diff_res = {0};
 
 	long i;
-	for(i=0; i<last_collision_list; i++){
+	for(i=0; i<last_collision_list; i++){ //If you use an unsigned long for last_collistion_list take care !
 		collision_list *cell = pool_collision_list_pointers[i];
 		if(cell == NULL){
-			fprintf(stderr, "CELL IS NULL\n");
+			fprintf(stderr, "CELL IS NULL %lu (%ld) / %ld\n", last_collision_list, i, COLLISION_LIST_POOL_SIZE);
 		}
 		long j;
 		for(j=0; j<cell->used; j++){
@@ -81,7 +81,7 @@ void alloc_collision_list_pool(){
 	//ALLOC TEMP VARIABLE FOR SWAP
 	tmp_collision_list = (collision_list**) calloc(1, sizeof(collision_list*));
 	//INIT
-	unsigned long p;
+	long p;
 	for(p=0; p<COLLISION_LIST_POOL_SIZE; p++){
 		pool_collision_list_pointers[p] = &pool_collision_list_objects[p];
 		pool_collision_list_objects[p].parent = p;
@@ -143,8 +143,8 @@ void push_collision_list(collision_list *element){
 	// 		pool_collision_list_pointers[last_collision_list]->id);
 
 	//Get parents (pointer) location 
-	unsigned long element_position = element->parent;
-	unsigned long last_position    = last_collision_list;
+	long element_position = element->parent;
+	long last_position    = last_collision_list;
 
 	//Get childrens
 	collision_list *push_element = pool_collision_list_pointers[element_position];
