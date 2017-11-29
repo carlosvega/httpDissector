@@ -13,7 +13,8 @@ long get_used_collision_list_elements(){
 	return last_collision_list;
 }
 
-void clean_old_elements(){
+void clean_old_elements()
+{
 	struct timespec diff_req = {0}, diff_res = {0};
 
 	long i;
@@ -22,10 +23,13 @@ void clean_old_elements(){
 		if(cell == NULL){
 			fprintf(stderr, "CELL IS NULL %lu (%ld) / %ld\n", last_collision_list, i, COLLISION_LIST_POOL_SIZE);
 		}
+
 		long j;
-		for(j=0; j<cell->used; j++){
+
+		for (j = 0; j < cell->used; j++) {
 			http_event *event = cell->events[j];
-			if(event == NULL){ //NOT A PROBLEM IF MORE ELEMENTS IN CELL
+
+			if (event == NULL) { //NOT A PROBLEM IF MORE ELEMENTS IN CELL
 				// int flag = 0;
 				// if(j==0){
 				// 	int k;
@@ -41,23 +45,28 @@ void clean_old_elements(){
 				// 	fprintf(stderr, "EVENT IS NULL %ld - used: %ld - flag: %d\n", j, cell->used, flag);
 				// }
 				continue;
-			}else{
-				diff_req.tv_sec = 0; diff_req.tv_nsec = 0; //REQ
-				diff_res.tv_sec = 0; diff_res.tv_nsec = 0; //RES
 
-				if(event->ts_req.tv_sec != 0){
+			} else {
+				diff_req.tv_sec = 0;
+				diff_req.tv_nsec = 0; //REQ
+				diff_res.tv_sec = 0;
+				diff_res.tv_nsec = 0; //RES
+
+				if (event->ts_req.tv_sec != 0) {
 					diff_req = tsSubtract2(processing->last_packet, event->ts_req);
 				}
 
-				if(event->ts_res.tv_sec != 0){
+				if (event->ts_res.tv_sec != 0) {
 					diff_res = tsSubtract2(processing->last_packet, event->ts_res);
 				}
 
-				if(labs(diff_req.tv_sec) > 120 || labs(diff_res.tv_sec) > 120){
+				if (labs(diff_req.tv_sec) > 120 || labs(diff_res.tv_sec) > 120) {
 					pthread_mutex_lock(&processing->mutex);
-					if(event->status != EMPTY){
+
+					if (event->status != EMPTY) {
 						print_http_event(event, options->output_file);
 					}
+
 					remove_event_from_table(&event->key);
 					pthread_mutex_unlock(&processing->mutex);
 				}
@@ -67,19 +76,21 @@ void clean_old_elements(){
 	}
 }
 
-void free_collision_list_pool(){
+void free_collision_list_pool()
+{
 	FREE(pool_collision_list_pointers);
 	FREE(pool_collision_list_objects);
 	tmp_collision_list = NULL;
 	last_collision_list = -1;
 }
 
-void alloc_collision_list_pool(){
+void alloc_collision_list_pool()
+{
 	//ALLOC
-	pool_collision_list_pointers = (collision_list **) calloc(COLLISION_LIST_POOL_SIZE, sizeof(collision_list*));
+	pool_collision_list_pointers = (collision_list **) calloc(COLLISION_LIST_POOL_SIZE, sizeof(collision_list *));
 	pool_collision_list_objects = (collision_list *) calloc(COLLISION_LIST_POOL_SIZE, sizeof(collision_list));
 	//ALLOC TEMP VARIABLE FOR SWAP
-	tmp_collision_list = (collision_list**) calloc(1, sizeof(collision_list*));
+	tmp_collision_list = (collision_list **) calloc(1, sizeof(collision_list *));
 	//INIT
 	long p;
 	for(p=0; p<COLLISION_LIST_POOL_SIZE; p++){
@@ -89,29 +100,33 @@ void alloc_collision_list_pool(){
 	}
 }
 
-collision_list* pop_collision_list(){
+collision_list *pop_collision_list()
+{
 	last_collision_list++;
-	if(last_collision_list >= COLLISION_LIST_POOL_SIZE){
+
+	if (last_collision_list >= COLLISION_LIST_POOL_SIZE) {
 		fprintf(stderr, "FULL COLLISION_LIST_POOL\n");
 		exit(-11);
 		return NULL;
 	}
+
 	// fprintf(stderr, "pop element.used %d\telement.a\t%lu\telement.id\t%lu\n", pool_collision_list_pointers[last_collision_list]->used, pool_collision_list_pointers[last_collision_list]->parent,
-		// pool_collision_list_pointers[last_collision_list]->id);
+	// pool_collision_list_pointers[last_collision_list]->id);
 
 	return pool_collision_list_pointers[last_collision_list];
 }
 
-void push_collision_list(collision_list *element){
-	
+void push_collision_list(collision_list *element)
+{
+
 	//SWAP CHILDRENS !
 	//			   # 				<-- last_collision_list	(last_used)
 	//    [*] [*] [*] [ ] [ ]       <-- pool_collision_list_pointers
-    //     |   |   |
+	//     |   |   |
 	//     V   V   V
 	//     e   e   e   ·   ·		<-- pool_collision_list_elements
 	//     0   1   2   3   4
- 	//     
+	//
 	//     Example: pushing the element e1 back to the pool
 	//     the last element is 2
 	//     tell 2's pointer its new children is e1
@@ -119,26 +134,27 @@ void push_collision_list(collision_list *element){
 	//     tell 1's pointer its new children is e2
 	//     tell 1's element its new parent is p2
 	//     decrease last_collision_list and clean e1
-	//     
-	//     Result 
+	//
+	//     Result
 	//			#                <-- last_collision_list  (last_used)
 	//	   [*] [*] [ ] [ ] [ ]   <-- pool_collision_list_pointers
- 	//	    |    ⧹  /
- 	//      |     X
- 	//	    V    / ⧹             <-- p1 points to e2; p2 points to e1
- 	//	    e   ·   e   ·   ·	 <-- pool_collision_list_elements
- 	//	    0   1   2   3   4
+	//	    |    ⧹  /
+	//      |     X
+	//	    V    / ⧹             <-- p1 points to e2; p2 points to e1
+	//	    e   ·   e   ·   ·	 <-- pool_collision_list_elements
+	//	    0   1   2   3   4
 	//
 
 	element->used = 0;
 	int i;
-	for(i=0; i<COLLISION_SIZE; i++){
+
+	for (i = 0; i < COLLISION_SIZE; i++) {
 		element->events[i] = 0;
 	}
 
-	// fprintf(stderr, "PUSH BEFORE.\telement\tused\t%d\telement\tindex\t%lu\telement\tpointer\t%p\tid\t%lu\n", 
+	// fprintf(stderr, "PUSH BEFORE.\telement\tused\t%d\telement\tindex\t%lu\telement\tpointer\t%p\tid\t%lu\n",
 	// 	element->used, element->parent, element, element->id);
-	// fprintf(stderr, "PUSH BEFORE.\tlast\tused\t%d\tlast\tindex\t%lu\tlast\tpointer\t%p\tid\t%lu\n", 
+	// fprintf(stderr, "PUSH BEFORE.\tlast\tused\t%d\tlast\tindex\t%lu\tlast\tpointer\t%p\tid\t%lu\n",
 	// 	pool_collision_list_pointers[last_collision_list]->used, pool_collision_list_pointers[last_collision_list]->parent, pool_collision_list_pointers[last_collision_list],
 	// 		pool_collision_list_pointers[last_collision_list]->id);
 
@@ -154,10 +170,10 @@ void push_collision_list(collision_list *element){
 	push_element->parent = last_position;
 	last_element->parent = element_position;
 
-	// fprintf(stderr, "PUSH MIDDLE.\telement\tused\t%d\telement\tindex\t%lu\telement\tpointer\t%p\tid\t%lu\n", 
+	// fprintf(stderr, "PUSH MIDDLE.\telement\tused\t%d\telement\tindex\t%lu\telement\tpointer\t%p\tid\t%lu\n",
 	// 	pool_collision_list_pointers[element_position]->used, pool_collision_list_pointers[element_position]->parent, pool_collision_list_pointers[element_position],
 	// 		pool_collision_list_pointers[element_position]->id);
-	// fprintf(stderr, "PUSH MIDDLE.\tlast\tused\t%d\tlast\tindex\t%lu\tlast\tpointer\t%p\tid\t%lu\n", 
+	// fprintf(stderr, "PUSH MIDDLE.\tlast\tused\t%d\tlast\tindex\t%lu\tlast\tpointer\t%p\tid\t%lu\n",
 	// 		pool_collision_list_pointers[last_collision_list]->used, pool_collision_list_pointers[last_collision_list]->parent, pool_collision_list_pointers[last_collision_list],
 	// 		pool_collision_list_pointers[last_collision_list]->id);
 
@@ -165,13 +181,13 @@ void push_collision_list(collision_list *element){
 	pool_collision_list_pointers[element_position] = last_element;
 	pool_collision_list_pointers[last_position]    = push_element;
 
-	// fprintf(stderr, "PUSH AFTER.\telement\tused\t%d\telement\tindex\t%lu\telement\tpointer\t%p\tid\t%lu\n", 
+	// fprintf(stderr, "PUSH AFTER.\telement\tused\t%d\telement\tindex\t%lu\telement\tpointer\t%p\tid\t%lu\n",
 	// 	pool_collision_list_pointers[element_position]->used, pool_collision_list_pointers[element_position]->parent, pool_collision_list_pointers[element_position],
 	// 		pool_collision_list_pointers[element_position]->id);
-	// fprintf(stderr, "PUSH AFTER.\tlast\tused\t%d\tlast\tindex\t%lu\tlast\tpointer\t%p\tid\t%lu\n", 
+	// fprintf(stderr, "PUSH AFTER.\tlast\tused\t%d\tlast\tindex\t%lu\tlast\tpointer\t%p\tid\t%lu\n",
 	// 	pool_collision_list_pointers[last_collision_list]->used, pool_collision_list_pointers[last_collision_list]->parent, pool_collision_list_pointers[last_collision_list],
 	// 		pool_collision_list_pointers[last_collision_list]->id);
-	
+
 	last_collision_list--;
 
 }
