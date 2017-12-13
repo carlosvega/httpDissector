@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "args_parse.h"
-
+#include "packet_info.h"
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
@@ -15,6 +15,7 @@ extern struct args_parse options;
 #define ERR_MSG(...) do{if(options.debug){fprintf(stderr, __VA_ARGS__);}}while(0)
 #define CADENA_SIZE 3072
 #define CADENA_AUX_SIZE 256
+
 
 // char aux_str[MAX_PAYLOAD_STRING];
 
