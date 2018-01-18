@@ -6,9 +6,9 @@ An HTTP dissector able to process traffic from PCAP files or straight from the i
 response timestamp; response time; response message; response code;
 method; agent; host; URI
 
-For example
+For example (without spaces)
 
-> 111.244.55.119|49713|132.124.34.218|80|1411039074.263069000|1411039074.300602000|0.037533000|OK|200|GET|example.com|/some/url/with/a/path/to/the/resource
+> 111.244.55.119|49713|132.124.34.218|80|1411039074.263069000| 1411039074.300602000|0.037533000|OK|200|GET|example.com| /some/url/with/a/path/to/the/resource
 
 This HTTP dissector is further described in the paper **Multi-Gbps HTTP Traffic Analysis in Commodity Hardware Based on Local Knowledge of TCP Streams** published in [Computer Networks](http://www.sciencedirect.com/science/article/pii/S1389128617300014) and available at [arXiv](https://arxiv.org/abs/1701.04617). The paper is authored by Carlos Vega, Paula Roquero and Javier Aracil, from the [HPCN](http://www.hpcn-uam.es/) research lab at [Universidad Autónoma de Madrid](www.uam.es). For the experiments described in the aforementioned paper, the *revisited* branch was used.
 
