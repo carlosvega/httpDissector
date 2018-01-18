@@ -2,13 +2,17 @@
 
 An HTTP dissector able to process traffic from PCAP files or straight from the interface at 10Gbps and more thanks to a technique which avoids the reassembly of the underlying TCP connection, mathing the first packet of the HTTP request and the first packet of the HTTP response, disregarding the rest of the connection. Also, thanks to a new hash function (eq 2), we are able to match these 2 packets into a HTTP transaction, avoiding heavy hitter issues seen with traditional hash functions (eq 1). The provided output format is the following:
 
-> client IP; client port; server IP; server port; request timestamp;
+```
+client IP; client port; server IP; server port; request timestamp;
 response timestamp; response time; response message; response code;
 method; agent; host; URI
+```
 
-For example (without spaces)
+For example:
 
-> 111.244.55.119|49713|132.124.34.218|80|1411039074.263069000| 1411039074.300602000|0.037533000|OK|200|GET|example.com| /some/url/with/a/path/to/the/resource
+```
+111.244.55.119|49713|132.124.34.218|80|1411039074.263069000|1411039074.300602000|0.037533000|OK|200|GET|example.com|/some/url/with/a/path/to/the/resource
+```
 
 This HTTP dissector is further described in the paper **Multi-Gbps HTTP Traffic Analysis in Commodity Hardware Based on Local Knowledge of TCP Streams** published in [Computer Networks](http://www.sciencedirect.com/science/article/pii/S1389128617300014) and available at [arXiv](https://arxiv.org/abs/1701.04617). The paper is authored by Carlos Vega, Paula Roquero and Javier Aracil, from the [HPCN](http://www.hpcn-uam.es/) research lab at [Universidad Autónoma de Madrid](www.uam.es). For the experiments described in the aforementioned paper, the *revisited* branch was used.
 
@@ -20,8 +24,21 @@ As seen in the next figure, the HTTPanalyzer is able to process traffic traces a
 
 ## Hash for load distribution and memory organization
 
-Instead of using the traditional hash function to distribute packets based on the connection information (source IP and port as well as destination IP and port), we add up the acknowledge and sequence numbers depending on whether the packet it's a request or response, respectively. This technique avoids heavy hitter issues when some connections have more transactions or packets than others since it distributes the packets at transaction level instead of connection level, and uses the ack./seq. numbers which are randomly initialized during the connection initialization. 
+Instead of using the traditional hash function to distribute packets based on the connection information (source IP and port as well as destination IP and port), we add up the acknowledge and sequence numbers depending on whether the packet it's a request or response, respectively. This technique avoids heavy hitter issues when some connections have more transactions or packets than others since it distributes the packets at transaction level instead of connection level, and uses the ack./seq. numbers which are randomly initialized during the connection initialization. The next figure shows a comparison of the distribution of the packets using different hash functions
 
+<img alt="Comparison of the distribution of the packets using different hash functions" src="https://carlosvega.github.io/httpDissector/charts/fig_hash.png" width=800>
+
+### Traditional hash function
+
+![4-Tuple hash function](https://carlosvega.github.io/httpDissector/equations/eq_1.png)
+
+### Proposed hash function
+
+![Proposed hash function](https://carlosvega.github.io/httpDissector/equations/eq_2.png)
+
+### Modfied version of the proposed hash function for load distribution between consumers
+
+![Proposed hash function](https://carlosvega.github.io/httpDissector/equations/eq_3.png)
 
 
 ## Limitations
@@ -30,6 +47,9 @@ The aforementioned procedure is not as precise as the complete reassembly of the
 
 ### Unordered HTTP messages
 To partially circumvent the issue with unordered HTTP messages we do store the HTTP message whether it is a request or response and keep it waiting to the counterpart, hence, pairing can happen in both orders.
+
+<img alt="Example of unordered arrival of packets" src="https://carlosvega.github.io/httpDissector/diagrams/dia_unordered.png" height=400>
+
 ### Retransmitted messages
 In the event of retransmitted messages, they are stored on their corresponding cell as well, in the collision list, resulting in duplicate transactions records. Such duplicate records must be filtered out afterwards by the analyst
 ### Accuracy
