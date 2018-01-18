@@ -1,1 +1,4 @@
 theme: jekyll-theme-minimal
+title: HTTP Dissector
+description: An HTTP dissector able to process traffic from PCAP files or straight from the interface at 10Gbps and more.
+show_downloads: true
