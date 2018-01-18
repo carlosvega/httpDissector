@@ -2,7 +2,6 @@
 *.o
 
 .DS_Store
-charts/
 old/
 zips/
 scripts/
