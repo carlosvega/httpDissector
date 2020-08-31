@@ -16,6 +16,10 @@ For example:
 
 This HTTP dissector is further described in the paper **Multi-Gbps HTTP Traffic Analysis in Commodity Hardware Based on Local Knowledge of TCP Streams** published in [Computer Networks](http://www.sciencedirect.com/science/article/pii/S1389128617300014) and available at [arXiv](https://arxiv.org/abs/1701.04617). The paper is authored by Carlos Vega, Paula Roquero and Javier Aracil, from the [HPCN](http://www.hpcn-uam.es/) research lab at [Universidad Autónoma de Madrid](www.uam.es). For the experiments described in the aforementioned paper, the *revisited* branch was used.
 
+## Cite as
+
+Vega, C., Roquero, P., & Aracil, J. (2017). Multi-Gbps HTTP traffic analysis in commodity hardware based on local knowledge of TCP streams. Computer Networks, 113, 258-268.
+
 ## Benchmark
 
 As seen in the next figure, the HTTPanalyzer is able to process traffic traces at speeds higher than 10Gbps. Of course [tshark](https://www.wireshark.org/) provides wider functionality and more powerful features targeted to packet inspection, which considerably affects its performance. This tool is aimed to high performance dissection in near real-time.
