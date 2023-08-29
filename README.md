@@ -4,7 +4,7 @@
   Also available at: <a href="https://carlosvega.github.io/httpDissector/">https://carlosvega.github.io/httpDissector/</a>
 </p>
 
-An HTTP dissector able to process traffic from PCAP files or straight from the interface at 10Gbps and more thanks to a technique which avoids the reassembly of the underlying TCP connection, mathing the first packet of the HTTP request and the first packet of the HTTP response, disregarding the rest of the connection. Also, thanks to a new hash function (eq 2), we are able to match these 2 packets into a HTTP transaction, avoiding heavy hitter issues seen with traditional hash functions (eq 1). The provided output format is the following:
+An HTTP dissector able to process traffic from PCAP files or straight from the interface at 10Gbps and more thanks to a technique which avoids the reassembly of the underlying TCP connection, matching the first packet of the HTTP request and the first packet of the HTTP response, disregarding the rest of the connection. Also, thanks to a new hash function (eq 2), we are able to match these 2 packets into a HTTP transaction, avoiding heavy hitter issues seen with traditional hash functions (eq 1). The provided output format is the following:
 
 ```
 client IP; client port; server IP; server port; request timestamp;
